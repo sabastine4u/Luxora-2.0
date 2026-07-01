@@ -1,0 +1,413 @@
+/* Centralized mock data for Luxora 2.0 */
+import { ROLES } from '../constants/roles';
+
+export type Property = {
+  id: string;
+  title: string;
+  location: string;
+  price: string;
+  priceValue: number;
+  monthly: string;
+  type: string;
+  beds: number;
+  baths: number;
+  area: string;
+  image: string;
+  verified: string[];
+  agent: { name: string; agency: string; avatar: string };
+  tag?: string;
+};
+
+export const properties: Property[] = [
+  {
+    id: 'p1',
+    title: 'Skyline Penthouse Residence',
+    location: 'Eko Atlantic, Lagos',
+    price: '₦420,000,000',
+    priceValue: 420_000_000,
+    monthly: '₦2.9M',
+    type: 'Penthouse',
+    beds: 5,
+    baths: 6,
+    area: '640 m²',
+    image:
+      'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    verified: ['Documents', 'Inspection', 'Premium'],
+    agent: { name: 'Adaeze Okonkwo', agency: 'Meridian Luxury', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    tag: 'Featured',
+  },
+  {
+    id: 'p2',
+    title: 'Garden Court Villa',
+    location: 'Banana Island, Lagos',
+    price: '₦680,000,000',
+    priceValue: 680_000_000,
+    monthly: '₦4.7M',
+    type: 'Villa',
+    beds: 7,
+    baths: 8,
+    area: '920 m²',
+    image:
+      'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    verified: ['Documents', 'Inspection', 'Premium', ROLES.AGENT],
+    agent: { name: 'Tunde Bakare', agency: 'Crest & Crown', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    tag: 'Premium Verified',
+  },
+  {
+    id: 'p3',
+    title: 'Marina View Apartment',
+    location: 'Lekki Phase 1, Lagos',
+    price: '₦185,000,000',
+    priceValue: 185_000_000,
+    monthly: '₦1.3M',
+    type: 'Apartment',
+    beds: 3,
+    baths: 4,
+    area: '210 m²',
+    image:
+      'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    verified: ['Documents', 'Inspection'],
+    agent: { name: 'Ngozi Eze', agency: 'Atlas Realty', avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200' },
+  },
+  {
+    id: 'p4',
+    title: 'The Continental Duplex',
+    location: 'Maitama, Abuja',
+    price: '₦310,000,000',
+    priceValue: 310_000_000,
+    monthly: '₦2.1M',
+    type: 'Duplex',
+    beds: 5,
+    baths: 6,
+    area: '480 m²',
+    image:
+      'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    verified: ['Documents', 'Inspection', 'Premium', ROLES.AGENT],
+    agent: { name: 'Femi Adeola', agency: 'Sterling Homes', avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    tag: 'New',
+  },
+  {
+    id: 'p5',
+    title: 'Hilltop Family Estate',
+    location: 'Asokoro, Abuja',
+    price: '₦540,000,000',
+    priceValue: 540_000_000,
+    monthly: '₦3.8M',
+    type: 'Family House',
+    beds: 6,
+    baths: 7,
+    area: '760 m²',
+    image:
+      'https://images.pexels.com/photos/1029599/pexels-photo-1029599.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    verified: ['Documents', 'Inspection', 'Premium'],
+    agent: { name: 'Chioma Obi', agency: 'Meridian Luxury', avatar: 'https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=200' },
+  },
+  {
+    id: 'p6',
+    title: 'Aurora Smart Studio',
+    location: 'Yaba, Lagos',
+    price: '₦62,000,000',
+    priceValue: 62_000_000,
+    monthly: '₦450,000',
+    type: 'Studio',
+    beds: 1,
+    baths: 1,
+    area: '65 m²',
+    image:
+      'https://images.pexels.com/photos/1572889/pexels-photo-1572889.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    verified: ['Documents', ROLES.AGENT],
+    agent: { name: 'Kunle Sanusi', agency: 'Atlas Realty', avatar: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    tag: 'Investor Pick',
+  },
+];
+
+export type Category = {
+  name: string;
+  icon: string;
+  count: string;
+};
+
+export const categories: Category[] = [
+  { name: 'Apartment', icon: 'Building2', count: '4,210 listings' },
+  { name: 'Duplex', icon: 'Home', count: '1,840 listings' },
+  { name: 'Studio Apartment', icon: 'DoorOpen', count: '920 listings' },
+  { name: 'Mini Flat', icon: 'BedDouble', count: '1,360 listings' },
+  { name: 'Self Contain', icon: 'DoorClosed', count: '2,540 listings' },
+  { name: 'Short Let', icon: 'Key', count: '780 listings' },
+  { name: 'Student Housing', icon: 'GraduationCap', count: '540 listings' },
+  { name: 'Family House', icon: 'House', count: '1,120 listings' },
+  { name: 'Land', icon: 'Trees', count: '3,200 listings' },
+  { name: 'Warehouse', icon: 'Warehouse', count: '410 listings' },
+  { name: 'Office Space', icon: 'Briefcase', count: '680 listings' },
+];
+
+export type Agency = {
+  name: string;
+  rating: number;
+  listings: number;
+  deals: number;
+  logo: string;
+  color: string;
+};
+
+export const agencies: Agency[] = [
+  { name: 'Meridian Luxury', rating: 4.9, listings: 420, deals: 312, logo: 'M', color: 'from-gold-400 to-gold-600' },
+  { name: 'Crest & Crown', rating: 4.8, listings: 380, deals: 289, logo: 'C', color: 'from-blue-400 to-blue-600' },
+  { name: 'Atlas Realty', rating: 4.7, listings: 510, deals: 401, logo: 'A', color: 'from-emerald-400 to-emerald-600' },
+  { name: 'Sterling Homes', rating: 4.8, listings: 290, deals: 234, logo: 'S', color: 'from-rose-400 to-rose-600' },
+];
+
+export type Testimonial = {
+  name: string;
+  role: string;
+  avatar: string;
+  quote: string;
+  rating: number;
+};
+
+export const testimonials: Testimonial[] = [
+  {
+    name: 'Bisi Williams',
+    role: 'Investor, Lagos',
+    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200',
+    quote: 'Luxora changed how I evaluate property. The verification badges and investment score gave me the confidence to close on three units in one quarter.',
+    rating: 5,
+  },
+  {
+    name: 'Chidi Okafor',
+    role: 'Homeowner, Abuja',
+    avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=200',
+    quote: 'The mortgage calculator showed me I could afford a home I thought was out of reach. The payment plan was transparent from day one.',
+    rating: 5,
+  },
+  {
+    name: 'Amara Eze',
+    role: 'Agency Director, Crest & Crown',
+    avatar: 'https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=200',
+    quote: 'As an agency, the intelligence dashboard and verification queue have cut our deal cycle time by 40%. It is the platform we always wanted.',
+    rating: 5,
+  },
+];
+
+/* ---------- Dashboard data ---------- */
+
+export type NavItem = { label: string; icon: string; badge?: string };
+
+export const sidebarNav: NavItem[] = [
+  { label: 'Dashboard', icon: 'LayoutDashboard' },
+  { label: 'Properties', icon: 'Building2', badge: '12.4k' },
+  { label: 'Verification', icon: 'ShieldCheck', badge: '38' },
+  { label: 'Agencies', icon: 'Landmark' },
+  { label: 'Agents', icon: 'Users' },
+  { label: 'Finance', icon: 'Wallet' },
+  { label: 'Procurement', icon: 'Package' },
+  { label: 'Property Intelligence', icon: 'Brain' },
+  { label: 'Property Management', icon: 'KeyRound' },
+  { label: 'Home Services', icon: 'Wrench' },
+  { label: 'Partnerships', icon: 'Handshake' },
+  { label: 'Users', icon: 'UserCircle' },
+  { label: 'Admins', icon: 'Shield' },
+  { label: 'Reports', icon: 'FileBarChart' },
+  { label: 'Settings', icon: 'Settings' },
+];
+
+export const buyerNav: NavItem[] = [
+  { label: 'Overview', icon: 'LayoutDashboard' },
+  { label: 'Saved Properties', icon: 'Heart', badge: '3' },
+  { label: 'Mortgage Tracker', icon: 'Wallet' },
+  { label: 'Messages', icon: 'MessageSquare', badge: '2' },
+  { label: 'Viewing Requests', icon: 'Eye' },
+  { label: 'Offers', icon: 'FileCheck' },
+  { label: 'Settings', icon: 'Settings' },
+];
+
+export const ownerNav: NavItem[] = [
+  { label: 'My Property Requests', icon: 'Home', badge: '1' },
+  { label: 'Verification Progress', icon: 'ShieldCheck', badge: '2' },
+  { label: 'Messages', icon: 'MessageSquare', badge: '5' },
+  { label: 'Offers', icon: 'FileCheck', badge: '3' },
+  { label: 'Rental Income', icon: 'Wallet' },
+  { label: 'Analytics', icon: 'TrendingUp' },
+  { label: 'Settings', icon: 'Settings' },
+];
+
+export const agentNav: NavItem[] = [
+  { label: 'Assigned Leads', icon: 'Users', badge: '12' },
+  { label: 'Properties', icon: 'Building2' },
+  { label: 'Appointments', icon: 'Calendar', badge: '3' },
+  { label: 'Messages', icon: 'MessageSquare', badge: '8' },
+  { label: 'Performance', icon: 'TrendingUp' },
+  { label: 'Reports', icon: 'FileBarChart' },
+  { label: 'Settings', icon: 'Settings' },
+];
+
+export const agencyNav: NavItem[] = [
+  { label: 'Agents', icon: 'Users', badge: '14' },
+  { label: 'Listings', icon: 'Building2', badge: '42' },
+  { label: 'Performance', icon: 'TrendingUp' },
+  { label: 'Revenue', icon: 'Wallet' },
+  { label: 'Reports', icon: 'FileBarChart' },
+  { label: 'Settings', icon: 'Settings' },
+];
+
+export const adminNav: NavItem[] = [
+  { label: 'Verification Queue', icon: 'ShieldCheck', badge: '14' },
+  { label: 'Owners', icon: 'UserCircle' },
+  { label: 'Buyers', icon: 'Heart' },
+  { label: 'Agents', icon: 'Users' },
+  { label: 'Agencies', icon: 'Building2' },
+  { label: 'Complaints', icon: 'MessageSquare', badge: '5' },
+  { label: 'Reports', icon: 'FileBarChart' },
+  { label: 'Finance', icon: 'Landmark' },
+  { label: 'Settings', icon: 'Settings' },
+];
+
+export const superAdminNav: NavItem[] = [
+  { label: 'Business Health', icon: 'Activity' },
+  { label: 'Revenue', icon: 'Banknote' },
+  { label: 'Management', icon: 'Briefcase' },
+  { label: 'Procurement', icon: 'ShoppingCart' },
+  { label: 'Finance', icon: 'Landmark' },
+  { label: 'Reports', icon: 'FileBarChart' },
+  { label: 'Fraud Alerts', icon: 'ShieldAlert', badge: '3' },
+  { label: 'Property Intelligence', icon: 'Brain' },
+  { label: 'Property Management', icon: 'Building2' },
+  { label: 'Home Services', icon: 'Wrench' },
+  { label: 'Admin Management', icon: 'UserCog' },
+  { label: 'System Settings', icon: 'Settings' },
+  { label: 'Agency Rankings', icon: 'Crown' },
+  { label: 'Charts', icon: 'PieChart' },
+  { label: 'Analytics', icon: 'TrendingUp' },
+];
+
+export const managementNav: NavItem[] = [
+  { label: 'Business KPIs', icon: 'Activity' },
+  { label: 'Operations', icon: 'Settings' },
+  { label: 'Agency Performance', icon: 'Building2' },
+  { label: 'Agent Performance', icon: 'Users' },
+  { label: 'Compliance', icon: 'ShieldCheck' },
+  { label: 'Complaints', icon: 'MessageSquare', badge: '5' },
+  { label: 'Fraud Detection', icon: 'ShieldAlert', badge: '1' },
+  { label: 'Analytics', icon: 'PieChart' },
+  { label: 'Reports', icon: 'FileBarChart' },
+  { label: 'Announcements', icon: 'Megaphone' },
+];
+
+export const procurementNav: NavItem[] = [
+  { label: 'Vendor Directory', icon: 'Users' },
+  { label: 'Vendor Details', icon: 'UserCircle' },
+  { label: 'RFQs', icon: 'MessageSquare' },
+  { label: 'Purchase Requests', icon: 'FileCheck', badge: '12' },
+  { label: 'Purchase Orders', icon: 'ShoppingCart' },
+  { label: 'Contracts', icon: 'Handshake' },
+  { label: 'Inventory', icon: 'Package' },
+  { label: 'Assets', icon: 'Building2' },
+  { label: 'Invoices', icon: 'FileBarChart', badge: '4' },
+  { label: 'Budget', icon: 'PieChart' },
+  { label: 'Payments', icon: 'Wallet' },
+  { label: 'Reports', icon: 'TrendingUp' },
+];
+
+export const financeNav: NavItem[] = [
+  { label: 'Revenue', icon: 'TrendingUp' },
+  { label: 'Transactions', icon: 'Activity' },
+  { label: 'Owner Payments', icon: 'Banknote' },
+  { label: 'Agency Earnings', icon: 'Building2' },
+  { label: 'Agent Commissions', icon: 'Users' },
+  { label: 'Invoices', icon: 'FileBarChart' },
+  { label: 'Refunds', icon: 'MessageSquare', badge: '3' },
+  { label: 'Mortgage Statistics', icon: 'PieChart' },
+  { label: 'Budget', icon: 'Wallet' },
+  { label: 'Reports', icon: 'FileCheck' },
+];
+
+export const intelligenceNav: NavItem[] = [
+  { label: 'Market Trends', icon: 'TrendingUp' },
+  { label: 'ROI Calculator', icon: 'Calculator' },
+  { label: 'Rental Yield', icon: 'PieChart' },
+  { label: 'Growth Forecast', icon: 'LineChart' },
+  { label: 'Neighborhood Insights', icon: 'MapPin' },
+  { label: 'Heat Map', icon: 'Map' },
+  { label: 'Comparable Properties', icon: 'Home' },
+];
+
+export const propertyManagerNav: NavItem[] = [
+  { label: 'Tenants', icon: 'Users' },
+  { label: 'Rent Collection', icon: 'Banknote' },
+  { label: 'Maintenance', icon: 'Wrench' },
+  { label: 'Lease Tracking', icon: 'FileText' },
+  { label: 'Documents', icon: 'FileCheck' },
+  { label: 'Inspections', icon: 'Eye' },
+  { label: 'Expenses', icon: 'Wallet' },
+  { label: 'Income', icon: 'TrendingUp' },
+  { label: 'Analytics', icon: 'PieChart' },
+];
+
+export const homeServicesNav: NavItem[] = [
+  { label: 'Cleaning', icon: 'Sparkles' },
+  { label: 'Moving', icon: 'Truck' },
+  { label: 'Painting', icon: 'Paintbrush' },
+  { label: 'Electrical', icon: 'Zap' },
+  { label: 'Plumbing', icon: 'Droplet' },
+  { label: 'Security', icon: 'Shield' },
+  { label: 'Architecture', icon: 'PenTool' },
+  { label: 'Interior Design', icon: 'Palette' },
+  { label: 'Furniture', icon: 'Armchair' },
+  { label: 'Smart Home', icon: 'Wifi' },
+  { label: 'Landscaping', icon: 'Leaf' },
+];
+
+export const kpis = [
+  { label: 'Total Revenue', value: '₦4.82B', delta: '+18.2%', up: true, icon: 'TrendingUp', spark: [20, 35, 28, 44, 38, 55, 62, 58, 72, 80] },
+  { label: 'Active Listings', value: '12,418', delta: '+6.4%', up: true, icon: 'Building2', spark: [40, 42, 45, 43, 48, 52, 55, 58, 60, 64] },
+  { label: 'Deals Closed', value: '1,294', delta: '+12.1%', up: true, icon: 'CheckCircle2', spark: [15, 22, 18, 30, 28, 40, 38, 50, 55, 60] },
+  { label: 'Active Users', value: '88,210', delta: '+9.7%', up: true, icon: 'Users', spark: [30, 35, 42, 48, 52, 58, 65, 70, 78, 85] },
+];
+
+export const revenueMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const revenueData = [320, 410, 380, 520, 490, 610, 680, 640, 760, 820, 790, 910];
+
+export const agencyRankings = [
+  { name: 'Meridian Luxury', deals: 312, revenue: '₦1.2B', rating: 4.9, trend: 'up' },
+  { name: 'Atlas Realty', deals: 401, revenue: '₦980M', rating: 4.7, trend: 'up' },
+  { name: 'Crest & Crown', deals: 289, revenue: '₦860M', rating: 4.8, trend: 'down' },
+  { name: 'Sterling Homes', deals: 234, revenue: '₦640M', rating: 4.8, trend: 'up' },
+  { name: 'Pinnacle Estates', deals: 198, revenue: '₦520M', rating: 4.6, trend: 'up' },
+];
+
+export const agentPerformance = [
+  { name: 'Adaeze Okonkwo', agency: 'Meridian Luxury', deals: 42, value: '₦680M', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=200' },
+  { name: 'Tunde Bakare', agency: 'Crest & Crown', deals: 38, value: '₦540M', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200' },
+  { name: 'Ngozi Eze', agency: 'Atlas Realty', deals: 35, value: '₦490M', avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200' },
+  { name: 'Femi Adeola', agency: 'Sterling Homes', deals: 31, value: '₦420M', avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=200' },
+];
+
+export const fraudAlerts = [
+  { severity: 'critical', title: 'Duplicate listing detected', detail: 'Lekki Phase 1 — 2 agents listing same coordinates', time: '12m ago' },
+  { severity: 'high', title: 'Unverified document upload', detail: 'Agency: Pinnacle Estates — title deed mismatch', time: '1h ago' },
+  { severity: 'medium', title: 'Price manipulation flag', detail: 'Asokoro property repriced 3x in 24h', time: '3h ago' },
+];
+
+export const verificationQueue = [
+  { id: 'VQ-2041', property: 'Garden Court Villa', type: 'Document', submitted: '2h ago', status: 'pending' },
+  { id: 'VQ-2040', property: 'Aurora Smart Studio', type: 'Inspection', submitted: '5h ago', status: 'review' },
+  { id: 'VQ-2039', property: 'Marina View Apartment', type: ROLES.AGENT, submitted: '8h ago', status: 'pending' },
+  { id: 'VQ-2038', property: 'The Continental Duplex', type: 'Premium', submitted: '1d ago', status: 'review' },
+];
+
+export const complaints = [
+  { id: 'C-882', subject: 'Delayed inspection schedule', user: 'Bisi W.', priority: 'high', status: 'open' },
+  { id: 'C-881', subject: 'Payment plan clarification', user: 'Chidi O.', priority: 'medium', status: 'progress' },
+  { id: 'C-880', subject: 'Agent response time', user: 'Amara E.', priority: 'low', status: 'resolved' },
+];
+
+export const dealPipeline = [
+  { stage: 'Lead', count: 420, value: '₦12.4B' },
+  { stage: 'Viewing', count: 210, value: '₦7.8B' },
+  { stage: 'Offer', count: 98, value: '₦4.2B' },
+  { stage: 'Verification', count: 64, value: '₦2.9B' },
+  { stage: 'Closing', count: 31, value: '₦1.4B' },
+];
+
+export const userGrowthMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const userGrowthData = [12, 18, 24, 31, 38, 46, 52, 61, 68, 74, 82, 88];
