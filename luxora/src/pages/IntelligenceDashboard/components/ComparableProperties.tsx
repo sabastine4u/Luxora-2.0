@@ -1,5 +1,6 @@
-import { Home, Search, SlidersHorizontal } from 'lucide-react';
+import { Home, SlidersHorizontal, Search } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 
 export default function ComparableProperties() {
   return (
@@ -56,48 +57,41 @@ export default function ComparableProperties() {
       </div>
 
       <h3 className="font-heading text-lg font-bold text-cream mb-4">Recent Comparable Sales</h3>
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Address</th>
-              <th className="px-6 py-4 font-semibold">Beds/Baths</th>
-              <th className="px-6 py-4 font-semibold">Size (SQM)</th>
-              <th className="px-6 py-4 font-semibold">Sale Date</th>
-              <th className="px-6 py-4 font-semibold text-right">Sold Price</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            <tr className="hover:bg-white/[0.02] transition-colors">
-              <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                <Home className="h-4 w-4 text-ink/40" /> 14 Admiralty Way
-              </td>
-              <td className="px-6 py-4 text-ink/60">4 / 4.5</td>
-              <td className="px-6 py-4 text-ink/60">450</td>
-              <td className="px-6 py-4 text-ink/60">Sep 15, 2025</td>
-              <td className="px-6 py-4 text-right font-bold text-emerald-400">₦205,000,000</td>
-            </tr>
-            <tr className="hover:bg-white/[0.02] transition-colors">
-              <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                <Home className="h-4 w-4 text-ink/40" /> 8 Fola Osibo St
-              </td>
-              <td className="px-6 py-4 text-ink/60">4 / 5</td>
-              <td className="px-6 py-4 text-ink/60">480</td>
-              <td className="px-6 py-4 text-ink/60">Aug 22, 2025</td>
-              <td className="px-6 py-4 text-right font-bold text-emerald-400">₦215,000,000</td>
-            </tr>
-            <tr className="hover:bg-white/[0.02] transition-colors">
-              <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                <Home className="h-4 w-4 text-ink/40" /> 22 Freedom Way
-              </td>
-              <td className="px-6 py-4 text-ink/60">4 / 4</td>
-              <td className="px-6 py-4 text-ink/60">420</td>
-              <td className="px-6 py-4 text-ink/60">Jul 10, 2025</td>
-              <td className="px-6 py-4 text-right font-bold text-emerald-400">₦198,000,000</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={[
+          { id: '1', address: '14 Admiralty Way', bedsBaths: '4 / 4.5', size: '450', date: 'Sep 15, 2025', price: '₦205,000,000' },
+          { id: '2', address: '8 Fola Osibo St', bedsBaths: '4 / 5', size: '480', date: 'Aug 22, 2025', price: '₦215,000,000' },
+          { id: '3', address: '22 Freedom Way', bedsBaths: '4 / 4', size: '420', date: 'Jul 10, 2025', price: '₦198,000,000' }
+        ]}
+        keyExtractor={(item) => item.id}
+        columns={[
+          {
+            header: "Address",
+            render: (item) => (
+              <div className="font-semibold text-cream flex items-center gap-2">
+                <Home className="h-4 w-4 text-ink/40" /> {item.address}
+              </div>
+            )
+          },
+          {
+            header: "Beds/Baths",
+            render: (item) => <span className="text-ink/60">{item.bedsBaths}</span>
+          },
+          {
+            header: "Size (SQM)",
+            render: (item) => <span className="text-ink/60">{item.size}</span>
+          },
+          {
+            header: "Sale Date",
+            render: (item) => <span className="text-ink/60">{item.date}</span>
+          },
+          {
+            header: <div className="text-right">Sold Price</div>,
+            className: "text-right font-bold text-emerald-400",
+            render: (item) => item.price
+          }
+        ]}
+      />
     </div>
   );
 }

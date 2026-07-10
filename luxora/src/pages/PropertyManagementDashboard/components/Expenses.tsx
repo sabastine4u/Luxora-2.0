@@ -1,5 +1,6 @@
-import { Wallet, Plus, TrendingDown } from 'lucide-react';
+import { Plus, TrendingDown, Wallet } from 'lucide-react';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 
 export default function Expenses() {
   const expenses = [
@@ -29,38 +30,44 @@ export default function Expenses() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Category</th>
-              <th className="px-6 py-4 font-semibold">Vendor</th>
-              <th className="px-6 py-4 font-semibold">Property</th>
-              <th className="px-6 py-4 font-semibold">Amount</th>
-              <th className="px-6 py-4 font-semibold">Date</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {expenses.map((exp) => (
-              <tr key={exp.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-ink/40" /> {exp.category}
-                </td>
-                <td className="px-6 py-4 text-ink/60">{exp.vendor}</td>
-                <td className="px-6 py-4 text-ink/60">{exp.property}</td>
-                <td className="px-6 py-4 font-bold text-cream">{exp.amount}</td>
-                <td className="px-6 py-4 text-ink/60">{exp.date}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${exp.status === 'Paid' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20'}`}>
-                    {exp.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={expenses}
+        keyExtractor={(exp) => exp.id}
+        columns={[
+          {
+            header: "Category",
+            render: (exp) => (
+              <div className="font-semibold text-cream flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-ink/40" /> {exp.category}
+              </div>
+            )
+          },
+          {
+            header: "Vendor",
+            render: (exp) => <span className="text-ink/60">{exp.vendor}</span>
+          },
+          {
+            header: "Property",
+            render: (exp) => <span className="text-ink/60">{exp.property}</span>
+          },
+          {
+            header: "Amount",
+            render: (exp) => <span className="font-bold text-cream">{exp.amount}</span>
+          },
+          {
+            header: "Date",
+            render: (exp) => <span className="text-ink/60">{exp.date}</span>
+          },
+          {
+            header: "Status",
+            render: (exp) => (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${exp.status === 'Paid' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20'}`}>
+                {exp.status}
+              </span>
+            )
+          }
+        ]}
+      />
     </div>
   );
 }

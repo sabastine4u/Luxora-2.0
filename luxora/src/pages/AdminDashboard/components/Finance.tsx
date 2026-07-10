@@ -1,5 +1,6 @@
 import { Landmark, ArrowUpRight, ArrowDownRight, Receipt } from 'lucide-react';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 
 export default function Finance() {
   return (
@@ -44,38 +45,45 @@ export default function Finance() {
           <h3 className="font-heading text-lg font-semibold text-cream">Recent Large Transactions (GMV)</h3>
           <GhostButton size="sm">View Ledger</GhostButton>
         </div>
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Deal ID</th>
-              <th className="px-6 py-4 font-semibold">Property</th>
-              <th className="px-6 py-4 font-semibold">Agency</th>
-              <th className="px-6 py-4 font-semibold">Total Value (GMV)</th>
-              <th className="px-6 py-4 font-semibold">Luxora Fee (5%)</th>
-              <th className="px-6 py-4 font-semibold text-right">Invoice</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {[
-              { id: 'D-9982', property: 'Skyline Penthouse', agency: 'Meridian Luxury', value: '₦450,000,000', fee: '₦22,500,000' },
-              { id: 'D-9981', property: 'Banana Island Plot', agency: 'Independent (Oluwaseun)', value: '₦800,000,000', fee: '₦40,000,000' },
-              { id: 'D-9980', property: 'Marina View Apartment', agency: 'Eko Estates', value: '₦120,000,000', fee: '₦6,000,000' },
-            ].map((tx, i) => (
-              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 font-medium text-cream">{tx.id}</td>
-                <td className="px-6 py-4 text-ink/60">{tx.property}</td>
-                <td className="px-6 py-4 text-ink/60">{tx.agency}</td>
-                <td className="px-6 py-4 font-bold text-cream">{tx.value}</td>
-                <td className="px-6 py-4 font-bold text-gold-400">+{tx.fee}</td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-ink/40 hover:text-gold-400 transition-colors">
-                    <Receipt className="h-5 w-5 ml-auto" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          data={[
+            { id: 'D-9982', property: 'Skyline Penthouse', agency: 'Meridian Luxury', value: '₦450,000,000', fee: '₦22,500,000' },
+            { id: 'D-9981', property: 'Banana Island Plot', agency: 'Independent (Oluwaseun)', value: '₦800,000,000', fee: '₦40,000,000' },
+            { id: 'D-9980', property: 'Marina View Apartment', agency: 'Eko Estates', value: '₦120,000,000', fee: '₦6,000,000' },
+          ]}
+          keyExtractor={(tx) => tx.id}
+          columns={[
+            {
+              header: "Deal ID",
+              render: (tx) => <span className="font-medium text-cream">{tx.id}</span>
+            },
+            {
+              header: "Property",
+              render: (tx) => <span className="text-ink/60">{tx.property}</span>
+            },
+            {
+              header: "Agency",
+              render: (tx) => <span className="text-ink/60">{tx.agency}</span>
+            },
+            {
+              header: "Total Value (GMV)",
+              render: (tx) => <span className="font-bold text-cream">{tx.value}</span>
+            },
+            {
+              header: "Luxora Fee (5%)",
+              render: (tx) => <span className="font-bold text-gold-400">+{tx.fee}</span>
+            },
+            {
+              header: <div className="text-right">Invoice</div>,
+              className: "text-right",
+              render: () => (
+                <button className="text-ink/40 hover:text-gold-400 transition-colors">
+                  <Receipt className="h-5 w-5 ml-auto" />
+                </button>
+              )
+            }
+          ]}
+        />
       </div>
     </div>
   );

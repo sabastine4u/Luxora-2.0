@@ -1,5 +1,6 @@
 import { Wallet, CheckCircle2, ChevronRight, Percent } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
+import MortgageSnapshot from './MortgageSnapshot';
 
 export default function MortgageTracker() {
   return (
@@ -8,6 +9,8 @@ export default function MortgageTracker() {
         <h2 className="font-heading text-2xl font-bold text-cream">Mortgage Tracker</h2>
         <p className="text-sm text-ink/60">Manage your financing and track application status.</p>
       </div>
+
+      <MortgageSnapshot />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Active Application */}

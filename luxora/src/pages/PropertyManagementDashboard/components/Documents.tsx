@@ -1,5 +1,7 @@
-import { FileCheck, Search, Download, Upload } from 'lucide-react';
+import { Upload, Download, FileCheck } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 
 export default function Documents() {
   const docs = [
@@ -18,51 +20,49 @@ export default function Documents() {
         <GoldButton className="flex items-center gap-2"><Upload className="h-4 w-4" /> Upload File</GoldButton>
       </div>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-          <input 
-            type="text" 
-            placeholder="Search documents..." 
-            className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-2 pl-9 pr-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
-          />
-        </div>
-      </div>
+      <DataTableToolbar
+        searchPlaceholder="Search documents..."
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Document Name</th>
-              <th className="px-6 py-4 font-semibold">Category</th>
-              <th className="px-6 py-4 font-semibold">Associated Property</th>
-              <th className="px-6 py-4 font-semibold">Upload Date</th>
-              <th className="px-6 py-4 font-semibold text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {docs.map((doc) => (
-              <tr key={doc.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                  <FileCheck className="h-4 w-4 text-ink/40" /> {doc.name}
-                </td>
-                <td className="px-6 py-4 text-ink/60">
-                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-cream">
-                    {doc.type}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-ink/60">{doc.property}</td>
-                <td className="px-6 py-4 text-ink/60">{doc.uploaded}</td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-gold-400 hover:text-gold-300 transition-colors">
-                    <Download className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={docs}
+        keyExtractor={(doc) => doc.id}
+        columns={[
+          {
+            header: "Document Name",
+            render: (doc) => (
+              <div className="font-semibold text-cream flex items-center gap-2">
+                <FileCheck className="h-4 w-4 text-ink/40" /> {doc.name}
+              </div>
+            )
+          },
+          {
+            header: "Category",
+            render: (doc) => (
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-cream">
+                {doc.type}
+              </span>
+            )
+          },
+          {
+            header: "Associated Property",
+            render: (doc) => <span className="text-ink/60">{doc.property}</span>
+          },
+          {
+            header: "Upload Date",
+            render: (doc) => <span className="text-ink/60">{doc.uploaded}</span>
+          },
+          {
+            header: <div className="text-right">Action</div>,
+            className: "text-right",
+            render: () => (
+              <button className="text-gold-400 hover:text-gold-300 transition-colors">
+                <Download className="h-4 w-4" />
+              </button>
+            )
+          }
+        ]}
+      />
     </div>
   );
 }

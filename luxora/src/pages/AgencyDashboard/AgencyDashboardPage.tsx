@@ -1,24 +1,26 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout';
-import Agents from './components/Agents';
+import Overview from './components/Overview';
 import Listings from './components/Listings';
+import Agents from './components/Agents';
+import Leads from './components/Leads';
+import Clients from './components/Clients';
 import Performance from './components/Performance';
-import Revenue from './components/Revenue';
-import Reports from './components/Reports';
-import Settings from './components/Settings';
+import Commissions from './components/Commissions';
 
 export default function AgencyDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Agents');
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Agents': return <Agents />;
+      case 'Overview': return <Overview />;
       case 'Listings': return <Listings />;
+      case 'Agents': return <Agents />;
+      case 'Leads': return <Leads />;
+      case 'Clients': return <Clients />;
       case 'Performance': return <Performance />;
-      case 'Revenue': return <Revenue />;
-      case 'Reports': return <Reports />;
-      case 'Settings': return <Settings />;
-      default: return <Agents />;
+      case 'Commissions': return <Commissions />;
+      default: return <Overview />;
     }
   };
 

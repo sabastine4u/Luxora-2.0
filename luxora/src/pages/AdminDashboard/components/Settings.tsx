@@ -1,22 +1,27 @@
 import { Shield, KeyRound, Globe, Percent, Server, AlertTriangle } from 'lucide-react';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { useSession } from '../../../contexts/SessionContext';
+import { SettingsLayout } from '../../../components/dashboard/shared/layouts/SettingsLayout';
+import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
+import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
 
 export default function Settings() {
   const { user } = useSession();
   const isSuperAdmin = user?.role === 'Super Admin';
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h2 className="font-heading text-2xl font-bold text-cream">System Configuration</h2>
-        <p className="text-sm text-ink/60">Global platform settings and administrative access controls.</p>
-      </div>
+    <SettingsLayout
+      title="System Configuration"
+      subtitle="Global platform settings and administrative access controls."
+    >
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Platform Settings */}
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 lg:col-span-2 space-y-6">
-          <h3 className="font-heading text-lg font-semibold text-cream border-b border-white/10 pb-4">Global Parameters</h3>
+        <SettingsSection
+          title="Global Parameters"
+          size="2xl"
+          className="lg:col-span-2"
+        >
           
           <div className="space-y-4">
             <div className="space-y-2">
@@ -51,19 +56,20 @@ export default function Settings() {
           <div className="pt-4 border-t border-white/10 space-y-4">
             <h3 className="font-heading text-lg font-semibold text-cream">System Status</h3>
             
-            <div className="flex items-center justify-between rounded-xl border border-rose-400/20 bg-rose-400/5 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-400/10 text-rose-400">
-                  <Server className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-rose-400">Maintenance Mode</div>
-                  <div className="text-xs text-ink/60 mt-1">Suspend all non-admin logins and disable new listings.</div>
-                </div>
-              </div>
-              <div className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors ${!isSuperAdmin ? 'opacity-50 cursor-not-allowed bg-white/10' : 'bg-white/10 hover:bg-white/20'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1`} />
-              </div>
+            <div className="rounded-xl border border-rose-400/20 bg-rose-400/5 p-4">
+              <SettingsToggle
+                label="Maintenance Mode"
+                labelClassName="text-rose-400"
+                description="Suspend all non-admin logins and disable new listings."
+                checked={false}
+                disabled={!isSuperAdmin}
+                onChange={() => {}}
+                icon={
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-400/10 text-rose-400 -mt-1">
+                    <Server className="h-5 w-5" />
+                  </div>
+                }
+              />
             </div>
             {!isSuperAdmin && (
               <p className="text-xs text-rose-400/80 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Only Super Admins can alter global parameters or system status.</p>
@@ -75,12 +81,15 @@ export default function Settings() {
               <GoldButton>Apply Global Changes</GoldButton>
             </div>
           )}
-        </div>
+        </SettingsSection>
 
         {/* Security & Access */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 space-y-4">
-            <h3 className="font-heading text-lg font-semibold text-cream border-b border-white/10 pb-4">My Access</h3>
+          <SettingsSection
+            title="My Access"
+            size="2xl"
+            className="!space-y-4"
+          >
             <div className="flex items-center gap-3">
               <Shield className={`h-5 w-5 ${isSuperAdmin ? 'text-gold-400' : 'text-blue-400'}`} />
               <div className="flex-1">
@@ -96,10 +105,10 @@ export default function Settings() {
               </div>
               <GhostButton size="sm">Update</GhostButton>
             </div>
-          </div>
+          </SettingsSection>
         </div>
 
       </div>
-    </div>
+    </SettingsLayout>
   );
 }

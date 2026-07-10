@@ -213,6 +213,8 @@ export const sidebarNav: NavItem[] = [
 
 export const buyerNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
+  { label: 'Recommendations', icon: 'Sparkles' },
+  { label: 'Recently Viewed', icon: 'Activity' },
   { label: 'Saved Properties', icon: 'Heart', badge: '3' },
   { label: 'Mortgage Tracker', icon: 'Wallet' },
   { label: 'Messages', icon: 'MessageSquare', badge: '2' },
@@ -222,8 +224,10 @@ export const buyerNav: NavItem[] = [
 ];
 
 export const ownerNav: NavItem[] = [
+  { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'My Property Requests', icon: 'Home', badge: '1' },
   { label: 'Verification Progress', icon: 'ShieldCheck', badge: '2' },
+  { label: 'Listing Journey', icon: 'Route' },
   { label: 'Messages', icon: 'MessageSquare', badge: '5' },
   { label: 'Offers', icon: 'FileCheck', badge: '3' },
   { label: 'Rental Income', icon: 'Wallet' },
@@ -232,25 +236,28 @@ export const ownerNav: NavItem[] = [
 ];
 
 export const agentNav: NavItem[] = [
-  { label: 'Assigned Leads', icon: 'Users', badge: '12' },
-  { label: 'Properties', icon: 'Building2' },
+  { label: 'Overview', icon: 'LayoutDashboard' },
+  { label: 'My Listings', icon: 'Building2' },
+  { label: 'Leads', icon: 'Target', badge: '12' },
+  { label: 'Clients', icon: 'UserCircle' },
   { label: 'Appointments', icon: 'Calendar', badge: '3' },
-  { label: 'Messages', icon: 'MessageSquare', badge: '8' },
-  { label: 'Performance', icon: 'TrendingUp' },
-  { label: 'Reports', icon: 'FileBarChart' },
-  { label: 'Settings', icon: 'Settings' },
+  { label: 'Deals', icon: 'Briefcase' },
+  { label: 'Commissions', icon: 'DollarSign' },
 ];
 
 export const agencyNav: NavItem[] = [
-  { label: 'Agents', icon: 'Users', badge: '14' },
+  { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Listings', icon: 'Building2', badge: '42' },
+  { label: 'Agents', icon: 'Users', badge: '14' },
+  { label: 'Leads', icon: 'Target', badge: '8' },
+  { label: 'Clients', icon: 'UserCircle' },
   { label: 'Performance', icon: 'TrendingUp' },
-  { label: 'Revenue', icon: 'Wallet' },
-  { label: 'Reports', icon: 'FileBarChart' },
-  { label: 'Settings', icon: 'Settings' },
+  { label: 'Commissions', icon: 'DollarSign' },
 ];
 
 export const adminNav: NavItem[] = [
+  { label: 'Overview', icon: 'LayoutDashboard' },
+  { label: 'Listings', icon: 'Building2' },
   { label: 'Verification Queue', icon: 'ShieldCheck', badge: '14' },
   { label: 'Owners', icon: 'UserCircle' },
   { label: 'Buyers', icon: 'Heart' },
@@ -281,16 +288,11 @@ export const superAdminNav: NavItem[] = [
 ];
 
 export const managementNav: NavItem[] = [
-  { label: 'Business KPIs', icon: 'Activity' },
-  { label: 'Operations', icon: 'Settings' },
-  { label: 'Agency Performance', icon: 'Building2' },
-  { label: 'Agent Performance', icon: 'Users' },
-  { label: 'Compliance', icon: 'ShieldCheck' },
-  { label: 'Complaints', icon: 'MessageSquare', badge: '5' },
-  { label: 'Fraud Detection', icon: 'ShieldAlert', badge: '1' },
-  { label: 'Analytics', icon: 'PieChart' },
+  { label: 'Overview', icon: 'LayoutDashboard' },
+  { label: 'Team Management', icon: 'Users' },
+  { label: 'Performance', icon: 'TrendingUp' },
+  { label: 'Department Oversight', icon: 'Building2' },
   { label: 'Reports', icon: 'FileBarChart' },
-  { label: 'Announcements', icon: 'Megaphone' },
 ];
 
 export const procurementNav: NavItem[] = [

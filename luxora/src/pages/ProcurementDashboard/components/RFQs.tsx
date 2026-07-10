@@ -1,5 +1,6 @@
 import { MessageSquare, Plus, Clock } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 
 export default function RFQs() {
   const rfqs = [
@@ -18,40 +19,47 @@ export default function RFQs() {
         <GoldButton className="flex items-center gap-2"><Plus className="h-4 w-4" /> Create RFQ</GoldButton>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">RFQ ID</th>
-              <th className="px-6 py-4 font-semibold">Title</th>
-              <th className="px-6 py-4 font-semibold">Deadline</th>
-              <th className="px-6 py-4 font-semibold">Quotes Received</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {rfqs.map((rfq) => (
-              <tr key={rfq.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 font-medium text-cream">{rfq.id}</td>
-                <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-ink/40" /> {rfq.title}
-                </td>
-                <td className="px-6 py-4 text-ink/60 flex items-center gap-1"><Clock className="h-3 w-3" /> {rfq.deadline}</td>
-                <td className="px-6 py-4 font-bold text-blue-400">{rfq.quotes}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${rfq.status === 'Open' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : rfq.status === 'Evaluating' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' : 'text-blue-400 bg-blue-400/10 border-blue-400/20'}`}>
-                    {rfq.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                   <button className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors">View Details</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={rfqs}
+        keyExtractor={(rfq) => rfq.id}
+        columns={[
+          {
+            header: "RFQ ID",
+            render: (rfq) => <span className="font-medium text-cream">{rfq.id}</span>
+          },
+          {
+            header: "Title",
+            render: (rfq) => (
+              <div className="font-semibold text-cream flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-ink/40" /> {rfq.title}
+              </div>
+            )
+          },
+          {
+            header: "Deadline",
+            render: (rfq) => <div className="text-ink/60 flex items-center gap-1"><Clock className="h-3 w-3" /> {rfq.deadline}</div>
+          },
+          {
+            header: "Quotes Received",
+            render: (rfq) => <span className="font-bold text-blue-400">{rfq.quotes}</span>
+          },
+          {
+            header: "Status",
+            render: (rfq) => (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${rfq.status === 'Open' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : rfq.status === 'Evaluating' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' : 'text-blue-400 bg-blue-400/10 border-blue-400/20'}`}>
+                {rfq.status}
+              </span>
+            )
+          },
+          {
+            header: <div className="text-right">Actions</div>,
+            className: "text-right",
+            render: () => (
+              <button className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors">View Details</button>
+            )
+          }
+        ]}
+      />
     </div>
   );
 }

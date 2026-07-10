@@ -1,5 +1,6 @@
-import { Eye, Calendar as CalendarIcon, CheckCircle2 } from 'lucide-react';
+import { CalendarIcon, Eye, CheckCircle2 } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 
 export default function Inspections() {
   const inspections = [
@@ -18,41 +19,46 @@ export default function Inspections() {
         <GoldButton className="flex items-center gap-2"><CalendarIcon className="h-4 w-4" /> Schedule Inspection</GoldButton>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Property</th>
-              <th className="px-6 py-4 font-semibold">Inspection Type</th>
-              <th className="px-6 py-4 font-semibold">Date</th>
-              <th className="px-6 py-4 font-semibold">Inspector</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Score</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {inspections.map((insp) => (
-              <tr key={insp.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-ink/40" /> {insp.property}
-                </td>
-                <td className="px-6 py-4 text-ink/60">{insp.type}</td>
-                <td className="px-6 py-4 text-ink/60">{insp.date}</td>
-                <td className="px-6 py-4 text-ink/60">{insp.inspector}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${insp.status === 'Completed' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-blue-400 bg-blue-400/10 border-blue-400/20'}`}>
-                    {insp.status === 'Completed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                    {insp.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right font-bold text-cream">
-                  {insp.score ? insp.score : '-'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={inspections}
+        keyExtractor={(insp) => insp.id}
+        columns={[
+          {
+            header: "Property",
+            render: (insp) => (
+              <div className="font-semibold text-cream flex items-center gap-2">
+                <Eye className="h-4 w-4 text-ink/40" /> {insp.property}
+              </div>
+            )
+          },
+          {
+            header: "Inspection Type",
+            render: (insp) => <span className="text-ink/60">{insp.type}</span>
+          },
+          {
+            header: "Date",
+            render: (insp) => <span className="text-ink/60">{insp.date}</span>
+          },
+          {
+            header: "Inspector",
+            render: (insp) => <span className="text-ink/60">{insp.inspector}</span>
+          },
+          {
+            header: "Status",
+            render: (insp) => (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${insp.status === 'Completed' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-blue-400 bg-blue-400/10 border-blue-400/20'}`}>
+                {insp.status === 'Completed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                {insp.status}
+              </span>
+            )
+          },
+          {
+            header: <div className="text-right">Score</div>,
+            className: "text-right font-bold text-cream",
+            render: (insp) => insp.score ? insp.score : '-'
+          }
+        ]}
+      />
     </div>
   );
 }

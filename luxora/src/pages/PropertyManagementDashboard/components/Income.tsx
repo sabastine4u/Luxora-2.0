@@ -1,5 +1,6 @@
 import { TrendingUp, Download, ArrowUpRight } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 
 export default function Income() {
   const incomeSources = [
@@ -28,35 +29,35 @@ export default function Income() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Income Stream</th>
-              <th className="px-6 py-4 font-semibold">Amount (MTD)</th>
-              <th className="px-6 py-4 font-semibold">% of Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {incomeSources.map((inc) => (
-              <tr key={inc.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-ink/40" /> {inc.source}
-                </td>
-                <td className="px-6 py-4 font-bold text-cream">{inc.amount}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                     <span className="text-ink/60 w-8">{inc.percentage}</span>
-                     <div className="h-2 w-24 bg-navy-900 rounded-full overflow-hidden">
-                       <div className="h-full bg-gold-400" style={{ width: inc.percentage }}></div>
-                     </div>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={incomeSources}
+        keyExtractor={(inc) => inc.id}
+        columns={[
+          {
+            header: "Income Stream",
+            render: (inc) => (
+              <div className="font-semibold text-cream flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-ink/40" /> {inc.source}
+              </div>
+            )
+          },
+          {
+            header: "Amount (MTD)",
+            render: (inc) => <span className="font-bold text-cream">{inc.amount}</span>
+          },
+          {
+            header: "% of Total",
+            render: (inc) => (
+              <div className="flex items-center gap-2">
+                <span className="text-ink/60 w-8">{inc.percentage}</span>
+                <div className="h-2 w-24 bg-navy-900 rounded-full overflow-hidden">
+                  <div className="h-full bg-gold-400" style={{ width: inc.percentage }}></div>
+                </div>
+              </div>
+            )
+          }
+        ]}
+      />
     </div>
   );
 }

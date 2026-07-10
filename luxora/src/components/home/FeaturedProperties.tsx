@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Reveal, SectionHeading, GoldButton } from '../ui/ui';
 import { Section, Container } from '../layout';
@@ -6,17 +5,6 @@ import { properties } from '../../data/luxoraData';
 import { PropertyCard } from '../property/PropertyCard';
 
 export default function FeaturedProperties() {
-  const [saved, setSaved] = useState<Set<string>>(new Set());
-
-  const toggleSave = (id: string) => {
-    setSaved((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   return (
     <Section id="buy-property">
       <Container>
@@ -37,7 +25,7 @@ export default function FeaturedProperties() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {properties.map((p, i) => (
             <Reveal key={p.id} delay={(i % 3) * 100}>
-              <PropertyCard property={p} saved={saved.has(p.id)} onSave={() => toggleSave(p.id)} />
+              <PropertyCard property={p} />
             </Reveal>
           ))}
         </div>

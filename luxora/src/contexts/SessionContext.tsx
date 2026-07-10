@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ROLES } from '../constants/roles';
+import type { Department } from '../constants/departments';
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
 
@@ -9,6 +10,43 @@ export interface User {
   email: string;
   avatar: string;
   role: UserRole;
+  department?: Department;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  time: string;
+}
+
+export interface UserPreferences {
+  emailAlerts?: boolean;
+  pushNotifications?: boolean;
+  smsUpdates?: boolean;
+}
+
+export interface ViewingRequest {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  date: string;
+  time: string;
+  status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Rescheduled';
+  agent: { name: string; avatar: string };
+  createdAt: string;
+}
+
+export interface ReportListing {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  reason: string;
+  description: string;
+  attachments: string[]; // mock file names
+  status: 'Submitted' | 'Under Review' | 'Resolved' | 'Dismissed';
+  submittedAt: string;
 }
 
 interface SessionContextType {
@@ -16,6 +54,33 @@ interface SessionContextType {
   isAuthenticated: boolean;
   login: (userData: User) => void;
   logout: () => void;
+  savedProperties: string[];
+  compareList: string[];
+  recentlyViewed: string[];
+  favoriteAgents: string[];
+  notifications: Notification[];
+  preferences: UserPreferences;
+  viewingRequests: ViewingRequest[];
+  reportListings: ReportListing[];
+  scheduleViewingModalPropertyId: string | null;
+  reportListingModalPropertyId: string | null;
+  toggleSavedProperty: (id: string) => void;
+  isSaved: (id: string) => boolean;
+  toggleCompareProperty: (id: string) => boolean;
+  isCompared: (id: string) => boolean;
+  clearCompare: () => void;
+  addRecentlyViewed: (id: string) => void;
+  toggleFavoriteAgent: (id: string) => void;
+  isFavoriteAgent: (id: string) => boolean;
+  markNotificationRead: (id: string) => void;
+  clearNotifications: () => void;
+  updatePreferences: (newPreferences: Partial<UserPreferences>) => void;
+  addViewingRequest: (req: ViewingRequest) => void;
+  openScheduleViewingModal: (propertyId: string) => void;
+  closeScheduleViewingModal: () => void;
+  addReportListing: (report: ReportListing) => void;
+  openReportListingModal: (propertyId: string) => void;
+  closeReportListingModal: () => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -23,6 +88,18 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 export function SessionProvider({ children }: { children: ReactNode }) {
   // Mock initial state - unauthenticated by default
   const [user, setUser] = useState<User | null>(null);
+  
+  // Additional frontend session state
+  const [savedProperties, setSavedProperties] = useState<string[]>([]);
+  const [compareList, setCompareList] = useState<string[]>([]);
+  const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
+  const [favoriteAgents, setFavoriteAgents] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [preferences, setPreferences] = useState<UserPreferences>({});
+  const [viewingRequests, setViewingRequests] = useState<ViewingRequest[]>([]);
+  const [reportListings, setReportListings] = useState<ReportListing[]>([]);
+  const [scheduleViewingModalPropertyId, setScheduleViewingModalPropertyId] = useState<string | null>(null);
+  const [reportListingModalPropertyId, setReportListingModalPropertyId] = useState<string | null>(null);
 
   const login = (userData: User) => {
     setUser(userData);
@@ -30,6 +107,94 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    setSavedProperties([]);
+    setCompareList([]);
+    setRecentlyViewed([]);
+    setFavoriteAgents([]);
+    setNotifications([]);
+    setPreferences({});
+    setViewingRequests([]);
+    setReportListings([]);
+    setScheduleViewingModalPropertyId(null);
+    setReportListingModalPropertyId(null);
+  };
+
+  // Helper Functions
+  const toggleSavedProperty = (id: string) => {
+    setSavedProperties((prev) => 
+      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
+    );
+  };
+
+  const isSaved = (id: string) => savedProperties.includes(id);
+
+  const toggleCompareProperty = (id: string): boolean => {
+    if (compareList.includes(id)) {
+      setCompareList(prev => prev.filter(pid => pid !== id));
+      return false;
+    }
+    if (compareList.length >= 4) {
+      return true; // Limit reached
+    }
+    setCompareList(prev => [...prev, id]);
+    return false;
+  };
+
+  const isCompared = (id: string) => compareList.includes(id);
+
+  const clearCompare = () => setCompareList([]);
+
+  const addRecentlyViewed = (id: string) => {
+    setRecentlyViewed((prev) => {
+      const updated = prev.filter((pid) => pid !== id);
+      return [id, ...updated].slice(0, 20);
+    });
+  };
+
+  const toggleFavoriteAgent = (id: string) => {
+    setFavoriteAgents((prev) => 
+      prev.includes(id) ? prev.filter((aid) => aid !== id) : [...prev, id]
+    );
+  };
+
+  const isFavoriteAgent = (id: string) => favoriteAgents.includes(id);
+
+  const markNotificationRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
+    );
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
+  const updatePreferences = (newPreferences: Partial<UserPreferences>) => {
+    setPreferences((prev) => ({ ...prev, ...newPreferences }));
+  };
+
+  const addViewingRequest = (req: ViewingRequest) => {
+    setViewingRequests(prev => [req, ...prev]);
+  };
+
+  const openScheduleViewingModal = (propertyId: string) => {
+    setScheduleViewingModalPropertyId(propertyId);
+  };
+
+  const closeScheduleViewingModal = () => {
+    setScheduleViewingModalPropertyId(null);
+  };
+
+  const addReportListing = (report: ReportListing) => {
+    setReportListings(prev => [report, ...prev]);
+  };
+
+  const openReportListingModal = (propertyId: string) => {
+    setReportListingModalPropertyId(propertyId);
+  };
+
+  const closeReportListingModal = () => {
+    setReportListingModalPropertyId(null);
   };
 
   return (
@@ -39,6 +204,33 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        savedProperties,
+        compareList,
+        recentlyViewed,
+        favoriteAgents,
+        notifications,
+        preferences,
+        viewingRequests,
+        reportListings,
+        scheduleViewingModalPropertyId,
+        reportListingModalPropertyId,
+        toggleSavedProperty,
+        isSaved,
+        toggleCompareProperty,
+        isCompared,
+        clearCompare,
+        addRecentlyViewed,
+        toggleFavoriteAgent,
+        isFavoriteAgent,
+        markNotificationRead,
+        clearNotifications,
+        updatePreferences,
+        addViewingRequest,
+        openScheduleViewingModal,
+        closeScheduleViewingModal,
+        addReportListing,
+        openReportListingModal,
+        closeReportListingModal,
       }}
     >
       {children}

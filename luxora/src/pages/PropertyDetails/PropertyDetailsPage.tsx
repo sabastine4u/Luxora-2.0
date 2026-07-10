@@ -1,16 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
-import { Bed, Bath, Maximize, MapPin, BadgeCheck, Phone, Mail, Calculator, Calendar } from 'lucide-react';
+import { Bed, Bath, Maximize, MapPin, BadgeCheck, Phone, Mail, Calculator, Calendar, AlertTriangle } from 'lucide-react';
 import { properties } from '../../data/luxoraData';
 import { PageLayout, Container, Section, Breadcrumb } from '../../components/layout';
 import { GoldButton, GhostButton } from '../../components/ui/ui';
 import { Slider } from '../../components/ui/Slider';
 import { calculateMortgage } from '../../utils';
 import { PropertyCard } from '../../components/property/PropertyCard';
+import { useSession } from '../../contexts/SessionContext';
 
 export default function PropertyDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const property = properties.find(p => p.id === id);
+  const { addRecentlyViewed, openScheduleViewingModal, openReportListingModal } = useSession();
+
+  useEffect(() => {
+    if (property) {
+      addRecentlyViewed(property.id);
+    }
+  }, [property, addRecentlyViewed]);
 
   // Mortgage Calculator State
   const initialPriceM = property ? property.priceValue / 1_000_000 : 0;
@@ -216,9 +224,15 @@ export default function PropertyDetailsPage() {
                   </div>
                   <h3 className="font-heading text-lg font-semibold text-cream mb-2">Schedule a Viewing</h3>
                   <p className="text-sm text-ink/60 mb-6">Book an in-person or virtual tour with the listing agent.</p>
-                  <GoldButton size="md" className="w-full justify-center">
+                  <GoldButton size="md" className="w-full justify-center" onClick={() => openScheduleViewingModal(property.id)}>
                     Request Tour
                   </GoldButton>
+                </div>
+                
+                <div className="mt-4 text-center">
+                  <button onClick={() => openReportListingModal(property.id)} className="text-xs text-ink/40 hover:text-rose-400 transition-colors inline-flex items-center justify-center gap-1.5">
+                    <AlertTriangle className="h-3 w-3" /> Report this listing
+                  </button>
                 </div>
               </div>
             </div>

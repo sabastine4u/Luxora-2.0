@@ -1,5 +1,7 @@
-import { FileText, Search, Clock, AlertTriangle } from 'lucide-react';
+import { Clock, FileText, AlertTriangle } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 
 export default function LeaseTracking() {
   const leases = [
@@ -17,51 +19,52 @@ export default function LeaseTracking() {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-          <input 
-            type="text" 
-            placeholder="Search leases..." 
-            className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-2 pl-9 pr-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
-          />
-        </div>
-        <GhostButton className="px-4"><Clock className="h-4 w-4 mr-2" /> Send Renewal Offer</GhostButton>
-      </div>
+      <DataTableToolbar
+        searchPlaceholder="Search leases..."
+        actions={
+          <GhostButton className="px-4"><Clock className="h-4 w-4 mr-2" /> Send Renewal Offer</GhostButton>
+        }
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Lease ID</th>
-              <th className="px-6 py-4 font-semibold">Tenant Name</th>
-              <th className="px-6 py-4 font-semibold">Property</th>
-              <th className="px-6 py-4 font-semibold">Start Date</th>
-              <th className="px-6 py-4 font-semibold">End Date</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {leases.map((lease) => (
-              <tr key={lease.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 font-medium text-cream">{lease.id}</td>
-                <td className="px-6 py-4 font-semibold text-cream flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-ink/40" /> {lease.tenant}
-                </td>
-                <td className="px-6 py-4 text-ink/60">{lease.property}</td>
-                <td className="px-6 py-4 text-ink/60">{lease.start}</td>
-                <td className="px-6 py-4 text-ink/60 font-medium">{lease.end}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${lease.status === 'Active' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20'}`}>
-                    {lease.status === 'Expiring Soon' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                    {lease.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={leases}
+        keyExtractor={(lease) => lease.id}
+        columns={[
+          {
+            header: "Lease ID",
+            render: (lease) => <span className="font-medium text-cream">{lease.id}</span>
+          },
+          {
+            header: "Tenant Name",
+            render: (lease) => (
+              <div className="font-semibold text-cream flex items-center gap-2">
+                <FileText className="h-4 w-4 text-ink/40" /> {lease.tenant}
+              </div>
+            )
+          },
+          {
+            header: "Property",
+            render: (lease) => <span className="text-ink/60">{lease.property}</span>
+          },
+          {
+            header: "Start Date",
+            render: (lease) => <span className="text-ink/60">{lease.start}</span>
+          },
+          {
+            header: "End Date",
+            render: (lease) => <span className="text-ink/60 font-medium">{lease.end}</span>
+          },
+          {
+            header: "Status",
+            render: (lease) => (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${lease.status === 'Active' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20'}`}>
+                {lease.status === 'Expiring Soon' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                {lease.status}
+              </span>
+            )
+          }
+        ]}
+      />
     </div>
   );
 }

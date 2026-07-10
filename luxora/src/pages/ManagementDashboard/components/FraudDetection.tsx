@@ -1,4 +1,5 @@
 import { ShieldAlert, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 
 export default function FraudDetection() {
   return (
@@ -27,43 +28,50 @@ export default function FraudDetection() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Incident ID</th>
-              <th className="px-6 py-4 font-semibold">Type</th>
-              <th className="px-6 py-4 font-semibold">Target User/Listing</th>
-              <th className="px-6 py-4 font-semibold">Severity</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            <tr className="hover:bg-white/[0.02] transition-colors">
-              <td className="px-6 py-4 font-medium text-cream">INC-001</td>
-              <td className="px-6 py-4 text-cream">Multiple failed login attempts</td>
-              <td className="px-6 py-4 text-ink/60">Admin: john.doe@luxora.com</td>
-              <td className="px-6 py-4"><span className="text-rose-400 bg-rose-400/10 px-2 py-1 rounded-full text-[10px] uppercase font-semibold">Critical</span></td>
-              <td className="px-6 py-4 text-right">
+      <DataTable
+        data={[
+          { id: 'INC-001', type: 'Multiple failed login attempts', target: 'Admin: john.doe@luxora.com', severity: 'Critical' },
+          { id: 'INC-002', type: 'Suspicious IP location', target: 'Owner: OWN-904', severity: 'Medium' }
+        ]}
+        keyExtractor={(inc) => inc.id}
+        columns={[
+          {
+            header: "Incident ID",
+            render: (inc) => <span className="font-medium text-cream">{inc.id}</span>
+          },
+          {
+            header: "Type",
+            render: (inc) => <span className="text-cream">{inc.type}</span>
+          },
+          {
+            header: "Target User/Listing",
+            render: (inc) => <span className="text-ink/60">{inc.target}</span>
+          },
+          {
+            header: "Severity",
+            render: (inc) => (
+              <span className={`${inc.severity === 'Critical' ? 'text-rose-400 bg-rose-400/10' : 'text-yellow-400 bg-yellow-400/10'} px-2 py-1 rounded-full text-[10px] uppercase font-semibold`}>
+                {inc.severity}
+              </span>
+            )
+          },
+          {
+            header: <div className="text-right">Actions</div>,
+            className: "text-right",
+            render: (inc) => (
+              inc.severity === 'Critical' ? (
                 <button className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors" title="Lock Account">
                   <XCircle className="h-5 w-5" />
                 </button>
-              </td>
-            </tr>
-            <tr className="hover:bg-white/[0.02] transition-colors">
-              <td className="px-6 py-4 font-medium text-cream">INC-002</td>
-              <td className="px-6 py-4 text-cream">Suspicious IP location</td>
-              <td className="px-6 py-4 text-ink/60">Owner: OWN-904</td>
-              <td className="px-6 py-4"><span className="text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full text-[10px] uppercase font-semibold">Medium</span></td>
-              <td className="px-6 py-4 text-right">
+              ) : (
                 <button className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors" title="Resolve">
                   <CheckCircle className="h-5 w-5" />
                 </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              )
+            )
+          }
+        ]}
+      />
     </div>
   );
 }

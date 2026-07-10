@@ -1,5 +1,6 @@
-import { Sparkles, Star, Search, ShieldCheck } from 'lucide-react';
+import { Sparkles, Star, ShieldCheck } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
+import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 
 export default function Cleaning() {
   const providers = [
@@ -17,16 +18,11 @@ export default function Cleaning() {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-          <input 
-            type="text" 
-            placeholder="Search providers..." 
-            className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-2 pl-9 pr-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
-          />
-        </div>
-      </div>
+      <DataTableToolbar
+        searchValue=""
+        onSearchChange={() => {}}
+        searchPlaceholder="Search providers..."
+      />
 
       <div className="grid gap-4">
         {providers.map((p) => (

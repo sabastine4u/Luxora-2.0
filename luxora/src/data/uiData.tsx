@@ -1,8 +1,5 @@
-import {
-  ShieldCheck, BadgeCheck, Wallet, Compass, Brain, Sparkles,
-  KeyRound, Package, Wrench,
-  FileCheck, Eye, Award,
-  TrendingUp, Percent, BarChart3,
+import { 
+  ShieldCheck, BadgeCheck, Compass, Brain, Sparkles, KeyRound, Package, Wrench, FileCheck, Eye, Award, TrendingUp, Percent, BarChart3, Wallet
 } from 'lucide-react';
 
 
@@ -26,6 +23,7 @@ export const services = [
   { icon: KeyRound, title: 'Property Management', desc: 'Full-service management for owners — tenant sourcing, rent collection, maintenance, and reporting.', tag: 'For Owners' },
   { icon: Package, title: 'Procurement', desc: 'Source building materials, fittings, and furnishings through our vetted supplier network.', tag: 'For Builders' },
   { icon: Wallet, title: 'Mortgage Assistance', desc: 'Get pre-approved, compare lenders, and access flexible payment plans tailored to you.', tag: 'For Buyers' },
+
   { icon: Wrench, title: 'Home Services', desc: 'Cleaning, repairs, renovations, and moving — book trusted professionals in minutes.', tag: 'For Everyone' },
   { icon: Brain, title: 'Property Intelligence', desc: 'Investment scores, market analytics, and area growth data to power your decisions.', tag: 'For Investors' },
 ];
@@ -61,7 +59,7 @@ export const plans = [
 ];
 
 // Navbar
-export const navLinks = ['Buy', 'Rent', 'Lease', 'Sell Property', 'Agencies', 'Services', 'About', 'Contact'];
+export const navLinks = ['Buy', 'Rent', 'Lease', 'Sell Property', 'Agencies', 'Services', 'About', 'Contact', 'Notification Center', 'Workflow Engine', 'Document Center', 'CRM Center', 'Finance Center', 'Compliance Center', 'Human Resources'];
 
 // Footer
 export const footerColumns = [

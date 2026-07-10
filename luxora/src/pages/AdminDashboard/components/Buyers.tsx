@@ -1,5 +1,12 @@
-import { Search, Filter, MoreHorizontal, UserCheck, Clock } from 'lucide-react';
-import { GhostButton } from '../../../components/ui/ui';
+import { useState } from 'react';
+import { MoreHorizontal, SearchX, UserCheck, Clock, Users, XCircle, UserPlus, Activity } from 'lucide-react';
+import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { UserDetailModal } from './UserDetailModal';
+import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
+import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 
 const mockBuyers = [
   { id: 'BUY-401', name: 'Ngozi Eze', email: 'ngozi@example.com', saved: 24, joined: 'Oct 2025', lastActive: '2 hours ago', status: 'Active' },
@@ -8,53 +15,66 @@ const mockBuyers = [
 ];
 
 export default function Buyers() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<Record<string, unknown> | null>(null);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-heading text-2xl font-bold text-cream">Buyers & Renters</h2>
-          <p className="text-sm text-ink/60">Manage platform consumer accounts.</p>
-        </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-            <input 
-              type="text" 
-              placeholder="Search buyers..." 
-              className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-2 pl-9 pr-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
-            />
-          </div>
-          <GhostButton className="px-3"><Filter className="h-4 w-4" /></GhostButton>
-        </div>
+      <DashboardHeader 
+        name="Buyer Management"
+        subtitle="Manage and monitor property buyers on the platform."
+      />
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <KPICard title="Total Buyers" value="8,402" icon={Users} trend="+154 this month" trendColor="text-emerald-400" iconColor="text-blue-400" />
+        <KPICard title="New Registrations" value="342" icon={UserPlus} trend="User Growth" trendColor="text-emerald-400" iconColor="text-purple-400" />
+        <KPICard title="Active Buyers" value="6,120" icon={UserCheck} trend="Account Health" trendColor="text-emerald-400" iconColor="text-emerald-400" />
+        <KPICard title="Suspended Buyers" value="24" icon={XCircle} trend="Requires Attention" trendColor="text-rose-400" iconColor="text-rose-400" backgroundColor="bg-rose-400/10" />
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">User ID</th>
-              <th className="px-6 py-4 font-semibold">Name / Email</th>
-              <th className="px-6 py-4 font-semibold">Saved Properties</th>
-              <th className="px-6 py-4 font-semibold">Joined / Last Active</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {mockBuyers.map((buyer) => (
-              <tr key={buyer.id} className="transition-colors hover:bg-white/[0.02]">
-                <td className="px-6 py-4 font-medium text-cream">{buyer.id}</td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-cream">{buyer.name}</div>
-                  <div className="text-xs text-ink/50">{buyer.email}</div>
-                </td>
-                <td className="px-6 py-4 font-semibold text-gold-400">{buyer.saved}</td>
-                <td className="px-6 py-4">
-                  <div className="text-ink/60">{buyer.joined}</div>
-                  <div className="text-xs text-ink/40 mt-0.5">{buyer.lastActive}</div>
-                </td>
-                <td className="px-6 py-4">
-                  {buyer.status === 'Active' ? (
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          <DataTableToolbar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search buyers..."
+            showFilter
+          />
+
+          <DataTable
+            data={mockBuyers}
+            keyExtractor={(buyer) => buyer.id}
+            columns={[
+              {
+                header: "User ID",
+                render: (buyer) => <span className="font-medium text-cream">{buyer.id}</span>
+              },
+              {
+                header: "Name / Email",
+                render: (buyer) => (
+                  <>
+                    <div className="font-semibold text-cream">{buyer.name}</div>
+                    <div className="text-xs text-ink/50">{buyer.email}</div>
+                  </>
+                )
+              },
+              {
+                header: "Saved Properties",
+                render: (buyer) => <span className="font-semibold text-gold-400">{buyer.saved}</span>
+              },
+              {
+                header: "Joined / Last Active",
+                render: (buyer) => (
+                  <>
+                    <div className="text-ink/60">{buyer.joined}</div>
+                    <div className="text-xs text-ink/40 mt-0.5">{buyer.lastActive}</div>
+                  </>
+                )
+              },
+              {
+                header: "Status",
+                render: (buyer) => (
+                  buyer.status === 'Active' ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 uppercase">
                       <UserCheck className="h-3 w-3" /> Active
                     </span>
@@ -62,18 +82,51 @@ export default function Buyers() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 text-[10px] font-semibold text-yellow-400 uppercase">
                       <Clock className="h-3 w-3" /> Inactive
                     </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors">
+                  )
+                )
+              },
+              {
+                header: <div className="text-right">Actions</div>,
+                className: "text-right",
+                render: (buyer) => (
+                  <button 
+                    className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors"
+                    onClick={() => setSelectedUser(buyer)}
+                  >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                )
+              }
+            ]}
+            emptyState={
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-navy-900/50 rounded-xl border border-white/5 border-dashed">
+                <SearchX className="h-12 w-12 text-ink/20 mb-4" />
+                <h3 className="text-lg font-bold text-cream">No buyers found</h3>
+                <p className="text-sm text-ink/50 mt-1">Try adjusting your search or filters.</p>
+              </div>
+            }
+          />
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <ActivityTimeline 
+            title="Recently Active Buyers" 
+            items={[
+              { title: 'Ngozi Eze', desc: 'Saved Skyline Penthouse', time: '10 mins ago', color: 'text-emerald-400', icon: Activity },
+              { title: 'Emeka Ike', desc: 'Requested Viewing', time: '1 hour ago', color: 'text-blue-400', icon: Activity },
+              { title: 'Chidi Okafor', desc: 'Updated Profile', time: '3 hours ago', color: 'text-gold-400', icon: Activity },
+            ]} 
+          />
+        </div>
       </div>
+      
+
+
+      <UserDetailModal
+        isOpen={!!selectedUser}
+        onClose={() => setSelectedUser(null)}
+        user={selectedUser}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import Sidebar from '../dashboard/Sidebar';
 import Topbar from '../dashboard/Topbar';
 import NotificationPanel from '../dashboard/NotificationPanel';
+import { FloatingCompareBar } from '../property/FloatingCompareBar';
 
 export interface DashboardLayoutProps {
   children: ReactNode;
@@ -42,6 +43,7 @@ export function DashboardLayout({ children, activeTab, onTabChange }: DashboardL
         isOpen={notificationsOpen} 
         onClose={() => setNotificationsOpen(false)} 
       />
+      <FloatingCompareBar />
     </div>
   );
 }

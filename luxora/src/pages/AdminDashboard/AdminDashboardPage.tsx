@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout';
+import Overview from './components/Overview';
+import Listings from './components/Listings';
 import VerificationQueue from './components/VerificationQueue';
 import Owners from './components/Owners';
 import Buyers from './components/Buyers';
@@ -11,10 +13,12 @@ import Finance from './components/Finance';
 import Settings from './components/Settings';
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Verification Queue');
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Overview': return <Overview />;
+      case 'Listings': return <Listings />;
       case 'Verification Queue': return <VerificationQueue />;
       case 'Owners': return <Owners />;
       case 'Buyers': return <Buyers />;
@@ -24,7 +28,7 @@ export default function AdminDashboardPage() {
       case 'Reports': return <Reports />;
       case 'Finance': return <Finance />;
       case 'Settings': return <Settings />;
-      default: return <VerificationQueue />;
+      default: return <Overview />;
     }
   };
 

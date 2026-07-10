@@ -1,5 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { Search, Send, MoreVertical, Image as ImageIcon, Paperclip, Bell } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Search, Send, MoreVertical, Image as ImageIcon, Paperclip, Bell, Smile, MapPin, CheckCheck, Check, MessageSquare, ChevronLeft } from 'lucide-react';
+import { GhostButton, GoldButton } from '../ui/ui';
+import { EmptyState } from '../layout/EmptyState';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../constants/routes';
 
 interface Contact {
   id: string;
@@ -10,6 +14,12 @@ interface Contact {
   time: string;
   lastMessage: string;
   isOnline?: boolean;
+  propertyName?: string;
+  propertyId?: string;
+  propertyImage?: string;
+  propertyPrice?: string;
+  propertyLocation?: string;
+  propertyStatus?: string;
 }
 
 interface Message {
@@ -17,6 +27,7 @@ interface Message {
   senderId: string;
   text: string;
   time: string;
+  read?: boolean;
 }
 
 interface MessagingUIProps {
@@ -24,6 +35,8 @@ interface MessagingUIProps {
 }
 
 export function MessagingUI({ userRole }: MessagingUIProps) {
+  const navigate = useNavigate();
+
   // Generate mock contacts based on role
   const getMockContacts = (): Contact[] => {
     const adminNotification: Contact = {
@@ -39,26 +52,93 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
 
     if (userRole === 'Buyer') {
       return [
-        { id: 'agent-1', name: 'Adaeze Okonkwo', role: 'Agent - Meridian Luxury', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?w=200&h=200&fit=crop', unread: 2, time: '10:42 AM', lastMessage: 'The viewing for Skyline Penthouse is confirmed.', isOnline: true },
-        { id: 'agent-2', name: 'Tunde Bakare', role: 'Agent - Crest & Crown', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?w=200&h=200&fit=crop', unread: 0, time: 'Yesterday', lastMessage: 'Let me know if you need more details on the Garden Court Villa.', isOnline: false },
+        { 
+          id: 'agent-1', name: 'Adaeze Okonkwo', role: 'Agent', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?w=200&h=200&fit=crop', 
+          unread: 2, time: '10:42 AM', lastMessage: 'The viewing for Skyline Penthouse is confirmed.', isOnline: true,
+          propertyName: 'Skyline Penthouse',
+          propertyId: 'PROP-001',
+          propertyImage: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=200',
+          propertyPrice: '₦185,000,000',
+          propertyLocation: 'Victoria Island, Lagos'
+        },
+        { 
+          id: 'owner-1', name: 'Tunde Bakare', role: 'Owner', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?w=200&h=200&fit=crop', 
+          unread: 0, time: 'Yesterday', lastMessage: 'Let me know if you need more details on the Garden Court Villa.', isOnline: false,
+          propertyName: 'Garden Court Villa',
+          propertyId: 'PROP-002',
+          propertyImage: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=200',
+          propertyPrice: '₦680,000,000',
+          propertyLocation: 'Banana Island, Lagos'
+        },
+        { 
+          id: 'agency-1', name: 'Meridian Luxury', role: 'Agency', avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?w=200&h=200&fit=crop', 
+          unread: 0, time: 'Monday', lastMessage: 'Here are the floor plans you requested.', isOnline: true,
+        },
         adminNotification
       ];
     }
     
     if (userRole === 'Owner') {
       return [
-        { id: 'agent-1', name: 'Michael Eze', role: 'Agent - Luxora Core', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?w=200&h=200&fit=crop', unread: 0, time: '2:15 PM', lastMessage: 'I have 3 potential buyers scheduled for viewing this week.', isOnline: true },
-        { id: 'agency-1', name: 'Sarah Jenkins', role: 'Agency Manager', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?w=200&h=200&fit=crop', unread: 1, time: 'Yesterday', lastMessage: 'Your updated contract has been uploaded.', isOnline: false },
+        { 
+          id: 'agent-1', name: 'Michael Eze', role: 'Agent - Luxora Core', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?w=200&h=200&fit=crop', 
+          unread: 0, time: '2:15 PM', lastMessage: 'I have 3 potential buyers scheduled for viewing this week.', isOnline: true,
+          propertyName: 'Skyline Penthouse',
+          propertyId: 'PROP-001',
+          propertyImage: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=200',
+          propertyPrice: '₦185,000,000',
+          propertyLocation: 'Victoria Island, Lagos'
+        },
+        { 
+          id: 'manager-1', name: 'Sarah Jenkins', role: 'Property Manager', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?w=200&h=200&fit=crop', 
+          unread: 1, time: 'Yesterday', lastMessage: 'The maintenance at the villa is completed.', isOnline: false,
+          propertyName: 'Garden Court Villa',
+          propertyId: 'PROP-002',
+          propertyImage: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=200',
+          propertyPrice: '₦680,000,000',
+          propertyLocation: 'Banana Island, Lagos'
+        },
+        {
+          id: 'buyer-1', name: 'Emeka Obi', role: 'Buyer', avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?w=200&h=200&fit=crop',
+          unread: 2, time: 'Monday', lastMessage: 'Is the price negotiable?', isOnline: true,
+          propertyName: 'Lekki Phase 1 Duplex',
+          propertyId: 'PROP-003',
+          propertyImage: 'https://images.pexels.com/photos/1732414/pexels-photo-1732414.jpeg?auto=compress&cs=tinysrgb&w=200',
+          propertyPrice: '₦120,000,000',
+          propertyLocation: 'Lekki Phase 1, Lagos'
+        },
         adminNotification
       ];
     }
 
     if (userRole === 'Agent') {
       return [
-        { id: 'buyer-1', name: 'David Smith', role: 'Buyer', avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?w=200&h=200&fit=crop', unread: 1, time: '09:30 AM', lastMessage: 'Perfect. 10:00 AM works.', isOnline: true },
-        { id: 'owner-1', name: 'Grace Adeleke', role: 'Property Owner', avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?w=200&h=200&fit=crop', unread: 0, time: 'Yesterday', lastMessage: 'Please ensure they remove their shoes.', isOnline: false },
+        { id: 'buyer-1', name: 'David Smith', role: 'Buyer', avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?w=200&h=200&fit=crop', unread: 1, time: '09:30 AM', lastMessage: 'Perfect. 10:00 AM works.', isOnline: true,
+          propertyName: 'Skyline Penthouse', propertyImage: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=200', propertyPrice: '₦185,000,000', propertyLocation: 'Victoria Island, Lagos', propertyStatus: 'Active'
+        },
+        { id: 'owner-1', name: 'Grace Adeleke', role: 'Property Owner', avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?w=200&h=200&fit=crop', unread: 0, time: 'Yesterday', lastMessage: 'Please ensure they remove their shoes.', isOnline: false,
+          propertyName: 'Aurora Studio', propertyImage: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=200', propertyPrice: '₦45,000,000', propertyLocation: 'Yaba, Lagos', propertyStatus: 'Pending'
+        },
         { id: 'agency-1', name: 'James Carter', role: 'Agency Director', avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?w=200&h=200&fit=crop', unread: 0, time: 'Mon', lastMessage: 'Great job closing the Ikoyi deal.', isOnline: false },
+        { id: 'manager-1', name: 'Frank Nnamdi', role: 'Property Manager', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?w=200&h=200&fit=crop', unread: 2, time: 'Tue', lastMessage: 'The plumbing issue at the penthouse is resolved.', isOnline: true,
+          propertyName: 'Skyline Penthouse', propertyImage: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=200', propertyPrice: '₦185,000,000', propertyLocation: 'Victoria Island, Lagos', propertyStatus: 'Active'
+        },
         adminNotification
+      ];
+    }
+
+    if (userRole === 'Agency') {
+      return [
+        { id: 'agent-1', name: 'Adaeze Okonkwo', role: 'Agent - Lekki Branch', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 2, time: '10:42 AM', lastMessage: 'The client accepted the counter-offer.', isOnline: true,
+          propertyName: 'Skyline Penthouse', propertyImage: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=200', propertyPrice: '₦420,000,000', propertyLocation: 'Eko Atlantic, Lagos', propertyStatus: 'Pending'
+        },
+        { id: 'owner-1', name: 'Tunde Bakare', role: 'Property Owner', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 0, time: 'Yesterday', lastMessage: 'When will the agency fees be remitted?', isOnline: false,
+          propertyName: 'Garden Court Villa', propertyImage: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=200', propertyPrice: '₦680,000,000', propertyLocation: 'Banana Island, Lagos', propertyStatus: 'Active'
+        },
+        { id: 'buyer-1', name: 'Dr. Chidi Okafor', role: 'Buyer', avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 1, time: 'Monday', lastMessage: 'I need to schedule a meeting with the agency director.', isOnline: true },
+        { id: 'manager-1', name: 'Sarah Jenkins', role: 'Property Manager', avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 0, time: 'Sep 28', lastMessage: 'The maintenance report for the Ikoyi block is attached.', isOnline: false },
+        { id: 'admin-1', name: 'System Notifications', role: 'Admin', avatar: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=200&h=200&fit=crop', unread: 0, time: 'Sep 25', lastMessage: 'Your agency license verification is complete.', isOnline: true },
+        { id: 'super-1', name: 'Luxora Corporate', role: 'Super Admin', avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 0, time: 'Sep 20', lastMessage: 'Please review the updated platform terms.', isOnline: false }
       ];
     }
 
@@ -77,7 +157,7 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
 
     return [
       { id: 'm1', senderId: contactId, text: 'Hello! Are you available to discuss the property?', time: '09:15 AM' },
-      { id: 'm2', senderId: 'me', text: 'Hi! Yes, I am available now.', time: '09:30 AM' },
+      { id: 'm2', senderId: 'me', text: 'Hi! Yes, I am available now.', time: '09:30 AM', read: true },
       { id: 'm3', senderId: contactId, text: 'Great. Let me send you the details.', time: '09:35 AM' },
     ];
   };
@@ -87,13 +167,26 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
   const [messages, setMessages] = useState<Message[]>(getMockMessages(contacts[0].id));
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('All');
   const [isTyping, setIsTyping] = useState(false);
+  const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const filteredContacts = contacts.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredContacts = useMemo(() => {
+    let result = contacts.filter(c => 
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.propertyName && c.propertyName.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    if (filterType === 'Agents') result = result.filter(c => c.role.includes('Agent'));
+    else if (filterType === 'Owners') result = result.filter(c => c.role.includes('Owner') || c.role === 'Property Owner');
+    else if (filterType === 'Agencies') result = result.filter(c => c.role.includes('Agency'));
+    else if (filterType === 'Unread') result = result.filter(c => c.unread > 0);
+
+    return result;
+  }, [contacts, searchQuery, filterType]);
 
   // Handle marking contact as read when clicking on it
   const handleContactClick = (contact: Contact) => {
@@ -105,11 +198,12 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
         c.id === contact.id ? { ...c, unread: 0 } : c
       ));
     }
+    setShowChatOnMobile(true);
   };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, showChatOnMobile]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -118,7 +212,8 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
       id: Date.now().toString(),
       senderId: 'me',
       text: newMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read: false
     };
 
     setMessages(prev => [...prev, newMsg]);
@@ -128,6 +223,9 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
+      // Mark as read when they reply
+      setMessages(prev => prev.map(m => m.senderId === 'me' ? { ...m, read: true } : m));
+      
       const responseMsg: Message = {
         id: (Date.now() + 1).toString(),
         senderId: activeContact.id,
@@ -143,22 +241,51 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
     }, 2000);
   };
 
+  if (contacts.length === 0) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12 h-[calc(100vh-140px)] flex items-center justify-center">
+        <EmptyState
+          icon={<MessageSquare className="h-12 w-12 text-gold-400" />}
+          title="No conversations found."
+          description="When you connect with agents, owners, or agencies, your messages will appear here."
+          actionLabel="Browse Properties"
+          onAction={() => navigate(ROUTES.PROPERTIES)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-[calc(100vh-140px)] flex-col lg:flex-row overflow-hidden rounded-2xl border border-white/10 bg-navy-800/50">
+    <div className="flex h-[calc(100vh-140px)] overflow-hidden rounded-2xl border border-white/10 bg-navy-800/50 relative">
       
       {/* Contacts Sidebar */}
-      <div className="w-full lg:w-80 border-r border-white/10 flex flex-col">
-        <div className="p-4 border-b border-white/10">
+      <div className={`w-full lg:w-80 border-r border-white/10 flex-col absolute inset-0 lg:static z-10 bg-navy-800/95 lg:bg-transparent ${showChatOnMobile ? 'hidden lg:flex' : 'flex'}`}>
+        <div className="p-4 border-b border-white/10 space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
             <input 
               type="text" 
-              placeholder="Search messages..." 
+              placeholder="Search by name or property..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-full border border-white/10 bg-navy-900/80 py-2 pl-9 pr-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50 transition-all"
             />
           </div>
+          {userRole !== 'Admin' && (
+             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+               {['All', 'Agents', 'Owners', 'Agencies', 'Unread'].map(filter => (
+                 <button
+                   key={filter}
+                   onClick={() => setFilterType(filter)}
+                   className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
+                     filterType === filter ? 'bg-gold-400 text-navy-900 font-bold' : 'bg-white/5 text-ink/60 hover:text-cream hover:bg-white/10'
+                   }`}
+                 >
+                   {filter}
+                 </button>
+               ))}
+             </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-2 no-scrollbar space-y-1">
           {filteredContacts.map((contact) => (
@@ -191,7 +318,10 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
                   <h4 className="truncate font-semibold text-cream text-sm">{contact.name}</h4>
                   <span className="text-[10px] text-ink/50 whitespace-nowrap ml-2">{contact.time}</span>
                 </div>
-                <p className={`truncate text-xs ${contact.unread > 0 ? 'text-cream font-medium' : 'text-ink/60'}`}>
+                <p className={`truncate text-[10px] ${contact.propertyName ? 'text-gold-400' : 'text-ink/50'}`}>
+                  {contact.propertyName ? contact.propertyName : contact.role}
+                </p>
+                <p className={`truncate text-xs mt-0.5 ${contact.unread > 0 ? 'text-cream font-medium' : 'text-ink/60'}`}>
                   {contact.lastMessage}
                 </p>
               </div>
@@ -204,10 +334,13 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col h-full bg-navy-900/30">
+      <div className={`flex-1 flex-col h-full bg-navy-900/30 absolute inset-0 lg:static z-20 bg-navy-900 lg:bg-transparent ${!showChatOnMobile ? 'hidden lg:flex' : 'flex'}`}>
         {/* Chat Header */}
         <div className="flex items-center justify-between border-b border-white/10 p-4 bg-navy-800/50">
           <div className="flex items-center gap-3">
+            <button className="lg:hidden text-ink/40 hover:text-cream mr-1" onClick={() => setShowChatOnMobile(false)}>
+              <ChevronLeft className="h-6 w-6" />
+            </button>
             {activeContact.role === 'Admin' ? (
                <div className="h-10 w-10 rounded-full bg-navy-900 flex items-center justify-center border border-white/10 text-gold-400">
                  <Bell className="h-5 w-5" />
@@ -230,6 +363,40 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
           <button className="text-ink/40 hover:text-cream"><MoreVertical className="h-5 w-5" /></button>
         </div>
 
+        {/* Property Context Card */}
+        {activeContact.propertyName && (userRole === 'Buyer' || userRole === 'Agent' || userRole === 'Owner') && (
+          <div className="bg-navy-800/80 border-b border-white/10 p-4 shrink-0 flex flex-col sm:flex-row gap-4 justify-between items-center shadow-lg">
+             <div className="flex gap-4 w-full sm:w-auto items-center">
+               <img src={activeContact.propertyImage} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10" alt={activeContact.propertyName} />
+               <div className="min-w-0">
+                 <h4 className="font-semibold text-cream text-sm truncate">
+                   {activeContact.propertyName}
+                   {activeContact.propertyStatus && <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">{activeContact.propertyStatus}</span>}
+                 </h4>
+                 <div className="text-[11px] text-ink/60 flex items-center gap-1 mt-1 truncate"><MapPin className="h-3 w-3 shrink-0" /> {activeContact.propertyLocation}</div>
+                 <div className="text-gold-400 font-bold text-sm mt-1">{activeContact.propertyPrice}</div>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
+               {userRole === 'Agent' ? (
+                 <>
+                   <GhostButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}>Open Property</GhostButton>
+                   <GhostButton size="sm" onClick={() => alert('Mock: Calling Client...')}>Call Client</GhostButton>
+                   <GhostButton size="sm">Schedule Viewing</GhostButton>
+                   <GoldButton size="sm">View Offer</GoldButton>
+                 </>
+               ) : (
+                 <>
+                   <GhostButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}>View Property</GhostButton>
+                   <GhostButton size="sm">Schedule Viewing</GhostButton>
+                   <GoldButton size="sm">Make Offer</GoldButton>
+                   <GhostButton size="sm" className="text-rose-400 border-rose-400/20 hover:text-rose-300 hover:bg-rose-400/10">Report</GhostButton>
+                 </>
+               )}
+             </div>
+          </div>
+        )}
+
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
           {messages.map((msg, index) => {
@@ -244,16 +411,19 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
                     {showAvatar && <img src={activeContact.avatar} alt="" className="h-6 w-6 rounded-full" />}
                   </div>
                 )}
-                <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm relative group ${
+                <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm relative group ${
                   isMe 
                     ? 'bg-gold-gradient text-navy-900 rounded-br-sm' 
                     : isAdmin
                       ? 'bg-navy-800/80 border border-gold-400/20 text-cream rounded-bl-sm w-full'
                       : 'bg-navy-800 border border-white/10 text-cream rounded-bl-sm'
                 }`}>
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
-                  <div className={`mt-1 text-[10px] text-right ${isMe ? 'text-navy-900/60' : 'text-ink/40'}`}>
-                    {msg.time}
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                  <div className={`mt-1 text-[10px] text-right flex items-center justify-end gap-1 ${isMe ? 'text-navy-900/60' : 'text-ink/40'}`}>
+                    <span>{msg.time}</span>
+                    {isMe && (
+                      msg.read ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -277,12 +447,15 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
         {/* Chat Input */}
         {activeContact.role !== 'Admin' && (
           <div className="p-4 bg-navy-800/50 border-t border-white/10">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button className="p-2 text-ink/40 hover:text-cream hover:bg-white/5 rounded-full transition-colors shrink-0">
                 <Paperclip className="h-5 w-5" />
               </button>
-              <button className="p-2 text-ink/40 hover:text-cream hover:bg-white/5 rounded-full transition-colors shrink-0">
+              <button className="p-2 text-ink/40 hover:text-cream hover:bg-white/5 rounded-full transition-colors shrink-0 hidden sm:block">
                 <ImageIcon className="h-5 w-5" />
+              </button>
+              <button className="p-2 text-ink/40 hover:text-cream hover:bg-white/5 rounded-full transition-colors shrink-0 hidden sm:block">
+                <Smile className="h-5 w-5" />
               </button>
               <input 
                 type="text" 
@@ -295,7 +468,7 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
               <button 
                 onClick={handleSendMessage}
                 disabled={!newMessage.trim()}
-                className="p-2.5 bg-gold-400 text-navy-900 rounded-full hover:bg-gold-300 transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2.5 bg-gold-400 text-navy-900 rounded-full hover:bg-gold-300 transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ml-1"
               >
                 <Send className="h-4 w-4" />
               </button>

@@ -1,13 +1,43 @@
-import { Bed, Bath, Maximize, Heart, MapPin, BadgeCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Bed, Bath, Maximize, Heart, MapPin, BadgeCheck, Scale, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { type properties } from '../../data/luxoraData';
+import { useSession } from '../../contexts/SessionContext';
+import { ROUTES } from '../../constants/routes';
 
 export interface PropertyCardProps {
   property: (typeof properties)[number];
-  saved?: boolean;
-  onSave?: () => void;
 }
 
-export function PropertyCard({ property: p, saved = false, onSave }: PropertyCardProps) {
+export function PropertyCard({ property: p }: PropertyCardProps) {
+  const navigate = useNavigate();
+  const { isAuthenticated, isSaved, toggleSavedProperty, isCompared, toggleCompareProperty, openReportListingModal } = useSession();
+
+  const saved = isSaved(p.id);
+  const compared = isCompared(p.id);
+
+  const handleSaveClick = () => {
+    if (!isAuthenticated) {
+      navigate(ROUTES.LOGIN);
+    } else {
+      toggleSavedProperty(p.id);
+    }
+  };
+
+  const [toastVisible, setToastVisible] = useState(false);
+
+  const handleCompareClick = () => {
+    const limitReached = toggleCompareProperty(p.id);
+    if (limitReached) {
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    }
+  };
+
+  const handleViewDetails = () => {
+    navigate(ROUTES.PROPERTY_DETAILS.replace(':id', p.id));
+  };
+
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-navy-800/50 transition-all duration-300 hover:border-gold-400/30 hover:shadow-lux">
       {/* Image */}
@@ -26,19 +56,30 @@ export function PropertyCard({ property: p, saved = false, onSave }: PropertyCar
           </div>
         )}
 
+        {/* Compare */}
+        <button
+          onClick={handleCompareClick}
+          title={compared ? "Remove from compare" : "Add to compare"}
+          className={`absolute right-14 top-3 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-md transition-all ${
+            compared
+              ? 'bg-gold-400 text-navy-900'
+              : 'bg-navy-900/60 text-cream hover:bg-navy-900/80'
+          }`}
+        >
+          <Scale className="h-4 w-4" />
+        </button>
+
         {/* Save */}
-        {onSave && (
-          <button
-            onClick={onSave}
-            className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-md transition-all ${
-              saved
-                ? 'bg-gold-400 text-navy-900'
-                : 'bg-navy-900/60 text-cream hover:bg-navy-900/80'
-            }`}
-          >
-            <Heart className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
-          </button>
-        )}
+        <button
+          onClick={handleSaveClick}
+          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-md transition-all ${
+            saved
+              ? 'bg-gold-400 text-navy-900'
+              : 'bg-navy-900/60 text-cream hover:bg-navy-900/80'
+          }`}
+        >
+          <Heart className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
+        </button>
 
         {/* Verified badges */}
         <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
@@ -72,7 +113,10 @@ export function PropertyCard({ property: p, saved = false, onSave }: PropertyCar
             <div className="font-heading text-xl font-bold text-cream">{p.price}</div>
             <div className="text-xs text-gold-300">From {p.monthly}/month</div>
           </div>
-          <button className="rounded-full border border-gold-400/30 px-4 py-2 text-xs font-semibold text-gold-200 transition-all hover:bg-gold-400/10">
+          <button 
+            onClick={handleViewDetails}
+            className="rounded-full border border-gold-400/30 px-4 py-2 text-xs font-semibold text-gold-200 transition-all hover:bg-gold-400/10"
+          >
             View Details
           </button>
         </div>
@@ -84,8 +128,22 @@ export function PropertyCard({ property: p, saved = false, onSave }: PropertyCar
             <div className="truncate text-xs font-medium text-cream">{p.agent.name}</div>
             <div className="truncate text-[10px] text-ink/50">{p.agent.agency}</div>
           </div>
+          <button 
+            onClick={() => openReportListingModal(p.id)}
+            className="text-ink/30 hover:text-rose-400 transition-colors p-1"
+            title="Report Listing"
+          >
+            <AlertTriangle className="h-4 w-4" />
+          </button>
         </div>
       </div>
+      
+      {/* Toast */}
+      {toastVisible && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-rose-500 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-xl shadow-rose-500/20 whitespace-nowrap animate-in fade-in zoom-in duration-300">
+          You can compare up to 4 properties.
+        </div>
+      )}
     </div>
   );
 }

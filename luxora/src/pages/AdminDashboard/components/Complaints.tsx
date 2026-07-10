@@ -1,109 +1,173 @@
-import { Search, Filter, MessageSquare, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { useState } from 'react';
+import { CheckCircle, XCircle, MessageSquare, SearchX, FileText, AlertTriangle, Clock } from 'lucide-react';
+import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
+import { GoldButton } from '../../../components/ui/ui';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { ReportDetailModal } from './ReportDetailModal';
+import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
+import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 
-const mockComplaints = [
+export interface ComplaintTicket {
+  id: string;
+  type: string;
+  user: string;
+  target: string;
+  status: string;
+  priority: string;
+  date: string;
+  [key: string]: unknown;
+}
+
+const mockComplaints: ComplaintTicket[] = [
   { id: 'TKT-504', type: 'Listing Dispute', user: 'Ngozi Eze (Buyer)', target: 'Skyline Penthouse', status: 'Open', priority: 'High', date: '2 hours ago' },
   { id: 'TKT-503', type: 'Agent Conduct', user: 'Anonymous (Owner)', target: 'Oluwaseun Adeyemi', status: 'In Progress', priority: 'Medium', date: '1 day ago' },
   { id: 'TKT-502', type: 'Platform Bug', user: 'Chidi Okafor (Agent)', target: 'Messaging System', status: 'Resolved', priority: 'Low', date: '3 days ago' },
 ];
 
 export default function Complaints() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedReport, setSelectedReport] = useState<Record<string, unknown> | null>(null);
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Open': return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
-      case 'In Progress': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
+      case 'High': return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
+      case 'Medium': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+      case 'Low': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
+      case 'Open':
+      case 'Under Review': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
       case 'Resolved': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+      case 'Closed': return 'text-ink/60 bg-white/5 border-white/10';
       default: return 'text-ink/60 bg-white/5 border-white/10';
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-heading text-2xl font-bold text-cream">Complaints & Tickets</h2>
-          <p className="text-sm text-ink/60">Resolve user disputes, reported listings, and platform issues.</p>
-        </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-            <input 
-              type="text" 
-              placeholder="Search tickets..." 
-              className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-2 pl-9 pr-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
-            />
+      <DashboardHeader 
+        name="Reported Listings & Tickets"
+        subtitle="Resolve user disputes, reported listings, and platform issues."
+      />
+
+      <div className="mb-2">
+        <h2 className="text-sm font-semibold text-ink/50 uppercase tracking-wider">Moderator Workload</h2>
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <KPICard title="My Open Tickets" value="12" icon={FileText} trend="Action Required" trendColor="text-yellow-400" iconColor="text-blue-400" />
+        <KPICard title="Escalated to Me" value="3" icon={AlertTriangle} trend="High Priority" trendColor="text-rose-400" iconColor="text-rose-400" backgroundColor="bg-rose-400/10" />
+        <KPICard title="Avg Resolution Time" value="4.2h" icon={Clock} trend="-1.5h vs last week" trendColor="text-emerald-400" iconColor="text-emerald-400" />
+        <KPICard title="Tickets Resolved Today" value="28" icon={CheckCircle} trend="+5 vs yesterday" trendColor="text-emerald-400" iconColor="text-purple-400" />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col justify-center space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-5 w-5 text-rose-400" />
+            <h3 className="font-heading text-lg font-bold text-cream">Report Severity Distribution</h3>
           </div>
-          <GhostButton className="px-3"><Filter className="h-4 w-4" /></GhostButton>
+          <SegmentedProgressBar
+            segments={[
+              { label: 'High Severity', value: 15, color: 'bg-rose-400' },
+              { label: 'Medium Severity', value: 45, color: 'bg-yellow-400' },
+              { label: 'Low Severity', value: 40, color: 'bg-blue-400' },
+            ]}
+          />
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col justify-center space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="h-5 w-5 text-emerald-400" />
+            <h3 className="font-heading text-lg font-bold text-cream">Resolution & Status Overview</h3>
+          </div>
+          <SegmentedProgressBar
+            segments={[
+              { label: 'Resolved (Closed)', value: 428, color: 'bg-emerald-400' },
+              { label: 'Open (In Progress)', value: 57, color: 'bg-yellow-400' },
+              { label: 'Escalated', value: 12, color: 'bg-rose-400' },
+            ]}
+          />
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-5">
-          <div className="flex items-center gap-2 text-rose-400">
-            <AlertTriangle className="h-5 w-5" />
-            <div className="text-3xl font-bold">12</div>
-          </div>
-          <div className="text-sm text-ink/60 mt-1">Open Tickets</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-5">
-          <div className="text-3xl font-bold text-yellow-400">5</div>
-          <div className="text-sm text-ink/60 mt-1">In Progress</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-5">
-          <div className="text-3xl font-bold text-emerald-400">428</div>
-          <div className="text-sm text-ink/60 mt-1">Resolved (YTD)</div>
-        </div>
-      </div>
+      <DataTableToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search tickets..."
+        showFilter
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Ticket ID</th>
-              <th className="px-6 py-4 font-semibold">Type / Priority</th>
-              <th className="px-6 py-4 font-semibold">Reported By</th>
-              <th className="px-6 py-4 font-semibold">Target</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {mockComplaints.map((ticket) => (
-              <tr key={ticket.id} className="transition-colors hover:bg-white/[0.02]">
-                <td className="px-6 py-4 font-medium text-cream">{ticket.id}</td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-cream">{ticket.type}</div>
-                  <div className={`text-xs mt-0.5 ${ticket.priority === 'High' ? 'text-rose-400' : ticket.priority === 'Medium' ? 'text-yellow-400' : 'text-blue-400'}`}>
-                    {ticket.priority} Priority
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-ink/60">{ticket.user}</td>
-                <td className="px-6 py-4 text-ink/60">{ticket.target}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-2">
-                    {ticket.status !== 'Resolved' && (
-                      <button className="rounded-lg p-2 text-ink/40 hover:bg-emerald-400/10 hover:text-emerald-400 transition-colors" title="Mark Resolved">
-                        <CheckCircle className="h-5 w-5" />
-                      </button>
-                    )}
-                    <button className="rounded-lg p-2 text-ink/40 hover:bg-rose-400/10 hover:text-rose-400 transition-colors" title="Close Ticket">
-                      <XCircle className="h-5 w-5" />
-                    </button>
-                    <GoldButton size="sm" className="ml-2 flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" /> View Thread
-                    </GoldButton>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={mockComplaints}
+        keyExtractor={(ticket) => ticket.id}
+        columns={[
+          {
+            header: "Ticket ID",
+            render: (ticket: ComplaintTicket) => <span className="font-medium text-cream">{ticket.id}</span>
+          },
+          {
+            header: "Type / Priority",
+            render: (ticket: ComplaintTicket) => (
+              <>
+                <div className="font-semibold text-cream">{ticket.type}</div>
+                <div className={`text-xs mt-0.5 ${ticket.priority === 'High' ? 'text-rose-400' : ticket.priority === 'Medium' ? 'text-yellow-400' : 'text-blue-400'}`}>
+                  {ticket.priority} Priority
+                </div>
+              </>
+            )
+          },
+          {
+            header: "Reported By",
+            render: (ticket: ComplaintTicket) => <span className="text-ink/60">{ticket.user}</span>
+          },
+          {
+            header: "Target",
+            render: (ticket: ComplaintTicket) => <span className="text-ink/60">{ticket.target}</span>
+          },
+          {
+            header: "Status",
+            render: (ticket: ComplaintTicket) => (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${getStatusColor(ticket.status)}`}>
+                {ticket.status}
+              </span>
+            )
+          },
+          {
+            header: <div className="text-right">Actions</div>,
+            className: "text-right",
+            render: (ticket: ComplaintTicket) => (
+              <div className="flex items-center justify-end gap-2">
+                {ticket.status !== 'Resolved' && (
+                  <button className="rounded-lg p-2 text-ink/40 hover:bg-emerald-400/10 hover:text-emerald-400 transition-colors" title="Mark Resolved">
+                    <CheckCircle className="h-5 w-5" />
+                  </button>
+                )}
+                <button className="rounded-lg p-2 text-ink/40 hover:bg-rose-400/10 hover:text-rose-400 transition-colors" title="Close Ticket">
+                  <XCircle className="h-5 w-5" />
+                </button>
+                <GoldButton 
+                  size="sm" 
+                  className="ml-2 flex items-center gap-2"
+                  onClick={() => setSelectedReport(ticket)}
+                >
+                  <MessageSquare className="h-4 w-4" /> View Thread
+                </GoldButton>
+              </div>
+            )
+          }
+        ]}
+        emptyState={
+          <div className="flex flex-col items-center justify-center py-12 text-center bg-navy-900/50 rounded-xl border border-white/5 border-dashed">
+            <SearchX className="h-12 w-12 text-ink/20 mb-4" />
+            <h3 className="text-lg font-bold text-cream">No reports found</h3>
+            <p className="text-sm text-ink/50 mt-1">All tickets have been processed or none match your criteria.</p>
+          </div>
+        }
+      />
+
+      <ReportDetailModal 
+        isOpen={!!selectedReport}
+        onClose={() => setSelectedReport(null)}
+        report={selectedReport}
+      />
     </div>
   );
 }

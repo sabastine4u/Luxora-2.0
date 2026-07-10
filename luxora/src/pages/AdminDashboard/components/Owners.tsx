@@ -1,5 +1,11 @@
-import { Search, Filter, MoreHorizontal, UserCheck, ShieldAlert } from 'lucide-react';
-import { GhostButton } from '../../../components/ui/ui';
+import { useState } from 'react';
+import { ShieldAlert, UserCheck, MoreHorizontal, SearchX, Users, CheckCircle, Clock, UserPlus, Activity } from 'lucide-react';
+import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { UserDetailModal } from './UserDetailModal';
+import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
+import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 
 const mockOwners = [
   { id: 'OWN-901', name: 'Aliko Dangote', email: 'aliko@example.com', properties: 12, joined: 'Jan 2024', status: 'Active' },
@@ -9,50 +15,61 @@ const mockOwners = [
 ];
 
 export default function Owners() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<Record<string, unknown> | null>(null);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-heading text-2xl font-bold text-cream">Property Owners</h2>
-          <p className="text-sm text-ink/60">Manage landlord and property owner accounts.</p>
-        </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-            <input 
-              type="text" 
-              placeholder="Search owners..." 
-              className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-2 pl-9 pr-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
-            />
-          </div>
-          <GhostButton className="px-3"><Filter className="h-4 w-4" /></GhostButton>
-        </div>
+      <DashboardHeader 
+        name="Owner Management"
+        subtitle="Manage and monitor property owners on the platform."
+      />
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <KPICard title="Total Owners" value="2,145" icon={Users} trend="+32 this month" trendColor="text-emerald-400" iconColor="text-purple-400" />
+        <KPICard title="New Registrations" value="84" icon={UserPlus} trend="User Growth" trendColor="text-emerald-400" iconColor="text-emerald-400" />
+        <KPICard title="Verified Owners" value="1,850" icon={CheckCircle} trend="Verification Status" trendColor="text-emerald-400" iconColor="text-blue-400" />
+        <KPICard title="Pending Verification" value="45" icon={Clock} trend="Action Required" trendColor="text-yellow-400" iconColor="text-yellow-400" backgroundColor="bg-yellow-400/10" />
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-navy-800/50">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-navy-900/50 text-xs uppercase text-ink/50 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Owner ID</th>
-              <th className="px-6 py-4 font-semibold">Name / Email</th>
-              <th className="px-6 py-4 font-semibold">Properties</th>
-              <th className="px-6 py-4 font-semibold">Joined Date</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {mockOwners.map((owner) => (
-              <tr key={owner.id} className="transition-colors hover:bg-white/[0.02]">
-                <td className="px-6 py-4 font-medium text-cream">{owner.id}</td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-cream">{owner.name}</div>
-                  <div className="text-xs text-ink/50">{owner.email}</div>
-                </td>
-                <td className="px-6 py-4 font-semibold text-gold-400">{owner.properties}</td>
-                <td className="px-6 py-4 text-ink/60">{owner.joined}</td>
-                <td className="px-6 py-4">
-                  {owner.status === 'Active' ? (
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          <DataTableToolbar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search owners..."
+            showFilter
+          />
+
+          <DataTable
+            data={mockOwners}
+            keyExtractor={(owner) => owner.id}
+            columns={[
+              {
+                header: "Owner ID",
+                render: (owner) => <span className="font-medium text-cream">{owner.id}</span>
+              },
+              {
+                header: "Name / Email",
+                render: (owner) => (
+                  <>
+                    <div className="font-semibold text-cream">{owner.name}</div>
+                    <div className="text-xs text-ink/50">{owner.email}</div>
+                  </>
+                )
+              },
+              {
+                header: "Properties",
+                render: (owner) => <span className="font-semibold text-gold-400">{owner.properties}</span>
+              },
+              {
+                header: "Joined Date",
+                render: (owner) => <span className="text-ink/60">{owner.joined}</span>
+              },
+              {
+                header: "Status",
+                render: (owner) => (
+                  owner.status === 'Active' ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 uppercase">
                       <UserCheck className="h-3 w-3" /> Active
                     </span>
@@ -60,18 +77,51 @@ export default function Owners() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-rose-400/10 border border-rose-400/20 px-2.5 py-1 text-[10px] font-semibold text-rose-400 uppercase">
                       <ShieldAlert className="h-3 w-3" /> Suspended
                     </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors">
+                  )
+                )
+              },
+              {
+                header: <div className="text-right">Actions</div>,
+                className: "text-right",
+                render: (owner) => (
+                  <button 
+                    className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors"
+                    onClick={() => setSelectedUser(owner)}
+                  >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                )
+              }
+            ]}
+            emptyState={
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-navy-900/50 rounded-xl border border-white/5 border-dashed">
+                <SearchX className="h-12 w-12 text-ink/20 mb-4" />
+                <h3 className="text-lg font-bold text-cream">No owners found</h3>
+                <p className="text-sm text-ink/50 mt-1">Try adjusting your search or filters.</p>
+              </div>
+            }
+          />
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <ActivityTimeline 
+            title="Recently Active Owners" 
+            items={[
+              { title: 'Aliko Dangote', desc: 'Updated Listing Pricing', time: '10 mins ago', color: 'text-emerald-400', icon: Activity },
+              { title: 'Femi Otedola', desc: 'Replied to Inquiry', time: '1 hour ago', color: 'text-blue-400', icon: Activity },
+              { title: 'Tony Elumelu', desc: 'Uploaded New Photos', time: '3 hours ago', color: 'text-gold-400', icon: Activity },
+            ]} 
+          />
+        </div>
       </div>
+      
+
+
+      <UserDetailModal
+        isOpen={!!selectedUser}
+        onClose={() => setSelectedUser(null)}
+        user={selectedUser}
+      />
     </div>
   );
 }
