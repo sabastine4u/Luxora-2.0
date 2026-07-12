@@ -66,14 +66,14 @@ export default function AppRoutes() {
       <Route path={ROUTES.PROPERTY_MANAGEMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.PROPERTY_MANAGEMENT]}><PropertyManagementDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.HOME_SERVICES_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.HOME_SERVICES]}><HomeServicesDashboardPage /></ProtectedRoute>} />
       
-      <Route path={ROUTES.COMMUNICATION_CENTER} element={<ProtectedRoute><CommunicationCenterPage /></ProtectedRoute>} />
-      <Route path={ROUTES.NOTIFICATION_CENTER} element={<ProtectedRoute><NotificationCenterPage /></ProtectedRoute>} />
-      <Route path={ROUTES.WORKFLOW_CENTER} element={<ProtectedRoute><WorkflowCenterPage /></ProtectedRoute>} />
-      <Route path={ROUTES.DOCUMENT_CENTER} element={<ProtectedRoute><DocumentCenterPage /></ProtectedRoute>} />
+      <Route path={ROUTES.COMMUNICATION_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY, ROLES.FINANCE, ROLES.PROCUREMENT, ROLES.ANALYST, ROLES.PROPERTY_MANAGER, ROLES.SERVICE_ADMIN]}><CommunicationCenterPage /></ProtectedRoute>} />
+      <Route path={ROUTES.NOTIFICATION_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY, ROLES.FINANCE, ROLES.PROCUREMENT, ROLES.ANALYST, ROLES.PROPERTY_MANAGER, ROLES.SERVICE_ADMIN]}><NotificationCenterPage /></ProtectedRoute>} />
+      <Route path={ROUTES.WORKFLOW_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER]}><WorkflowCenterPage /></ProtectedRoute>} />
+      <Route path={ROUTES.DOCUMENT_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY, ROLES.FINANCE, ROLES.PROCUREMENT]}><DocumentCenterPage /></ProtectedRoute>} />
       <Route 
         path={ROUTES.CRM_CENTER} 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY]}>
             <CRMCenterPage />
           </ProtectedRoute>
         } 
@@ -81,7 +81,7 @@ export default function AppRoutes() {
       <Route 
         path={ROUTES.FINANCE_CENTER} 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.FINANCE, ROLES.MANAGER]}>
             <FinanceCenterPage />
           </ProtectedRoute>
         } 
@@ -89,7 +89,7 @@ export default function AppRoutes() {
       <Route 
         path={ROUTES.COMPLIANCE_CENTER} 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER]}>
             <ComplianceCenterPage />
           </ProtectedRoute>
         } 
@@ -97,7 +97,7 @@ export default function AppRoutes() {
       <Route 
         path={ROUTES.HR_CENTER} 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER]}>
             <HRCenterPage />
           </ProtectedRoute>
         } 

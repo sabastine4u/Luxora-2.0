@@ -125,20 +125,21 @@ export type Category = {
   name: string;
   icon: string;
   count: string;
+  image: string;
 };
 
 export const categories: Category[] = [
-  { name: 'Apartment', icon: 'Building2', count: '4,210 listings' },
-  { name: 'Duplex', icon: 'Home', count: '1,840 listings' },
-  { name: 'Studio Apartment', icon: 'DoorOpen', count: '920 listings' },
-  { name: 'Mini Flat', icon: 'BedDouble', count: '1,360 listings' },
-  { name: 'Self Contain', icon: 'DoorClosed', count: '2,540 listings' },
-  { name: 'Short Let', icon: 'Key', count: '780 listings' },
-  { name: 'Student Housing', icon: 'GraduationCap', count: '540 listings' },
-  { name: 'Family House', icon: 'House', count: '1,120 listings' },
-  { name: 'Land', icon: 'Trees', count: '3,200 listings' },
-  { name: 'Warehouse', icon: 'Warehouse', count: '410 listings' },
-  { name: 'Office Space', icon: 'Briefcase', count: '680 listings' },
+  { name: 'Apartment', icon: 'Building2', count: '4,210 listings', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Duplex', icon: 'Home', count: '1,840 listings', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Studio Apartment', icon: 'DoorOpen', count: '920 listings', image: 'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Mini Flat', icon: 'BedDouble', count: '1,360 listings', image: 'https://images.unsplash.com/photo-1502672260266-1c1de24227e8?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Self Contain', icon: 'DoorClosed', count: '2,540 listings', image: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Short Let', icon: 'Key', count: '780 listings', image: 'https://images.unsplash.com/photo-1501183638710-841dd1904471?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Student Housing', icon: 'GraduationCap', count: '540 listings', image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Family House', icon: 'House', count: '1,120 listings', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Land', icon: 'Trees', count: '3,200 listings', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Warehouse', icon: 'Warehouse', count: '410 listings', image: 'https://images.unsplash.com/photo-1586528116311-ad8ed7c663b0?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Office Space', icon: 'Briefcase', count: '680 listings', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800' },
 ];
 
 export type Agency = {

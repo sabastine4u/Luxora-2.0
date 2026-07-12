@@ -59,7 +59,16 @@ export const plans = [
 ];
 
 // Navbar
-export const navLinks = ['Buy', 'Rent', 'Lease', 'Sell Property', 'Agencies', 'Services', 'About', 'Contact', 'Notification Center', 'Workflow Engine', 'Document Center', 'CRM Center', 'Finance Center', 'Compliance Center', 'Human Resources'];
+export const navLinks = [
+  "Buy",
+  "Rent",
+  "Lease",
+  "Sell Property",
+  "Agencies",
+  "Services",
+  "About",
+  "Contact"
+];
 
 // Footer
 export const footerColumns = [

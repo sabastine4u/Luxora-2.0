@@ -57,7 +57,7 @@ export default function Navbar() {
           <button onClick={() => navigate(ROUTES.REGISTER)} className="rounded-full border border-white/15 px-5 py-2 text-sm font-medium text-ink transition-all hover:border-gold-400/50 hover:text-cream">
             Register
           </button>
-          <GoldButton size="sm" onClick={() => navigate(ROUTES.ADMIN_DASHBOARD)}>
+          <GoldButton size="sm" onClick={() => navigate(ROUTES.REGISTER)}>
             List Property
             <ChevronDown className="h-3.5 w-3.5" />
           </GoldButton>
@@ -93,7 +93,7 @@ export default function Navbar() {
               <button onClick={() => { setOpen(false); navigate(ROUTES.REGISTER); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
                 Register
               </button>
-              <GoldButton size="md" onClick={() => { setOpen(false); navigate(ROUTES.ADMIN_DASHBOARD); }}>
+              <GoldButton size="md" onClick={() => { setOpen(false); navigate(ROUTES.REGISTER); }}>
                 List Property
               </GoldButton>
             </div>
