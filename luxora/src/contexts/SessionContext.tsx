@@ -2,6 +2,9 @@ import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ROLES } from '../constants/roles';
 import type { Department } from '../constants/departments';
+import { useSavedProperties } from '../hooks/useSavedProperties';
+import { useCompareProperties, type CompareResult } from '../hooks/useCompareProperties';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
 
@@ -66,7 +69,7 @@ interface SessionContextType {
   reportListingModalPropertyId: string | null;
   toggleSavedProperty: (id: string) => void;
   isSaved: (id: string) => boolean;
-  toggleCompareProperty: (id: string) => boolean;
+  toggleCompareProperty: (id: string) => CompareResult;
   isCompared: (id: string) => boolean;
   clearCompare: () => void;
   addRecentlyViewed: (id: string) => void;
@@ -90,9 +93,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   
   // Additional frontend session state
-  const [savedProperties, setSavedProperties] = useState<string[]>([]);
-  const [compareList, setCompareList] = useState<string[]>([]);
-  const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
+  const { savedProperties, toggleSavedProperty, isSaved, setSavedProperties } = useSavedProperties();
+  const { compareList, toggleCompareProperty, isCompared, clearCompare, setCompareList } = useCompareProperties();
+  const { recentlyViewed, addRecentlyViewed, setRecentlyViewed } = useRecentlyViewed();
+  
   const [favoriteAgents, setFavoriteAgents] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({});
@@ -120,37 +124,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
 
   // Helper Functions
-  const toggleSavedProperty = (id: string) => {
-    setSavedProperties((prev) => 
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    );
-  };
-
-  const isSaved = (id: string) => savedProperties.includes(id);
-
-  const toggleCompareProperty = (id: string): boolean => {
-    if (compareList.includes(id)) {
-      setCompareList(prev => prev.filter(pid => pid !== id));
-      return false;
-    }
-    if (compareList.length >= 4) {
-      return true; // Limit reached
-    }
-    setCompareList(prev => [...prev, id]);
-    return false;
-  };
-
-  const isCompared = (id: string) => compareList.includes(id);
-
-  const clearCompare = () => setCompareList([]);
-
-  const addRecentlyViewed = (id: string) => {
-    setRecentlyViewed((prev) => {
-      const updated = prev.filter((pid) => pid !== id);
-      return [id, ...updated].slice(0, 20);
-    });
-  };
-
   const toggleFavoriteAgent = (id: string) => {
     setFavoriteAgents((prev) => 
       prev.includes(id) ? prev.filter((aid) => aid !== id) : [...prev, id]

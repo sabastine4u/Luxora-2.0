@@ -17,6 +17,20 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const handleNavClick = (link: string) => {
+    switch(link) {
+      case 'Buy': navigate(`${ROUTES.PROPERTIES}?type=buy`); break;
+      case 'Rent': navigate(`${ROUTES.PROPERTIES}?type=rent`); break;
+      case 'Lease': navigate(`${ROUTES.PROPERTIES}?type=lease`); break;
+      case 'List Property': navigate(ROUTES.REGISTER); break;
+      case 'Agencies': navigate('/#agencies'); break;
+      case 'Services': navigate('/#services'); break;
+      case 'About': navigate(ROUTES.ABOUT); break;
+      case 'Contact': navigate(ROUTES.CONTACT); break;
+      default: navigate(`/#${link.toLowerCase().replace(/\s+/g, '-')}`); break;
+    }
+  };
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
@@ -39,13 +53,13 @@ export default function Navbar() {
         {/* Desktop links */}
         <div className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) => (
-            <a
+            <button
               key={link}
-              href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
+              onClick={() => handleNavClick(link)}
               className="rounded-full px-3.5 py-2 text-sm font-medium text-ink/80 transition-colors hover:bg-white/5 hover:text-cream"
             >
               {link}
-            </a>
+            </button>
           ))}
         </div>
 
@@ -77,14 +91,16 @@ export default function Navbar() {
         <div className="border-t border-white/10 bg-navy-900/95 backdrop-blur-xl lg:hidden">
           <div className="section-pad flex flex-col gap-1 py-4">
             {navLinks.map((link) => (
-              <a
+              <button
                 key={link}
-                href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-medium text-ink/80 transition-colors hover:bg-white/5 hover:text-cream"
+                onClick={() => {
+                  setOpen(false);
+                  handleNavClick(link);
+                }}
+                className="rounded-xl px-4 py-3 text-left text-sm font-medium text-ink/80 transition-colors hover:bg-white/5 hover:text-cream"
               >
                 {link}
-              </a>
+              </button>
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-4">
               <button onClick={() => { setOpen(false); navigate(ROUTES.LOGIN); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">

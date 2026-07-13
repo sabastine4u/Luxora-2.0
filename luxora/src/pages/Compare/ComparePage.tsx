@@ -4,6 +4,7 @@ import { useSession } from '../../contexts/SessionContext';
 import { properties } from '../../data/luxoraData';
 import { GhostButton, GoldButton } from '../../components/ui/ui';
 import { EmptyState } from '../../components/layout/EmptyState';
+import { PageLayout } from '../../components/layout';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Printer, Download, Share2, Scale, MapPin, BadgeCheck, Check, Minus, AlertTriangle } from 'lucide-react';
 import { ROUTES } from '../../constants/routes';
@@ -63,7 +64,7 @@ export default function ComparePage() {
 
   if (selectedProps.length === 0) {
     return (
-      <div className="min-h-screen bg-navy-900 p-4 md:p-8 flex items-center justify-center">
+      <PageLayout className="p-4 md:p-8 flex items-center justify-center">
         <div className="max-w-md w-full bg-navy-800/50 p-8 rounded-3xl border border-white/10">
           <EmptyState
             icon={<Scale className="h-12 w-12 text-gold-400" />}
@@ -73,7 +74,7 @@ export default function ComparePage() {
             onAction={() => navigate(ROUTES.PROPERTIES)}
           />
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
@@ -117,7 +118,7 @@ export default function ComparePage() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 pb-20">
+    <PageLayout className="pb-20">
       {/* Header Container */}
       <div className="max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8">
         <PageHeader 
@@ -292,6 +293,6 @@ export default function ComparePage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

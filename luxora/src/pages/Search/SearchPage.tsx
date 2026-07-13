@@ -1,73 +1,34 @@
-import { useState, useMemo } from 'react';
 import { Search, Map, SlidersHorizontal, ChevronDown, MapPin } from 'lucide-react';
 import { PageLayout } from '../../components/layout';
-import { properties } from '../../data/luxoraData';
 import { propertyTypes, locations } from '../../data/uiData';
-import { PropertyCard } from '../../components/property/PropertyCard';
 import { Slider } from '../../components/ui/Slider';
-
-type SortOption = 'newest' | 'price-asc' | 'price-desc';
+import { usePropertySearch } from '../../hooks/usePropertySearch';
+import { PropertySortControls } from '../../components/property/PropertySortControls';
+import { PropertyGrid } from '../../components/property/PropertyGrid';
+import { PropertyPagination } from '../../components/property/PropertyPagination';
+import { PropertyFilterChips } from '../../components/property/PropertyFilterChips';
+import { PropertyResultsSummary } from '../../components/property/PropertyResultsSummary';
+import { ViewToggle } from '../../components/property/ViewToggle';
 
 export default function SearchPage() {
-  // Filters State
-  const [search, setSearch] = useState('');
-  const [type, setType] = useState('Any Type');
-  const [location, setLocation] = useState('Any Location');
-  const [minPriceM, setMinPriceM] = useState(0);
-  const [maxPriceM, setMaxPriceM] = useState(1000);
-  const [beds, setBeds] = useState('Any');
-  const [baths, setBaths] = useState('Any');
-  
-  // View State
-  const [sort, setSort] = useState<SortOption>('newest');
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 6;
-
-  // Filter Logic
-  const filteredProperties = useMemo(() => {
-    let result = properties;
-
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(p => p.title.toLowerCase().includes(q) || p.location.toLowerCase().includes(q));
-    }
-
-    if (type !== 'Any Type') {
-      result = result.filter(p => p.type === type);
-    }
-
-    if (location !== 'Any Location') {
-      result = result.filter(p => p.location.includes(location));
-    }
-
-    if (minPriceM > 0) {
-      result = result.filter(p => (p.priceValue / 1_000_000) >= minPriceM);
-    }
-
-    if (maxPriceM < 1000) {
-      result = result.filter(p => (p.priceValue / 1_000_000) <= maxPriceM);
-    }
-
-    if (beds !== 'Any') {
-      result = result.filter(p => p.beds >= parseInt(beds, 10));
-    }
-
-    if (baths !== 'Any') {
-      result = result.filter(p => p.baths >= parseInt(baths, 10));
-    }
-
-    // Sort
-    result = [...result].sort((a, b) => {
-      if (sort === 'price-asc') return a.priceValue - b.priceValue;
-      if (sort === 'price-desc') return b.priceValue - a.priceValue;
-      return 0; // newest
-    });
-
-    return result;
-  }, [search, type, location, minPriceM, maxPriceM, beds, baths, sort]);
-
-  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
-  const currentProperties = filteredProperties.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const {
+    search, setSearch,
+    type, setType,
+    location, setLocation,
+    minPriceM, setMinPriceM,
+    maxPriceM, setMaxPriceM,
+    beds, setBeds,
+    baths, setBaths,
+    sort, setSort,
+    page, goToPage,
+    filteredProperties,
+    paginatedProperties,
+    totalPages,
+    totalProperties,
+    viewMode,
+    setViewMode,
+    resetFilters
+  } = usePropertySearch({ initialItemsPerPage: 6 });
 
   return (
     <PageLayout>
@@ -89,7 +50,7 @@ export default function SearchPage() {
                   type="text"
                   placeholder="e.g. Pool, Marina"
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  onChange={(e) => setSearch(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-10 pr-4 text-sm text-cream placeholder-ink/50 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
                 />
               </div>
@@ -101,7 +62,7 @@ export default function SearchPage() {
               <div className="relative">
                 <select
                   value={location}
-                  onChange={(e) => { setLocation(e.target.value); setPage(1); }}
+                  onChange={(e) => setLocation(e.target.value)}
                   className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                 >
                   {locations.map(l => <option key={l} value={l}>{l}</option>)}
@@ -116,7 +77,7 @@ export default function SearchPage() {
               <div className="relative">
                 <select
                   value={type}
-                  onChange={(e) => { setType(e.target.value); setPage(1); }}
+                  onChange={(e) => setType(e.target.value)}
                   className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                 >
                   {propertyTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -137,7 +98,7 @@ export default function SearchPage() {
                   step={10}
                   suffix="M"
                   prefix="₦"
-                  onChange={(v) => { setMinPriceM(v); if(v > maxPriceM) setMaxPriceM(v); setPage(1); }}
+                  onChange={(v) => { setMinPriceM(v); if(v > maxPriceM) setMaxPriceM(v); }}
                 />
                 <Slider
                   label="Maximum"
@@ -147,7 +108,7 @@ export default function SearchPage() {
                   step={10}
                   suffix={maxPriceM === 1000 ? "M+" : "M"}
                   prefix="₦"
-                  onChange={(v) => { setMaxPriceM(v); if(v < minPriceM) setMinPriceM(v); setPage(1); }}
+                  onChange={(v) => { setMaxPriceM(v); if(v < minPriceM) setMinPriceM(v); }}
                 />
               </div>
             </div>
@@ -159,7 +120,7 @@ export default function SearchPage() {
                 <div className="relative">
                   <select
                     value={beds}
-                    onChange={(e) => { setBeds(e.target.value); setPage(1); }}
+                    onChange={(e) => setBeds(e.target.value)}
                     className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                   >
                     <option value="Any">Any</option>
@@ -173,7 +134,7 @@ export default function SearchPage() {
                 <div className="relative">
                   <select
                     value={baths}
-                    onChange={(e) => { setBaths(e.target.value); setPage(1); }}
+                    onChange={(e) => setBaths(e.target.value)}
                     className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                   >
                     <option value="Any">Any</option>
@@ -224,76 +185,39 @@ export default function SearchPage() {
             <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                 <h1 className="text-2xl font-bold font-heading text-cream">Properties for Sale</h1>
-                <p className="text-sm text-ink/70 mt-1">
-                  Showing <span className="font-semibold text-gold-300">{filteredProperties.length}</span> results matching your criteria
-                </p>
+                <PropertyResultsSummary filteredCount={filteredProperties.length} totalCount={totalProperties} />
               </div>
               
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-ink/70">Sort by:</span>
-                <div className="relative">
-                  <select
-                    value={sort}
-                    onChange={(e) => { setSort(e.target.value as SortOption); setPage(1); }}
-                    className="appearance-none bg-navy-800/50 border border-white/10 rounded-xl py-2 pl-3 pr-8 text-sm font-medium text-cream outline-none focus:border-gold-400/50"
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/50" />
-                </div>
+              <div className="flex items-center gap-4">
+                <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+                <PropertySortControls sort={sort} setSort={setSort} />
               </div>
             </div>
 
-            {/* Grid */}
-            {currentProperties.length > 0 ? (
-              <>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                  {currentProperties.map(p => (
-                    <PropertyCard key={p.id} property={p} />
-                  ))}
-                </div>
+            <PropertyFilterChips 
+              search={search} setSearch={setSearch}
+              type={type} setType={setType}
+              location={location} setLocation={setLocation}
+              minPriceM={minPriceM} setMinPriceM={setMinPriceM}
+              maxPriceM={maxPriceM} setMaxPriceM={setMaxPriceM}
+              beds={beds} setBeds={setBeds}
+              baths={baths} setBaths={setBaths}
+              resetFilters={resetFilters}
+            />
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-12 flex justify-center gap-2">
-                    {Array.from({ length: totalPages }).map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setPage(i + 1)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
-                          page === i + 1
-                            ? 'border-gold-400 bg-gold-400/10 text-gold-300'
-                            : 'border-white/10 bg-navy-800/50 text-ink/70 hover:border-white/20 hover:text-cream'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center border border-white/5 rounded-3xl bg-navy-800/20 backdrop-blur-sm">
-                <div className="bg-navy-800 p-4 rounded-full mb-4">
-                  <Search className="h-8 w-8 text-ink/50" />
-                </div>
-                <h3 className="text-xl font-semibold text-cream mb-2">No properties found</h3>
-                <p className="text-ink/60 max-w-md">
-                  We couldn't find any properties matching your current filters. Try adjusting your search criteria or zooming out on the map.
-                </p>
-                <button 
-                  onClick={() => {
-                    setSearch(''); setType('Any Type'); setLocation('Any Location'); 
-                    setMinPriceM(0); setMaxPriceM(1000); setBeds('Any'); setBaths('Any');
-                  }}
-                  className="mt-6 text-gold-400 hover:text-gold-300 font-medium"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            )}
+            {/* Grid */}
+            <PropertyGrid 
+              properties={paginatedProperties} 
+              gridClassName="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
+              viewMode={viewMode}
+              onClearFilters={resetFilters}
+            >
+              <PropertyPagination 
+                currentPage={page} 
+                totalPages={totalPages} 
+                onPageChange={goToPage} 
+              />
+            </PropertyGrid>
           </div>
         </main>
       </div>

@@ -63,7 +63,7 @@ export const navLinks = [
   "Buy",
   "Rent",
   "Lease",
-  "Sell Property",
+  "List Property",
   "Agencies",
   "Services",
   "About",

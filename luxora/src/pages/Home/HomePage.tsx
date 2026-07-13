@@ -1,5 +1,4 @@
-import Footer from '../../components/layout/Footer';
-import Navbar from '../../components/layout/Navbar';
+
 import Affordability from '../../components/home/Affordability';
 import AgencySpotlight from '../../components/home/AgencySpotlight';
 import FeaturedProperties from '../../components/home/FeaturedProperties';
@@ -15,20 +14,35 @@ import { PageLayout } from '../../components/layout';
 export default function HomePage() {
   return (
     <PageLayout>
-      <Navbar />
-      <main>
+        {/* Hero — what is Luxora? */}
         <Hero />
-        <TrustVerification />
-        <Affordability />
+        
+        {/* Featured Properties — what properties are available? */}
         <FeaturedProperties />
+        
+        {/* Property Categories — explore by type */}
         <PropertyCategories />
+        
+        {/* Why Luxora — value proposition */}
         <WhyLuxora />
-        <ServicesEcosystem />
-        <AgencySpotlight />
+        
+        {/* Trust & Verification — why you should trust us */}
+        <TrustVerification />
+        
+        {/* Affordability — flexible payment plans */}
+        <Affordability />
+        
+        {/* Investment Intelligence — data-driven decisions */}
         <InvestmentIntelligence />
+        
+        {/* Services Ecosystem — end-to-end property services */}
+        <ServicesEcosystem />
+        
+        {/* Agency Spotlight — top performing partners */}
+        <AgencySpotlight />
+        
+        {/* Testimonials — social proof */}
         <Testimonials />
-      </main>
-      <Footer />
     </PageLayout>
   );
 }

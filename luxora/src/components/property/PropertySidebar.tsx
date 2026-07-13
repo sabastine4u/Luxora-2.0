@@ -1,0 +1,175 @@
+import { useState } from 'react';
+import { BadgeCheck, Calendar, Phone, Mail, AlertTriangle, Heart, Scale, Loader2 } from 'lucide-react';
+import type { Property } from '../../data/luxoraData';
+import { GoldButton, GhostButton } from '../ui/ui';
+import { useSession } from '../../contexts/SessionContext';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../constants/routes';
+
+interface PropertySidebarProps {
+  property: Property;
+  onContactClick?: () => void;
+}
+
+export function PropertySidebar({ property, onContactClick }: PropertySidebarProps) {
+  const { 
+    isAuthenticated,
+    isSaved, 
+    toggleSavedProperty, 
+    toggleCompareProperty,
+    openScheduleViewingModal, 
+    openReportListingModal 
+  } = useSession();
+  
+  const navigate = useNavigate();
+
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const saved = isSaved(property.id);
+
+  const executeWithLoading = (actionKey: string, callback: () => void) => {
+    setLoadingAction(actionKey);
+    setTimeout(() => {
+      setLoadingAction(null);
+      callback();
+    }, 400);
+  };
+
+  const handleSaveClick = () => {
+    executeWithLoading('save', () => {
+      if (!isAuthenticated) {
+        navigate(ROUTES.LOGIN);
+      } else {
+        toggleSavedProperty(property.id);
+      }
+    });
+  };
+
+  const handleCompareClick = () => {
+    executeWithLoading('compare', () => {
+      const result = toggleCompareProperty(property.id);
+      if (result === 'limit_reached') {
+        setToastMessage('You can compare up to 4 properties.');
+      } else if (result === 'added') {
+        setToastMessage('Added to Compare');
+      } else if (result === 'exists') {
+        setToastMessage('Already in Compare');
+      }
+      
+      if (result) {
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    });
+  };
+
+  const handleContactClick = () => {
+    if (onContactClick) {
+      executeWithLoading('contact', onContactClick);
+    }
+  };
+
+  return (
+    <div className="relative lg:sticky lg:top-24 space-y-6">
+      {/* Agent Card */}
+      <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8 backdrop-blur-md">
+        <h3 className="font-heading text-lg font-semibold text-cream mb-6">Listed By</h3>
+        <div className="flex items-center gap-4 mb-8">
+          <img src={property.agent.avatar} alt={property.agent.name} className="h-16 w-16 rounded-full object-cover border-2 border-gold-400/30" />
+          <div>
+            <div className="font-semibold text-cream flex items-center gap-1.5">
+              {property.agent.name}
+              {property.agent.verified && <BadgeCheck className="h-4 w-4 text-gold-400" aria-label="Verified Agent" />}
+            </div>
+            <div className="text-sm text-ink/50 mb-2">{property.agent.agency}</div>
+            {property.agent.phone && (
+              <div className="text-xs text-cream/70 flex items-center gap-1.5 mb-1">
+                <Phone className="h-3.5 w-3.5 text-gold-400/70" /> {property.agent.phone}
+              </div>
+            )}
+            {property.agent.email && (
+              <div className="text-xs text-cream/70 flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5 text-gold-400/70" /> {property.agent.email}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex flex-col gap-4">
+          <GoldButton 
+            size="lg" 
+            className="w-full justify-center text-sm" 
+            disabled={loadingAction === 'call'}
+            onClick={() => executeWithLoading('call', () => window.location.href = `tel:${property.agent.phone}`)}
+          >
+            {loadingAction === 'call' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Phone className="h-4 w-4 mr-2" />} Call Agent
+          </GoldButton>
+          <GhostButton 
+            size="lg" 
+            className="w-full justify-center text-sm" 
+            disabled={loadingAction === 'contact'}
+            onClick={handleContactClick}
+          >
+            {loadingAction === 'contact' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />} Send Message
+          </GhostButton>
+        </div>
+
+        {/* Save and Compare Properties */}
+        <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-white/5">
+          <GhostButton 
+            size="sm" 
+            className={`w-full justify-center transition-colors ${saved ? 'bg-rose-500/10 text-rose-400' : 'hover:bg-rose-500/10 hover:text-rose-400'}`}
+            disabled={loadingAction === 'save'}
+            onClick={handleSaveClick}
+            aria-label={saved ? "Unsave property" : "Save property"}
+          >
+            {loadingAction === 'save' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Heart className={`h-4 w-4 mr-2 ${saved ? 'fill-current' : ''}`} aria-hidden="true" />}
+            {saved ? 'Saved' : 'Save'}
+          </GhostButton>
+          <GhostButton 
+            size="sm" 
+            className="w-full justify-center hover:bg-gold-400/10 hover:text-gold-400 transition-colors" 
+            disabled={loadingAction === 'compare'}
+            onClick={handleCompareClick}
+            aria-label="Add to compare"
+          >
+            {loadingAction === 'compare' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Scale className="h-4 w-4 mr-2" aria-hidden="true" />} Compare
+          </GhostButton>
+        </div>
+      </div>
+
+      {/* Viewing Card */}
+      <div className="rounded-3xl border border-white/10 bg-gold-400/5 p-6 md:p-8 backdrop-blur-md text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-400/10 text-gold-400 mb-5">
+          <Calendar className="h-6 w-6" />
+        </div>
+        <h3 className="font-heading text-xl font-semibold text-cream mb-2">Schedule a Viewing</h3>
+        <p className="text-sm text-ink/60 mb-6 leading-relaxed">Book an in-person or virtual tour with the listing agent.</p>
+        <GoldButton 
+          size="lg" 
+          className="w-full justify-center text-sm" 
+          disabled={loadingAction === 'tour'}
+          onClick={() => executeWithLoading('tour', () => openScheduleViewingModal(property.id))}
+        >
+          {loadingAction === 'tour' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null} Request Tour
+        </GoldButton>
+      </div>
+      
+      <div className="mt-6 text-center">
+        <button 
+          onClick={() => openReportListingModal(property.id)} 
+          className="text-xs text-ink/40 hover:text-rose-400 transition-colors inline-flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 rounded-sm px-2 py-1"
+        >
+          <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Report this listing
+        </button>
+      </div>
+
+      {/* Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-navy-900 text-cream border border-gold-400/30 px-6 py-3 rounded-full text-sm font-medium shadow-xl shadow-navy-900/50 whitespace-nowrap animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {toastMessage}
+        </div>
+      )}
+    </div>
+  );
+}

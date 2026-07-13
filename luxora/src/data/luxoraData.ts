@@ -14,8 +14,35 @@ export type Property = {
   area: string;
   image: string;
   verified: string[];
-  agent: { name: string; agency: string; avatar: string };
+  agent: { 
+    name: string; 
+    agency: string; 
+    avatar: string;
+    id?: string;
+    phone?: string;
+    email?: string;
+    image?: string;
+    verified?: boolean;
+  };
   tag?: string;
+  gallery?: string[];
+  amenities?: string[];
+  features?: string[];
+  nearbyPlaces?: { title: string; distance: string }[];
+  paymentSnapshot?: {
+    deposit: string;
+    legalFee: string;
+    serviceCharge: string;
+    agencyFee: string;
+    pricePerSqm: string;
+  };
+  documents?: { title: string; verified: boolean }[];
+  walkScore?: number;
+  transitScore?: number;
+  schoolScore?: number;
+  parkingSpaces?: number;
+  yearBuilt?: number;
+  floorPlans?: string[];
 };
 
 export const properties: Property[] = [
@@ -33,8 +60,45 @@ export const properties: Property[] = [
     image:
       'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1200',
     verified: ['Documents', 'Inspection', 'Premium'],
-    agent: { name: 'Adaeze Okonkwo', agency: 'Meridian Luxury', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    agent: { 
+      name: 'Adaeze Okonkwo', 
+      agency: 'Meridian Luxury', 
+      avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=200',
+      id: 'a1',
+      phone: '+234 800 111 2222',
+      email: 'adaeze@meridian.lux',
+      verified: true
+    },
     tag: 'Featured',
+    gallery: [
+      'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/1029599/pexels-photo-1029599.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1200'
+    ],
+    amenities: ['Private Pool', 'Helipad Access', '24/7 Concierge', 'Smart Home Integration', 'Private Elevator'],
+    features: ['Ocean View', 'Double Height Ceilings', 'Wine Cellar', 'Staff Quarters'],
+    nearbyPlaces: [
+      { title: 'Eko Atlantic Marina', distance: '0.2 km' },
+      { title: 'International School Lagos', distance: '3.5 km' }
+    ],
+    paymentSnapshot: {
+      deposit: '₦126,000,000',
+      legalFee: '₦21,000,000',
+      serviceCharge: '₦5,000,000/yr',
+      agencyFee: '₦21,000,000',
+      pricePerSqm: '₦656,250'
+    },
+    documents: [
+      { title: 'C of O', verified: true },
+      { title: 'Governor\'s Consent', verified: true }
+    ],
+    walkScore: 92,
+    transitScore: 85,
+    schoolScore: 88,
+    parkingSpaces: 4,
+    yearBuilt: 2023,
+    floorPlans: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800']
   },
   {
     id: 'p2',
@@ -50,8 +114,37 @@ export const properties: Property[] = [
     image:
       'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1200',
     verified: ['Documents', 'Inspection', 'Premium', ROLES.AGENT],
-    agent: { name: 'Tunde Bakare', agency: 'Crest & Crown', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    agent: { 
+      name: 'Tunde Bakare', 
+      agency: 'Crest & Crown', 
+      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200',
+      id: 'a2',
+      phone: '+234 800 333 4444',
+      email: 'tunde@crestcrown.com',
+      verified: true
+    },
     tag: 'Premium Verified',
+    gallery: [
+      'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/1572889/pexels-photo-1572889.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=1200'
+    ],
+    amenities: ['Lush Garden', 'Infinity Pool', 'Home Theater', 'Gymnasium', 'Backup Power'],
+    features: ['Waterfront', 'Bulletproof Doors', 'Gourmet Kitchen'],
+    nearbyPlaces: [
+      { title: 'Banana Island Club', distance: '1.2 km' }
+    ],
+    paymentSnapshot: {
+      deposit: '₦204,000,000',
+      legalFee: '₦34,000,000',
+      serviceCharge: '₦8,000,000/yr',
+      agencyFee: '₦34,000,000',
+      pricePerSqm: '₦739,130'
+    },
+    walkScore: 60,
+    transitScore: 40,
+    parkingSpaces: 6,
+    yearBuilt: 2021
   },
   {
     id: 'p3',
@@ -67,7 +160,31 @@ export const properties: Property[] = [
     image:
       'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200',
     verified: ['Documents', 'Inspection'],
-    agent: { name: 'Ngozi Eze', agency: 'Atlas Realty', avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    agent: { 
+      name: 'Ngozi Eze', 
+      agency: 'Atlas Realty', 
+      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200',
+      id: 'a3',
+      phone: '+234 800 555 6666',
+      email: 'ngozi@atlasrealty.ng',
+      verified: true
+    },
+    gallery: [
+      'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/2724749/pexels-photo-2724749.jpeg?auto=compress&cs=tinysrgb&w=1200'
+    ],
+    amenities: ['Shared Pool', '24/7 Security', 'Elevator', 'Fitted Kitchen'],
+    paymentSnapshot: {
+      deposit: '₦55,500,000',
+      legalFee: '₦9,250,000',
+      serviceCharge: '₦1,500,000/yr',
+      agencyFee: '₦9,250,000',
+      pricePerSqm: '₦880,952'
+    },
+    walkScore: 78,
+    transitScore: 65,
+    parkingSpaces: 2,
+    yearBuilt: 2020
   },
   {
     id: 'p4',
@@ -83,8 +200,25 @@ export const properties: Property[] = [
     image:
       'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1200',
     verified: ['Documents', 'Inspection', 'Premium', ROLES.AGENT],
-    agent: { name: 'Femi Adeola', agency: 'Sterling Homes', avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=200' },
+    agent: { 
+      name: 'Femi Adeola', 
+      agency: 'Sterling Homes', 
+      avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=200',
+      id: 'a4',
+      phone: '+234 800 777 8888',
+      email: 'femi@sterling.ng',
+      verified: true
+    },
     tag: 'New',
+    gallery: [
+      'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/2089698/pexels-photo-2089698.jpeg?auto=compress&cs=tinysrgb&w=1200'
+    ],
+    amenities: ['Private Garden', 'Security Gate', 'Spacious Compound'],
+    walkScore: 50,
+    transitScore: 30,
+    parkingSpaces: 5,
+    yearBuilt: 2024
   },
   {
     id: 'p5',
