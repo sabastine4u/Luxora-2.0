@@ -4,6 +4,7 @@ import AgencySpotlight from '../../components/home/AgencySpotlight';
 import FeaturedProperties from '../../components/home/FeaturedProperties';
 import Hero from '../../components/home/Hero';
 import InvestmentIntelligence from '../../components/home/InvestmentIntelligence';
+import PopularCities from '../../components/home/PopularCities';
 import PropertyCategories from '../../components/home/PropertyCategories';
 import ServicesEcosystem from '../../components/home/ServicesEcosystem';
 import Testimonials from '../../components/home/Testimonials';
@@ -22,6 +23,9 @@ export default function HomePage() {
         
         {/* Property Categories — explore by type */}
         <PropertyCategories />
+        
+        {/* Popular Cities — explore top locations */}
+        <PopularCities />
         
         {/* Why Luxora — value proposition */}
         <WhyLuxora />

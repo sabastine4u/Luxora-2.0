@@ -3,11 +3,64 @@ import { Search, MapPin, Home, Wallet, ChevronDown, ArrowRight, Star } from 'luc
 import { GoldButton, GhostButton } from '../ui/ui';
 import { propertyTypes, locations, budgets } from '../../data/uiData';
 import { Section, Container } from '../layout';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../constants/routes';
 
 export default function Hero() {
-  const [type, setType] = useState('Any Type');
-  const [location, setLocation] = useState('Any Location');
-  const [budget, setBudget] = useState('Any Budget');
+  const navigate = useNavigate();
+
+  const getInitialState = (key: string, fallback: string) => {
+    try {
+      const stored = localStorage.getItem('luxora_last_search');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed[key]) return parsed[key];
+      }
+    } catch {
+      // ignore
+    }
+    return fallback;
+  };
+
+  // Local state initialized from localStorage
+  const [listingType, setListingType] = useState(() => getInitialState('listingType', 'buy'));
+  const [type, setType] = useState(() => getInitialState('propertyType', 'Any Type')); // Maps to 'type' in usePropertySearch
+  const [location, setLocation] = useState(() => getInitialState('location', 'Any Location')); // Maps to 'location' in usePropertySearch
+  const [budget, setBudget] = useState(() => getInitialState('budget', 'Any Budget')); // Maps to 'budgetString' in usePropertySearch
+
+  const handleSearch = () => {
+    // Store recent search
+    try {
+      localStorage.setItem('luxora_last_search', JSON.stringify({
+        listingType,
+        location,
+        propertyType: type,
+        budget
+      }));
+    } catch {
+      // ignore
+    }
+
+    // Build URLSearchParams using parameter names from usePropertySearch
+    const params = new URLSearchParams();
+    
+    // According to instructions: Never hardcode parameter names that don't already exist in usePropertySearch
+    // usePropertySearch has: type, location, budgetString
+    if (listingType) params.append('listingType', listingType);
+    if (type && type !== 'Any Type') params.append('type', type);
+    if (location && location !== 'Any Location') params.append('location', location);
+    if (budget && budget !== 'Any Budget') params.append('budgetString', budget);
+    
+    navigate(`${ROUTES.PROPERTIES}?${params.toString()}`);
+  };
+
+  const handlePopularArea = (area: string) => {
+    const params = new URLSearchParams();
+    params.append('location', area);
+    navigate(`${ROUTES.PROPERTIES}?${params.toString()}`);
+  };
+
+  const listingTabs = ['buy', 'rent', 'lease', 'short-let'];
 
   return (
     <Section className="relative min-h-screen overflow-hidden" noPadding>
@@ -49,29 +102,65 @@ export default function Hero() {
 
         {/* CTA buttons */}
         <div className="animate-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row" style={{ animationDelay: '240ms' }}>
-          <GoldButton size="lg">
+          <GoldButton size="lg" onClick={() => navigate(ROUTES.PROPERTIES)}>
             Browse Properties
             <ArrowRight className="h-4 w-4" />
           </GoldButton>
-          <GhostButton size="lg">List Your Property</GhostButton>
+          <GhostButton size="lg" onClick={() => navigate(ROUTES.REGISTER)}>List Your Property</GhostButton>
         </div>
 
         {/* Search bar */}
         <div className="animate-fade-up mt-12 w-full max-w-4xl" style={{ animationDelay: '360ms' }}>
+          
+          {/* Listing Tabs */}
+          <div className="mb-4 flex items-center justify-center gap-2 sm:gap-4" role="tablist" aria-label="Listing Type">
+            {listingTabs.map((tab) => (
+              <button
+                key={tab}
+                role="tab"
+                aria-selected={listingType === tab}
+                onClick={() => setListingType(tab)}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+                  listingType === tab
+                    ? 'border border-gold-400/60 bg-gold-400/10 text-gold-300'
+                    : 'text-cream hover:bg-white/5'
+                }`}
+                aria-label={`Select ${tab} listing type`}
+              >
+                {tab === 'short-let' ? 'Short Let' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
           <div className="glass rounded-2xl p-2 shadow-lux md:rounded-full">
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <SearchField icon={<Home className="h-4 w-4" />} label="Property Type" value={type} options={propertyTypes} onChange={setType} />
+              <SearchField icon={<Home className="h-4 w-4" aria-hidden="true" />} label="Property Type" value={type} options={propertyTypes} onChange={setType} ariaLabel="Select property type" />
               <Divider />
-              <SearchField icon={<MapPin className="h-4 w-4" />} label="Location" value={location} options={locations} onChange={setLocation} />
+              <SearchField icon={<MapPin className="h-4 w-4" aria-hidden="true" />} label="Location" value={location} options={locations} onChange={setLocation} ariaLabel="Select location" />
               <Divider />
-              <SearchField icon={<Wallet className="h-4 w-4" />} label="Budget" value={budget} options={budgets} onChange={setBudget} />
+              <SearchField icon={<Wallet className="h-4 w-4" aria-hidden="true" />} label="Budget" value={budget} options={budgets} onChange={setBudget} ariaLabel="Select budget" />
               <div className="p-1">
-                <GoldButton size="md" className="w-full md:w-auto">
-                  <Search className="h-4 w-4" />
+                <GoldButton size="md" className="w-full md:w-auto" onClick={handleSearch} aria-label="Search properties">
+                  <Search className="h-4 w-4" aria-hidden="true" />
                   Search
                 </GoldButton>
               </div>
             </div>
+          </div>
+
+          {/* Popular Areas */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-sm font-medium text-ink/70 mr-2">Popular Areas:</span>
+            {['Lekki', 'Eko Atlantic', 'Ikoyi', 'Abuja'].map((area) => (
+              <button
+                key={area}
+                onClick={() => handlePopularArea(area)}
+                className="rounded-full border border-white/10 bg-navy-800/50 px-4 py-1.5 text-xs font-medium text-cream transition-colors hover:border-gold-400/50 hover:bg-white/5"
+                aria-label={`Search in ${area}`}
+              >
+                {area}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -95,7 +184,7 @@ export default function Hero() {
 }
 
 function Divider() {
-  return <div className="hidden h-10 w-px bg-white/10 md:block" />;
+  return <div className="hidden h-10 w-px bg-white/10 md:block" aria-hidden="true" />;
 }
 
 function SearchField({
@@ -104,38 +193,50 @@ function SearchField({
   value,
   options,
   onChange,
+  ariaLabel
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   options: string[];
   onChange: (v: string) => void;
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative flex-1 px-3 py-2">
       <div className="flex items-center gap-2.5">
-        <span className="text-gold-400">{icon}</span>
+        <span className="text-gold-400" aria-hidden="true">{icon}</span>
         <div className="flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-ink/50">{label}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-ink/50" id={`label-${label.replace(/\\s+/g, '-')}`}>{label}</div>
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center gap-1 text-sm font-medium text-cream"
+            className="flex w-full items-center justify-between gap-1 text-left text-sm font-medium text-cream focus:outline-none focus:ring-2 focus:ring-gold-400/50 rounded"
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            aria-labelledby={`label-${label.replace(/\\s+/g, '-')}`}
+            aria-label={ariaLabel}
           >
-            {value}
-            <ChevronDown className="h-3.5 w-3.5 text-ink/50" />
+            <span className="truncate">{value}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-ink/50 flex-shrink-0" aria-hidden="true" />
           </button>
         </div>
       </div>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-white/10 bg-navy-800 shadow-lux">
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div 
+            className="absolute left-0 right-0 top-full z-20 mt-2 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-navy-800 shadow-lux"
+            role="listbox"
+            aria-labelledby={`label-${label.replace(/\\s+/g, '-')}`}
+          >
             {options.map((opt) => (
               <button
                 key={opt}
+                role="option"
+                aria-selected={opt === value}
                 onClick={() => { onChange(opt); setOpen(false); }}
-                className={`block w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5 ${
+                className={`block w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5 focus:bg-white/5 focus:outline-none ${
                   opt === value ? 'text-gold-300' : 'text-ink/80'
                 }`}
               >
