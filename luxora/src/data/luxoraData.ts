@@ -350,7 +350,7 @@ export const buyerNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Recommendations', icon: 'Sparkles' },
   { label: 'Recently Viewed', icon: 'Activity' },
-  { label: 'Saved Properties', icon: 'Heart', badge: '3' },
+  { label: 'My Favorites', icon: 'Heart', badge: '3' },
   { label: 'Mortgage Tracker', icon: 'Wallet' },
   { label: 'Messages', icon: 'MessageSquare', badge: '2' },
   { label: 'Viewing Requests', icon: 'Eye' },
@@ -548,3 +548,44 @@ export const dealPipeline = [
 
 export const userGrowthMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const userGrowthData = [12, 18, 24, 31, 38, 46, 52, 61, 68, 74, 82, 88];
+
+export type Review = {
+  id: string;
+  author: string;
+  role: string;
+  avatar: string;
+  rating: number;
+  date: string;
+  text: string;
+};
+
+export const reviews: Review[] = [
+  {
+    id: 'r1',
+    author: 'Oluwaseun Adebayo',
+    role: 'Property Investor',
+    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200',
+    rating: 5,
+    date: '2 weeks ago',
+    text: 'An absolutely seamless experience from start to finish. The level of professionalism and market knowledge demonstrated was exceptional. I felt completely confident throughout the entire purchasing process.'
+  },
+  {
+    id: 'r2',
+    author: 'Grace Ibeh',
+    role: 'Homeowner',
+    avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=200',
+    rating: 5,
+    date: '1 month ago',
+    text: 'I was blown away by the attention to detail. Every question was answered promptly, and the negotiation was handled with utmost care. Highly recommended for anyone looking for luxury real estate.'
+  },
+  {
+    id: 'r3',
+    author: 'David Nwachukwu',
+    role: 'Corporate Client',
+    avatar: 'https://images.pexels.com/photos/834863/pexels-photo-834863.jpeg?auto=compress&cs=tinysrgb&w=200',
+    rating: 4,
+    date: '3 months ago',
+    text: 'Very professional team. They understood our corporate housing needs perfectly and delivered options that were exactly what we asked for. The only minor issue was a slight delay in document processing, but overall great service.'
+  }
+];
+

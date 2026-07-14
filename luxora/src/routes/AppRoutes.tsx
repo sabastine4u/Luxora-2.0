@@ -18,6 +18,9 @@ import { ComplianceCenterPage } from '../pages/ComplianceCenter';
 import { HRCenterPage } from '../pages/HRCenter';
 import PropertiesPage from '../pages/Properties/PropertiesPage'
 import PropertyDetailsPage from '../pages/PropertyDetails/PropertyDetailsPage'
+import AgenciesPage from '../pages/Agencies/AgenciesPage'
+import AgencyDetailsPage from '../pages/AgencyDetails/AgencyDetailsPage'
+import AgentDetailsPage from '../pages/AgentDetails/AgentDetailsPage'
 import SearchPage from '../pages/Search/SearchPage'
 import LoginPage from '../pages/Auth/LoginPage'
 import RegisterPage from '../pages/Auth/RegisterPage'
@@ -42,6 +45,9 @@ export default function AppRoutes() {
       <Route path={ROUTES.HOME} element={<HomePage />} />
       <Route path={ROUTES.PROPERTIES} element={<PropertiesPage />} />
       <Route path={ROUTES.PROPERTY_DETAILS} element={<PropertyDetailsPage />} />
+      <Route path={ROUTES.AGENCIES} element={<AgenciesPage />} />
+      <Route path={ROUTES.AGENCY_DETAILS} element={<AgencyDetailsPage />} />
+      <Route path={ROUTES.AGENT_DETAILS} element={<AgentDetailsPage />} />
       <Route path={ROUTES.SEARCH} element={<SearchPage />} />
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />

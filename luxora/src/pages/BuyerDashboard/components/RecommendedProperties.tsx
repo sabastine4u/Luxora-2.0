@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { properties } from '../../../data/luxoraData';
 import { useSession } from '../../../contexts/SessionContext';
+import { useFavorites } from '../../../contexts/FavoriteContext';
 import { PropertyCard } from '../../../components/property/PropertyCard';
 import { EmptyState } from '../../../components/layout';
 import { ROUTES } from '../../../constants/routes';
@@ -8,7 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 
 export default function RecommendedProperties() {
-  const { savedProperties, recentlyViewed } = useSession();
+  const { recentlyViewed } = useSession();
+  const { favoriteProperties: savedProperties } = useFavorites();
   const navigate = useNavigate();
 
   const recommendedProps = useMemo(() => {

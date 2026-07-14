@@ -23,7 +23,7 @@ export default function Navbar() {
       case 'Rent': navigate(`${ROUTES.PROPERTIES}?type=rent`); break;
       case 'Lease': navigate(`${ROUTES.PROPERTIES}?type=lease`); break;
       case 'List Property': navigate(ROUTES.REGISTER); break;
-      case 'Agencies': navigate('/#agencies'); break;
+      case 'Agencies': navigate(ROUTES.AGENCIES); break;
       case 'Services': navigate('/#services'); break;
       case 'About': navigate(ROUTES.ABOUT); break;
       case 'Contact': navigate(ROUTES.CONTACT); break;

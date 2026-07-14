@@ -3,7 +3,9 @@ import { Bed, Bath, Maximize, Heart, MapPin, BadgeCheck, Scale, AlertTriangle, S
 import { useNavigate } from 'react-router-dom';
 import { type properties } from '../../data/luxoraData';
 import { useSession } from '../../contexts/SessionContext';
+import { useFavorites } from '../../contexts/FavoriteContext';
 import { ROUTES } from '../../constants/routes';
+import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
 
 export interface PropertyCardProps {
   property: (typeof properties)[number];
@@ -22,9 +24,10 @@ const formatVerification = (v: string) => {
 
 export const PropertyCard = memo(function PropertyCard({ property: p, variant = 'grid' }: PropertyCardProps) {
   const navigate = useNavigate();
-  const { isAuthenticated, isSaved, toggleSavedProperty, isCompared, toggleCompareProperty, openReportListingModal } = useSession();
+  const { isCompared, toggleCompareProperty, openReportListingModal } = useSession();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
-  const saved = isSaved(p.id);
+  const saved = isFavorite(p.id);
   const compared = isCompared(p.id);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -36,12 +39,8 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isAuthenticated) {
-      navigate(ROUTES.LOGIN);
-    } else {
-      toggleSavedProperty(p.id);
-      showToast(saved ? 'Removed from Saved' : 'Added to Saved');
-    }
+    toggleFavorite(p.id);
+    showToast(saved ? 'Removed from Saved' : 'Added to Saved');
   };
 
   const handleCompareClick = (e: React.MouseEvent) => {
@@ -184,17 +183,40 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
 
         {/* Agent */}
         <div className="mt-6 flex items-center gap-3 border-t border-white/5 pt-5">
-          <div className="relative">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(p.agent.name)));
+            }}
+            className="relative shrink-0 transition-transform duration-300 hover:scale-105 focus:outline-none"
+            aria-label={`View ${p.agent.name}'s profile`}
+          >
             <img src={p.agent.avatar} alt={p.agent.name} className="h-11 w-11 rounded-full object-cover border-2 border-transparent transition-colors duration-300 group-hover:border-gold-400/50" />
             {p.agent.verified && (
               <div className="absolute -bottom-1 -right-1 rounded-full bg-navy-900 p-0.5 border border-white/10" title="Verified Agent">
                 <BadgeCheck className="h-3.5 w-3.5 text-gold-400" />
               </div>
             )}
-          </div>
+          </button>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-cream">{p.agent.name}</div>
-            <div className="truncate text-xs text-ink/50 font-medium tracking-wide mt-0.5">{p.agent.agency}</div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(p.agent.name)));
+              }}
+              className="block w-full text-left truncate text-sm font-medium text-cream hover:text-gold-400 transition-colors focus:outline-none"
+            >
+              {p.agent.name}
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(ROUTES.AGENCY_DETAILS.replace(':slug', agencyNameToSlug(p.agent.agency)));
+              }}
+              className="block w-full text-left truncate text-xs text-ink/50 font-medium tracking-wide mt-0.5 hover:text-gold-300/80 transition-colors focus:outline-none"
+            >
+              {p.agent.agency}
+            </button>
           </div>
           <button 
             onClick={(e) => { e.stopPropagation(); openReportListingModal(p.id); }}

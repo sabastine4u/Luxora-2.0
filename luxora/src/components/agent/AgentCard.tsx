@@ -1,4 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import type { Agent } from '../../types';
+import { ROUTES } from '../../constants/routes';
+import { agentNameToSlug } from '../../utils/agency';
 
 export interface AgentCardProps {
   agent: Agent;
@@ -6,8 +9,21 @@ export interface AgentCardProps {
 }
 
 export function AgentCard({ agent: a, index: i }: AgentCardProps) {
+  const navigate = useNavigate();
+
   return (
-    <div className="group rounded-2xl border border-white/5 bg-white/[0.03] p-4 transition-all hover:border-gold-400/20 hover:bg-white/[0.06]">
+    <div 
+      onClick={() => navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(a.name)))}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(a.name)));
+        }
+      }}
+      className="group rounded-2xl border border-white/5 bg-white/[0.03] p-4 transition-all hover:border-gold-400/20 hover:bg-white/[0.06] cursor-pointer"
+    >
       <div className="flex items-center gap-3">
         <div className="relative">
           <img src={a.avatar} alt={a.name} className="h-12 w-12 rounded-full object-cover" />

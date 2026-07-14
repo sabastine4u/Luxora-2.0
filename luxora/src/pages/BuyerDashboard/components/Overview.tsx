@@ -1,13 +1,15 @@
 import { Heart, FileCheck, Eye, MessageSquare, TrendingUp, MapPin, Calculator, Activity, Search } from 'lucide-react';
 import { properties } from '../../../data/luxoraData';
 import { useSession } from '../../../contexts/SessionContext';
+import { useFavorites } from '../../../contexts/FavoriteContext';
 import { PropertyCard } from '../../../components/property/PropertyCard';
 import { EmptyState } from '../../../components/layout';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { calculateMortgage } from '../../../utils';
 
 export default function Overview({ onNavigate }: { onNavigate: (tab: string) => void }) {
-  const { user, recentlyViewed, savedProperties } = useSession();
+  const { user, recentlyViewed } = useSession();
+  const { favoriteProperties: savedProperties } = useFavorites();
 
   // 1. Greeting based on time
   const hour = new Date().getHours();

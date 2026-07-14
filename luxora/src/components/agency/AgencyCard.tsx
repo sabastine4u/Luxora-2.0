@@ -1,5 +1,8 @@
 import { Star, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Agency } from '../../data/luxoraData';
+import { ROUTES } from '../../constants/routes';
+import { agencyNameToSlug } from '../../utils/agency';
 
 export interface AgencyCardProps {
   agency: Agency;
@@ -7,8 +10,21 @@ export interface AgencyCardProps {
 }
 
 export function AgencyCard({ agency: a, index: i }: AgencyCardProps) {
+  const navigate = useNavigate();
+
   return (
-    <div className="group flex items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] p-4 transition-all hover:border-gold-400/20 hover:bg-white/[0.06]">
+    <div 
+      onClick={() => navigate(ROUTES.AGENCY_DETAILS.replace(':slug', agencyNameToSlug(a.name)))}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(ROUTES.AGENCY_DETAILS.replace(':slug', agencyNameToSlug(a.name)));
+        }
+      }}
+      className="group flex items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] p-4 transition-all hover:border-gold-400/20 hover:bg-white/[0.06] cursor-pointer"
+    >
       <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${a.color} text-xl font-bold text-white`}>
         {a.logo}
       </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { Bed, Bath, Maximize, MapPin, BadgeCheck, AlertTriangle, CheckCircle2, Share2, LayoutGrid, Video, X } from 'lucide-react';
 import { properties } from '../../data/luxoraData';
 import { PageLayout, Container, Section, Breadcrumb } from '../../components/layout';
@@ -11,9 +11,12 @@ import { PropertySidebar } from '../../components/property/PropertySidebar';
 import { MortgageCalculator } from '../../components/property/MortgageCalculator';
 import { getSimilarProperties } from '../../utils/propertyRecommendations';
 import { useSession } from '../../contexts/SessionContext';
+import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
+import { ROUTES } from '../../constants/routes';
 
 export default function PropertyDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const property = properties.find(p => p.id === id);
   const { addRecentlyViewed, openScheduleViewingModal } = useSession();
 
@@ -438,10 +441,25 @@ export default function PropertyDetailsPage() {
             <h3 className="font-heading text-2xl font-bold text-cream mb-2">Contact {property.agent.name}</h3>
             
             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/5">
-              <img src={property.agent.avatar} alt={property.agent.name} className="h-10 w-10 rounded-full object-cover border border-gold-400/30" />
+              <button 
+                onClick={() => navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(property.agent.name)))}
+                className="shrink-0 transition-transform hover:scale-105 focus:outline-none"
+              >
+                <img src={property.agent.avatar} alt={property.agent.name} className="h-10 w-10 rounded-full object-cover border border-gold-400/30 hover:border-gold-400/80 transition-colors" />
+              </button>
               <div>
-                <div className="text-sm font-semibold text-cream">{property.agent.name}</div>
-                <div className="text-xs text-ink/50">{property.agent.agency}</div>
+                <button 
+                  onClick={() => navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(property.agent.name)))}
+                  className="text-sm font-semibold text-cream hover:text-gold-400 transition-colors focus:outline-none text-left block"
+                >
+                  {property.agent.name}
+                </button>
+                <button 
+                  onClick={() => navigate(ROUTES.AGENCY_DETAILS.replace(':slug', agencyNameToSlug(property.agent.agency)))}
+                  className="text-xs text-ink/50 hover:text-gold-300 transition-colors focus:outline-none text-left block w-full"
+                >
+                  {property.agent.agency}
+                </button>
               </div>
             </div>
 

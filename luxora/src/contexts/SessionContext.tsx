@@ -2,7 +2,6 @@ import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ROLES } from '../constants/roles';
 import type { Department } from '../constants/departments';
-import { useSavedProperties } from '../hooks/useSavedProperties';
 import { useCompareProperties, type CompareResult } from '../hooks/useCompareProperties';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 
@@ -57,7 +56,6 @@ interface SessionContextType {
   isAuthenticated: boolean;
   login: (userData: User) => void;
   logout: () => void;
-  savedProperties: string[];
   compareList: string[];
   recentlyViewed: string[];
   favoriteAgents: string[];
@@ -67,8 +65,6 @@ interface SessionContextType {
   reportListings: ReportListing[];
   scheduleViewingModalPropertyId: string | null;
   reportListingModalPropertyId: string | null;
-  toggleSavedProperty: (id: string) => void;
-  isSaved: (id: string) => boolean;
   toggleCompareProperty: (id: string) => CompareResult;
   isCompared: (id: string) => boolean;
   clearCompare: () => void;
@@ -93,7 +89,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   
   // Additional frontend session state
-  const { savedProperties, toggleSavedProperty, isSaved, setSavedProperties } = useSavedProperties();
   const { compareList, toggleCompareProperty, isCompared, clearCompare, setCompareList } = useCompareProperties();
   const { recentlyViewed, addRecentlyViewed, setRecentlyViewed } = useRecentlyViewed();
   
@@ -111,7 +106,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    setSavedProperties([]);
     setCompareList([]);
     setRecentlyViewed([]);
     setFavoriteAgents([]);
@@ -177,7 +171,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
-        savedProperties,
         compareList,
         recentlyViewed,
         favoriteAgents,
@@ -187,8 +180,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         reportListings,
         scheduleViewingModalPropertyId,
         reportListingModalPropertyId,
-        toggleSavedProperty,
-        isSaved,
         toggleCompareProperty,
         isCompared,
         clearCompare,

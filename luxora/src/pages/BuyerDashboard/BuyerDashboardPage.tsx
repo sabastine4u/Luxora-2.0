@@ -18,7 +18,7 @@ export default function BuyerDashboardPage() {
       case 'Overview': return <Overview onNavigate={setActiveTab} />;
       case 'Recently Viewed': return <RecentlyViewed />;
       case 'Recommendations': return <RecommendedProperties />;
-      case 'Saved Properties': return <SavedProperties />;
+      case 'My Favorites': return <SavedProperties />;
       case 'Mortgage Tracker': return <MortgageTracker />;
       case 'Messages': return <Messages />;
       case 'Viewing Requests': return <ViewingRequests />;

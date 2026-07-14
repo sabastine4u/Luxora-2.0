@@ -3,8 +3,10 @@ import { BadgeCheck, Calendar, Phone, Mail, AlertTriangle, Heart, Scale, Loader2
 import type { Property } from '../../data/luxoraData';
 import { GoldButton, GhostButton } from '../ui/ui';
 import { useSession } from '../../contexts/SessionContext';
+import { useFavorites } from '../../contexts/FavoriteContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
+import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
 
 interface PropertySidebarProps {
   property: Property;
@@ -13,20 +15,19 @@ interface PropertySidebarProps {
 
 export function PropertySidebar({ property, onContactClick }: PropertySidebarProps) {
   const { 
-    isAuthenticated,
-    isSaved, 
-    toggleSavedProperty, 
     toggleCompareProperty,
     openScheduleViewingModal, 
     openReportListingModal 
   } = useSession();
+  
+  const { isFavorite, toggleFavorite } = useFavorites();
   
   const navigate = useNavigate();
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const saved = isSaved(property.id);
+  const saved = isFavorite(property.id);
 
   const executeWithLoading = (actionKey: string, callback: () => void) => {
     setLoadingAction(actionKey);
@@ -38,11 +39,7 @@ export function PropertySidebar({ property, onContactClick }: PropertySidebarPro
 
   const handleSaveClick = () => {
     executeWithLoading('save', () => {
-      if (!isAuthenticated) {
-        navigate(ROUTES.LOGIN);
-      } else {
-        toggleSavedProperty(property.id);
-      }
+      toggleFavorite(property.id);
     });
   };
 
@@ -75,13 +72,27 @@ export function PropertySidebar({ property, onContactClick }: PropertySidebarPro
       <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8 backdrop-blur-md">
         <h3 className="font-heading text-lg font-semibold text-cream mb-6">Listed By</h3>
         <div className="flex items-center gap-4 mb-8">
-          <img src={property.agent.avatar} alt={property.agent.name} className="h-16 w-16 rounded-full object-cover border-2 border-gold-400/30" />
+          <button 
+            onClick={() => navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(property.agent.name)))}
+            className="shrink-0 transition-transform hover:scale-105 focus:outline-none"
+            aria-label={`View ${property.agent.name}'s profile`}
+          >
+            <img src={property.agent.avatar} alt={property.agent.name} className="h-16 w-16 rounded-full object-cover border-2 border-gold-400/30 hover:border-gold-400/80 transition-colors" />
+          </button>
           <div>
-            <div className="font-semibold text-cream flex items-center gap-1.5">
+            <button 
+              onClick={() => navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(property.agent.name)))}
+              className="font-semibold text-cream flex items-center gap-1.5 hover:text-gold-400 transition-colors focus:outline-none text-left"
+            >
               {property.agent.name}
               {property.agent.verified && <BadgeCheck className="h-4 w-4 text-gold-400" aria-label="Verified Agent" />}
-            </div>
-            <div className="text-sm text-ink/50 mb-2">{property.agent.agency}</div>
+            </button>
+            <button 
+              onClick={() => navigate(ROUTES.AGENCY_DETAILS.replace(':slug', agencyNameToSlug(property.agent.agency)))}
+              className="text-sm text-ink/50 mb-2 hover:text-gold-300 transition-colors focus:outline-none text-left block w-full"
+            >
+              {property.agent.agency}
+            </button>
             {property.agent.phone && (
               <div className="text-xs text-cream/70 flex items-center gap-1.5 mb-1">
                 <Phone className="h-3.5 w-3.5 text-gold-400/70" /> {property.agent.phone}
