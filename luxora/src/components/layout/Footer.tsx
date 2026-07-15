@@ -51,7 +51,7 @@ export default function Footer() {
 
   return (
     <footer className="relative border-t border-white/10 bg-navy-950">
-      <Container className="section-pad py-16 md:py-20">
+      <Container className="py-16 md:py-20">
         {/* Top */}
         <div className="grid gap-10 lg:grid-cols-6">
           {/* Brand */}

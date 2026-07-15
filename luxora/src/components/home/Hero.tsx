@@ -80,7 +80,7 @@ export default function Hero() {
       <div className="absolute -right-32 top-1/2 h-96 w-96 rounded-full bg-blue-500/10 blur-[120px]" />
 
       {/* Content */}
-      <Container className="section-pad relative z-10 flex flex-col items-center pt-32 pb-20 md:pt-40 md:pb-28">
+      <Container className="relative z-10 flex flex-col items-center pt-32 pb-20 md:pt-40 md:pb-28">
         {/* Trust pill */}
         <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-gold-200 backdrop-blur-md">
           <Star className="h-3.5 w-3.5 fill-gold-400 text-gold-400" />

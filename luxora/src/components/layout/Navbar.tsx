@@ -39,7 +39,7 @@ export default function Navbar() {
           : 'bg-transparent'
       }`}
     >
-      <Container className="flex h-16 items-center justify-between md:h-20 section-pad">
+      <Container className="flex h-16 items-center justify-between md:h-20">
         {/* Logo */}
         <button onClick={() => navigate(ROUTES.HOME)} className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold-gradient shadow-gold">
@@ -89,7 +89,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="border-t border-white/10 bg-navy-900/95 backdrop-blur-xl lg:hidden">
-          <div className="section-pad flex flex-col gap-1 py-4">
+          <Container className="flex flex-col gap-1 py-4">
             {navLinks.map((link) => (
               <button
                 key={link}
@@ -113,7 +113,7 @@ export default function Navbar() {
                 List Property
               </GoldButton>
             </div>
-          </div>
+          </Container>
         </div>
       )}
     </header>
