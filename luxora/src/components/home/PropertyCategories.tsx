@@ -1,11 +1,12 @@
+import { useMemo } from 'react';
 import {
   Building2, Home, DoorOpen, BedDouble, DoorClosed, Key,
-  GraduationCap, Home as HouseIcon, Trees, Warehouse, Briefcase, ArrowRight,
+  GraduationCap, Home as HouseIcon, Trees, Warehouse, Briefcase,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Reveal, SectionHeading } from '../ui/ui';
 import { Section, Container } from '../layout';
-import { categories } from '../../data/luxoraData';
+import { categories, properties } from '../../data/luxoraData';
 import { ROUTES } from '../../constants/routes';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -15,6 +16,16 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export default function PropertyCategories() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Dynamically calculate property counts for each property type
+  const listingCounts = useMemo(() => {
+    return properties.reduce((acc, property) => {
+      const type = property.type;
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, []);
 
   return (
     <Section id="rent">
@@ -27,18 +38,26 @@ export default function PropertyCategories() {
           />
         </Reveal>
 
-        <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {categories.map((cat, i) => {
             const Icon = iconMap[cat.icon] ?? Building2;
+            const count = listingCounts[cat.propertyType] || 0;
+            const countText = count === 1 ? '1 Listing' : `${count} Listings`;
+            
             return (
-              <Reveal key={cat.name} delay={(i % 6) * 60}>
+              <Reveal key={cat.id} delay={(i % 12) * 60}>
                 <button 
-                  onClick={() => navigate(ROUTES.PROPERTIES)}
+                  onClick={() => navigate(ROUTES.PROPERTIES, { 
+                    state: { 
+                      ...location.state,
+                      type: cat.propertyType 
+                    } 
+                  })}
                   className="group relative flex h-52 w-full flex-col justify-end overflow-hidden rounded-2xl border border-white/10 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-gold-400/50"
                 >
                   <img 
                     src={cat.image} 
-                    alt={cat.name} 
+                    alt={cat.label} 
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-navy-900/90 via-navy-900/40 to-navy-900/10" />
@@ -49,29 +68,13 @@ export default function PropertyCategories() {
                     <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gold-400/20 text-gold-400 backdrop-blur-md">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <div className="font-heading text-lg font-semibold text-cream">{cat.name}</div>
-                    <div className="mt-1 text-xs font-medium text-gold-200">{cat.count}</div>
+                    <div className="font-heading text-lg font-semibold text-cream">{cat.label}</div>
+                    <div className="mt-1 text-xs font-medium text-gold-200">{countText}</div>
                   </div>
                 </button>
               </Reveal>
             );
           })}
-
-          {/* View all card */}
-          <Reveal delay={6 * 60}>
-            <button 
-              onClick={() => navigate(ROUTES.PROPERTIES)}
-              className="group relative flex h-52 w-full flex-col justify-end overflow-hidden rounded-2xl border border-dashed border-gold-400/30 bg-gold-400/5 text-left transition-all duration-300 hover:-translate-y-1 hover:border-gold-400/50 hover:bg-gold-400/10"
-            >
-              <div className="relative z-10 p-5">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gold-gradient text-navy-900">
-                  <ArrowRight className="h-5 w-5" />
-                </div>
-                <div className="font-heading text-lg font-semibold text-cream">View All</div>
-                <div className="mt-1 text-xs font-medium text-gold-200/70">Browse directory</div>
-              </div>
-            </button>
-          </Reveal>
         </div>
       </Container>
     </Section>

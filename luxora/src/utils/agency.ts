@@ -1,4 +1,5 @@
-import { properties, agencies, agentPerformance, type Property } from '../data/luxoraData';
+import { properties, agencies, agentPerformance } from '../data/luxoraData';
+import type { Property } from '../types';
 import type { Agent } from '../types';
 
 /**

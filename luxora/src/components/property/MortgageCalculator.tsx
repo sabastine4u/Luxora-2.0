@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Calculator, Wallet, Percent, Calendar, PieChart, ShieldCheck, AlertTriangle } from 'lucide-react';
-import type { Property } from '../../data/luxoraData';
+import type { Property } from '../../types';
 import { Slider } from '../ui/Slider';
 import { formatCurrency } from '../../utils';
 

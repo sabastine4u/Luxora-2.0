@@ -60,7 +60,7 @@ export default function Hero() {
     navigate(`${ROUTES.PROPERTIES}?${params.toString()}`);
   };
 
-  const listingTabs = ['buy', 'rent', 'lease', 'short-let'];
+  const listingTabs = ['buy', 'rent', 'lease'];
 
   return (
     <Section className="relative min-h-screen overflow-hidden" noPadding>
@@ -127,7 +127,7 @@ export default function Hero() {
                 }`}
                 aria-label={`Select ${tab} listing type`}
               >
-                {tab === 'short-let' ? 'Short Let' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>

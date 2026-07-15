@@ -12,3 +12,4 @@ export interface ButtonProps {
 export type IconProps = SVGProps<SVGSVGElement>;
 
 export * from './agent';
+export * from './property';

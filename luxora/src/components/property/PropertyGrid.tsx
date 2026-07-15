@@ -2,7 +2,7 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import { EmptyState } from '../layout/EmptyState';
 import { PropertyCard } from './PropertyCard';
-import type { Property } from '../../data/luxoraData';
+import type { Property } from '../../types';
 
 interface PropertyGridProps {
   properties: Property[];

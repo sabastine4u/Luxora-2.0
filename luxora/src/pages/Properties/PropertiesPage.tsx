@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PageLayout, Section, Container, PageHeader, Breadcrumb } from '../../components/layout';
 import { usePropertySearch } from '../../hooks/usePropertySearch';
 import { PropertyFilterBar } from '../../components/property/PropertyFilterBar';
@@ -9,10 +11,14 @@ import { PropertyResultsSummary } from '../../components/property/PropertyResult
 import { ViewToggle } from '../../components/property/ViewToggle';
 
 export default function PropertiesPage() {
+  const location = useLocation();
+  const initialType = location.state?.type;
+  const initialLocationState = location.state?.location;
+
   const {
     search, setSearch,
     type, setType,
-    location, setLocation,
+    location: filterLocation, setLocation: setFilterLocation,
     budgetString, setBudgetString,
     sort, setSort,
     page, goToPage,
@@ -23,7 +29,20 @@ export default function PropertiesPage() {
     viewMode,
     setViewMode,
     resetFilters
-  } = usePropertySearch({ initialItemsPerPage: 9 });
+  } = usePropertySearch({ 
+    initialItemsPerPage: 9,
+    initialType: initialType || 'Any Type',
+    initialLocation: initialLocationState || 'Any Location'
+  });
+
+  const navigate = useNavigate();
+
+  // Clear navigation state after initialization to prevent stale filters on refresh
+  useEffect(() => {
+    if (initialType || initialLocationState) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [initialType, initialLocationState, navigate, location.pathname]);
 
   return (
     <PageLayout>
@@ -43,13 +62,13 @@ export default function PropertiesPage() {
         <PropertyFilterBar
           search={search} setSearch={setSearch}
           type={type} setType={setType}
-          location={location} setLocation={setLocation}
+          location={filterLocation} setLocation={setFilterLocation}
           budget={budgetString} setBudget={setBudgetString}
         >
           <PropertyFilterChips 
             search={search} setSearch={setSearch}
             type={type} setType={setType}
-            location={location} setLocation={setLocation}
+            location={filterLocation} setLocation={setFilterLocation}
             budgetString={budgetString} setBudgetString={setBudgetString}
             resetFilters={resetFilters}
           />

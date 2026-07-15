@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { Maximize, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Property } from '../../data/luxoraData';
+import type { Property } from '../../types';
 
 type PropertyGalleryProps = {
   property: Property;

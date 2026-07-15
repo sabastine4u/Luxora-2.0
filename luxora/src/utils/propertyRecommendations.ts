@@ -1,4 +1,4 @@
-import type { Property } from '../data/luxoraData';
+import type { Property } from '../types';
 
 /**
  * Intelligent recommendation engine for Luxora 2.0 properties.

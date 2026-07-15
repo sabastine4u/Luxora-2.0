@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BadgeCheck, Calendar, Phone, Mail, AlertTriangle, Heart, Scale, Loader2 } from 'lucide-react';
-import type { Property } from '../../data/luxoraData';
+import type { Property } from '../../types';
 import { GoldButton, GhostButton } from '../ui/ui';
 import { useSession } from '../../contexts/SessionContext';
 import { useFavorites } from '../../contexts/FavoriteContext';

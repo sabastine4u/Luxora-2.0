@@ -1,17 +1,20 @@
 import { useState, useMemo } from 'react';
 import { properties } from '../data/luxoraData';
+import type { PropertyType } from '../types';
 
 export type SortOption = 'newest' | 'price-asc' | 'price-desc';
 
 interface UsePropertySearchOptions {
   initialItemsPerPage?: number;
+  initialType?: PropertyType;
+  initialLocation?: string;
 }
 
-export function usePropertySearch({ initialItemsPerPage = 9 }: UsePropertySearchOptions = {}) {
+export function usePropertySearch({ initialItemsPerPage = 9, initialType = 'Any Type', initialLocation = 'Any Location' }: UsePropertySearchOptions = {}) {
   // Common Search & Filters
   const [search, setSearch] = useState('');
-  const [type, setType] = useState('Any Type');
-  const [location, setLocation] = useState('Any Location');
+  const [type, setType] = useState<PropertyType>(initialType);
+  const [location, setLocation] = useState(initialLocation);
   const [sort, setSort] = useState<SortOption>('newest');
   
   // PropertiesPage specific budget
@@ -60,7 +63,7 @@ export function usePropertySearch({ initialItemsPerPage = 9 }: UsePropertySearch
     }
 
     if (location !== 'Any Location') {
-      result = result.filter(p => p.location.includes(location));
+      result = result.filter(p => p.city === location || p.state === location);
     }
 
     // Budget String Logic (for PropertiesPage)
