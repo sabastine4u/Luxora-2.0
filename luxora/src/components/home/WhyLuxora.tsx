@@ -17,9 +17,9 @@ export default function WhyLuxora() {
           />
         </Reveal>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {pillars.map((p, i) => (
-            <Reveal key={p.title} delay={(i % 3) * 100}>
+            <Reveal key={p.title} delay={(i % 3) * 50}>
               <div className="group relative h-full overflow-hidden rounded-2xl glass p-6 transition-all duration-300 hover:border-gold-400/30">
                 <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-400/5 blur-2xl transition-opacity duration-300 group-hover:bg-gold-400/10" />
                 <div className="relative">

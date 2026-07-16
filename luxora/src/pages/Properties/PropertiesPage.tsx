@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { PageLayout, Section, Container, PageHeader, Breadcrumb } from '../../components/layout';
 import { usePropertySearch } from '../../hooks/usePropertySearch';
 import { PropertyFilterBar } from '../../components/property/PropertyFilterBar';
@@ -12,9 +10,6 @@ import { PropertyResultsSummary } from '../../components/property/PropertyResult
 import { ViewToggle } from '../../components/property/ViewToggle';
 
 export default function PropertiesPage() {
-  const location = useLocation();
-  const initialType = location.state?.type;
-  const initialLocationState = location.state?.location;
 
   const {
     search, setSearch,
@@ -43,34 +38,10 @@ export default function PropertiesPage() {
     setViewMode,
     resetFilters
   } = usePropertySearch({ 
-    initialItemsPerPage: 9,
-    initialType: initialType || 'Any Type',
-    initialLocation: initialLocationState || 'Any Location'
+    initialItemsPerPage: 9
   });
 
-  const navigate = useNavigate();
 
-  // Convert navigation state into URL params on first load
-  useEffect(() => {
-    if (initialType || initialLocationState) {
-      const currentParams = new URLSearchParams(window.location.search);
-      let changed = false;
-      if (initialType && !currentParams.has('propertyType')) {
-        currentParams.set('propertyType', initialType);
-        changed = true;
-      }
-      if (initialLocationState && !currentParams.has('location')) {
-        currentParams.set('location', initialLocationState);
-        changed = true;
-      }
-      
-      if (changed) {
-        navigate(`${location.pathname}?${currentParams.toString()}`, { replace: true, state: {} });
-      } else {
-        navigate(location.pathname + location.search, { replace: true, state: {} });
-      }
-    }
-  }, [initialType, initialLocationState, navigate, location.pathname, location.search]);
 
   return (
     <PageLayout>

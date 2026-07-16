@@ -24,7 +24,7 @@ export default function AgencySpotlight() {
           </div>
         </Reveal>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
           {/* Agencies */}
           <Reveal>
             <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8">
@@ -41,7 +41,7 @@ export default function AgencySpotlight() {
           </Reveal>
 
           {/* Agents */}
-          <Reveal delay={100}>
+          <Reveal delay={50}>
             <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8">
               <div className="mb-5 flex items-center gap-2">
                 <Star className="h-5 w-5 text-gold-400" />

@@ -16,9 +16,9 @@ export default function InvestmentIntelligence() {
           />
         </Reveal>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-5">
+        <div className="mt-12 grid gap-6 lg:grid-cols-5">
           {/* Dashboard preview */}
-          <Reveal className="lg:col-span-3" delay={100}>
+          <Reveal className="lg:col-span-3" delay={50}>
             <div className="glass h-full rounded-3xl p-6 md:p-8">
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -71,7 +71,7 @@ export default function InvestmentIntelligence() {
           </Reveal>
 
           {/* Area breakdown */}
-          <Reveal className="lg:col-span-2" delay={200}>
+          <Reveal className="lg:col-span-2" delay={100}>
             <div className="h-full rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8">
               <div className="mb-5 flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-gold-400" />

@@ -30,8 +30,8 @@ export default function Testimonials() {
           />
         </Reveal>
 
-        <Reveal delay={100}>
-          <div className="mx-auto mt-14 max-w-3xl">
+        <Reveal delay={50}>
+          <div className="mx-auto mt-10 max-w-3xl">
             <div className="relative rounded-3xl border border-white/10 bg-navy-800/50 p-8 md:p-12">
               <Quote className="absolute right-8 top-8 h-12 w-12 text-gold-400/15" />
 
@@ -53,6 +53,7 @@ export default function Testimonials() {
                   <img
                     src={testimonials[active].avatar}
                     alt={testimonials[active].name}
+                    loading="lazy"
                     className="h-14 w-14 rounded-full object-cover ring-2 ring-gold-400/30"
                   />
                   <div>

@@ -15,9 +15,9 @@ export default function ServicesEcosystem() {
           />
         </Reveal>
 
-        <div className="mt-14 grid gap-5 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
           {services.map((s, i) => (
-            <Reveal key={s.title} delay={(i % 3) * 100} className={i === 0 ? 'lg:col-span-2' : ''}>
+            <Reveal key={s.title} delay={(i % 3) * 50} className={i === 0 ? 'lg:col-span-2' : ''}>
               <div className={`group relative h-full overflow-hidden rounded-3xl border border-white/10 bg-navy-800/50 p-7 transition-all duration-300 hover:border-gold-400/30 hover:bg-navy-800/80 ${i === 0 ? 'lg:flex lg:items-center lg:gap-8' : ''}`}>
                 <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gold-400/5 blur-2xl transition-opacity duration-300 group-hover:bg-gold-400/10" />
                 <div className="relative flex-1">

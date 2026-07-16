@@ -66,6 +66,7 @@ export default function Hero() {
         <img
           src="https://images.pexels.com/photos/302769/pexels-photo-302769.jpeg?auto=compress&cs=tinysrgb&w=1920"
           alt="Luxury property"
+          fetchPriority="high"
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-navy-900/85 via-navy-900/70 to-navy-900" />

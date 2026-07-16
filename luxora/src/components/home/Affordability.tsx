@@ -25,9 +25,9 @@ export default function Affordability() {
           />
         </Reveal>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-5">
+        <div className="mt-12 grid gap-6 lg:grid-cols-5">
           {/* Calculator */}
-          <Reveal className="lg:col-span-3" delay={100}>
+          <Reveal className="lg:col-span-3" delay={50}>
             <div className="glass h-full rounded-3xl p-6 md:p-8">
               <div className="mb-6 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-400/10 text-gold-400">
@@ -102,7 +102,7 @@ export default function Affordability() {
           </Reveal>
 
           {/* Payment plans + example */}
-          <Reveal className="lg:col-span-2" delay={200}>
+          <Reveal className="lg:col-span-2" delay={100}>
             <div className="flex h-full flex-col gap-4">
               {/* Example card */}
               <div className="relative overflow-hidden rounded-3xl border border-gold-400/30 bg-gradient-to-br from-navy-800 to-navy-850 p-6">

@@ -9,7 +9,7 @@ export interface SectionProps {
 
 export function Section({ children, id, className = '', noPadding = false }: SectionProps) {
   return (
-    <section id={id} className={`relative ${!noPadding ? 'py-24 md:py-32' : ''} ${className}`}>
+    <section id={id} className={`relative ${!noPadding ? 'py-16 md:py-20' : ''} ${className}`}>
       {children}
     </section>
   );

@@ -1,17 +1,19 @@
-
-import Affordability from '../../components/home/Affordability';
-import AgencySpotlight from '../../components/home/AgencySpotlight';
+import { lazy, Suspense } from 'react';
 import FeaturedProperties from '../../components/home/FeaturedProperties';
 import Hero from '../../components/home/Hero';
-import InvestmentIntelligence from '../../components/home/InvestmentIntelligence';
 import PopularCities from '../../components/home/PopularCities';
 import PropertyCategories from '../../components/home/PropertyCategories';
 import ServicesEcosystem from '../../components/home/ServicesEcosystem';
-import Testimonials from '../../components/home/Testimonials';
-import TrustVerification from '../../components/home/TrustVerification';
-import WhyLuxora from '../../components/home/WhyLuxora';
 import { PageLayout } from '../../components/layout';
 
+const Affordability = lazy(() => import('../../components/home/Affordability'));
+const AgencySpotlight = lazy(() => import('../../components/home/AgencySpotlight'));
+const InvestmentIntelligence = lazy(() => import('../../components/home/InvestmentIntelligence'));
+const TrustVerification = lazy(() => import('../../components/home/TrustVerification'));
+const WhyLuxora = lazy(() => import('../../components/home/WhyLuxora'));
+const Testimonials = lazy(() => import('../../components/home/Testimonials'));
+
+const Fallback = () => <div className="min-h-[400px] animate-pulse rounded-3xl bg-navy-900/20" />;
 export default function HomePage() {
   return (
     <PageLayout>
@@ -27,26 +29,28 @@ export default function HomePage() {
         {/* Popular Cities — explore top locations */}
         <PopularCities />
         
-        {/* Why Luxora — value proposition */}
-        <WhyLuxora />
-        
-        {/* Trust & Verification — why you should trust us */}
-        <TrustVerification />
-        
-        {/* Affordability — flexible payment plans */}
-        <Affordability />
-        
-        {/* Investment Intelligence — data-driven decisions */}
-        <InvestmentIntelligence />
-        
         {/* Services Ecosystem — end-to-end property services */}
         <ServicesEcosystem />
-        
-        {/* Agency Spotlight — top performing partners */}
-        <AgencySpotlight />
-        
-        {/* Testimonials — social proof */}
-        <Testimonials />
+
+        <Suspense fallback={<Fallback />}>
+          {/* Affordability — flexible payment plans */}
+          <Affordability />
+          
+          {/* Agency Spotlight — top performing partners */}
+          <AgencySpotlight />
+          
+          {/* Investment Intelligence — data-driven decisions */}
+          <InvestmentIntelligence />
+          
+          {/* Trust & Verification — why you should trust us */}
+          <TrustVerification />
+          
+          {/* Why Luxora — value proposition */}
+          <WhyLuxora />
+          
+          {/* Testimonials — social proof */}
+          <Testimonials />
+        </Suspense>
     </PageLayout>
   );
 }

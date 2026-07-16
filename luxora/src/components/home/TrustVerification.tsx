@@ -15,9 +15,9 @@ export default function TrustVerification() {
           />
         </Reveal>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {badges.map((b, i) => (
-            <Reveal key={b.title} delay={i * 100}>
+            <Reveal key={b.title} delay={i * 50}>
               <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-navy-800/50 p-6 transition-all duration-300 hover:border-gold-400/30 hover:bg-navy-800/80">
                 <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gold-400/5 blur-2xl transition-opacity duration-300 group-hover:bg-gold-400/10" />
                 <div className="relative">

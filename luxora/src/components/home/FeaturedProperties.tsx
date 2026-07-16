@@ -26,9 +26,9 @@ export default function FeaturedProperties() {
           </div>
         </Reveal>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {properties.slice(0, 6).map((p, i) => (
-            <Reveal key={p.id} delay={(i % 3) * 100}>
+            <Reveal key={p.id} delay={(i % 3) * 50}>
               <PropertyCard property={p} />
             </Reveal>
           ))}
