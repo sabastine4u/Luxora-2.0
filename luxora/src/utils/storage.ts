@@ -20,5 +20,15 @@ export const storage = {
     } catch (e) {
       console.error('Error removing from localStorage', e);
     }
+  },
+  // User Session Management
+  getUserSession: <T>(): T | null => {
+    return storage.getItem<T | null>('user_session', null);
+  },
+  setUserSession: <T>(user: T): void => {
+    storage.setItem('user_session', user);
+  },
+  clearUserSession: (): void => {
+    storage.removeItem('user_session');
   }
 };

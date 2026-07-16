@@ -12,6 +12,7 @@ import { DepartmentDashboard } from './components/DepartmentDashboard';
 import { NotificationPreferences } from './components/NotificationPreferences';
 import { NotificationDetailModal } from './components/NotificationDetailModal';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
+import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Search } from 'lucide-react';
 import type { Notification } from './types/notificationTypes';
 
@@ -78,8 +79,9 @@ export const NotificationCenterPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-ink-dark overflow-hidden">
-      <div className="p-6 pb-2 shrink-0">
+    <DashboardLayout activeTab="Notification Center">
+      <div className="min-h-[calc(100vh-8rem)] flex flex-col bg-gray-50 dark:bg-ink-dark overflow-hidden rounded-2xl border border-gray-100 dark:border-ink-light">
+        <div className="p-6 pb-2 shrink-0">
         <DashboardHeader 
           name="Notification & Activity Center" 
           subtitle="Enterprise notifications, approvals, and workflows." 
@@ -122,6 +124,7 @@ export const NotificationCenterPage = () => {
         isOpen={!!selectedNotification} 
         onClose={() => setSelectedNotification(null)} 
       />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };

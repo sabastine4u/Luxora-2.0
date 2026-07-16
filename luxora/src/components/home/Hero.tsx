@@ -5,19 +5,19 @@ import { propertyTypes, locations, budgets } from '../../data/uiData';
 import { Section, Container } from '../layout';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
+import { useRecentSearches } from '../../hooks/useRecentSearches';
 
 export default function Hero() {
   const navigate = useNavigate();
+  const { recentSearches, addSearch } = useRecentSearches();
 
   const getInitialState = (key: string, fallback: string) => {
-    try {
-      const stored = localStorage.getItem('luxora_last_search');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed[key]) return parsed[key];
-      }
-    } catch {
-      // ignore
+    if (recentSearches.length > 0) {
+      const latest = recentSearches[0];
+      if (key === 'listingType') return latest.listingType;
+      if (key === 'propertyType') return latest.propertyType;
+      if (key === 'location') return latest.location;
+      if (key === 'budget') return latest.budget;
     }
     return fallback;
   };
@@ -29,17 +29,14 @@ export default function Hero() {
   const [budget, setBudget] = useState(() => getInitialState('budget', 'Any Budget')); // Maps to 'budgetString' in usePropertySearch
 
   const handleSearch = () => {
-    // Store recent search
-    try {
-      localStorage.setItem('luxora_last_search', JSON.stringify({
-        listingType,
-        location,
-        propertyType: type,
-        budget
-      }));
-    } catch {
-      // ignore
-    }
+    // Store in global recent searches
+    addSearch({
+      keyword: '',
+      location,
+      propertyType: type,
+      listingType,
+      budget
+    });
 
     // Build URLSearchParams using parameter names from usePropertySearch
     const params = new URLSearchParams();
@@ -84,7 +81,7 @@ export default function Hero() {
         {/* Trust pill */}
         <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-gold-200 backdrop-blur-md">
           <Star className="h-3.5 w-3.5 fill-gold-400 text-gold-400" />
-          Africa's Most Trusted Property Ecosystem
+         Nigeria's Most Trusted Property Ecosystem
         </div>
 
         {/* Headline */}
@@ -132,7 +129,7 @@ export default function Hero() {
             ))}
           </div>
 
-          <div className="glass rounded-2xl p-2 shadow-lux md:rounded-full">
+          <div className="glass rounded-2xl p-2 shadow-lux md:rounded-full transition-shadow duration-300 hover:shadow-[0_0_20px_rgba(212,175,55,0.15)] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] focus-within:ring-1 focus-within:ring-gold-400/50">
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
               <SearchField icon={<Home className="h-4 w-4" aria-hidden="true" />} label="Property Type" value={type} options={propertyTypes} onChange={setType} ariaLabel="Select property type" />
               <Divider />
@@ -140,7 +137,7 @@ export default function Hero() {
               <Divider />
               <SearchField icon={<Wallet className="h-4 w-4" aria-hidden="true" />} label="Budget" value={budget} options={budgets} onChange={setBudget} ariaLabel="Select budget" />
               <div className="p-1">
-                <GoldButton size="md" className="w-full md:w-auto" onClick={handleSearch} aria-label="Search properties">
+                <GoldButton size="md" className="w-full md:w-auto shadow-none transition-transform hover:scale-105 active:scale-95 focus:ring-2 focus:ring-gold-400 focus:ring-offset-2 focus:ring-offset-navy-900" onClick={handleSearch} aria-label="Search properties">
                   <Search className="h-4 w-4" aria-hidden="true" />
                   Search
                 </GoldButton>
@@ -204,21 +201,21 @@ function SearchField({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="relative flex-1 px-3 py-2">
+    <div className="group relative flex-1 px-3 py-2">
       <div className="flex items-center gap-2.5">
         <span className="text-gold-400" aria-hidden="true">{icon}</span>
         <div className="flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-ink/50" id={`label-${label.replace(/\\s+/g, '-')}`}>{label}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-ink/50 transition-colors group-hover:text-ink/70 group-focus-within:text-gold-400/70" id={`label-${label.replace(/\s+/g, '-')}`}>{label}</div>
           <button
             onClick={() => setOpen(!open)}
-            className="flex w-full items-center justify-between gap-1 text-left text-sm font-medium text-cream focus:outline-none focus:ring-2 focus:ring-gold-400/50 rounded"
+            className="flex w-full items-center justify-between gap-1 text-left text-sm font-medium text-cream focus:outline-none focus:text-gold-300 rounded"
             aria-haspopup="listbox"
             aria-expanded={open}
-            aria-labelledby={`label-${label.replace(/\\s+/g, '-')}`}
+            aria-labelledby={`label-${label.replace(/\s+/g, '-')}`}
             aria-label={ariaLabel}
           >
             <span className="truncate">{value}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-ink/50 flex-shrink-0" aria-hidden="true" />
+            <ChevronDown className={`h-3.5 w-3.5 text-ink/50 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180 text-gold-400' : ''}`} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -226,9 +223,9 @@ function SearchField({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
           <div 
-            className="absolute left-0 right-0 top-full z-20 mt-2 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-navy-800 shadow-lux"
+            className="absolute left-0 right-0 top-full z-20 mt-2 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-navy-800 shadow-2xl animate-fade-in-up"
             role="listbox"
-            aria-labelledby={`label-${label.replace(/\\s+/g, '-')}`}
+            aria-labelledby={`label-${label.replace(/\s+/g, '-')}`}
           >
             {options.map((opt) => (
               <button

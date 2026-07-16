@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Menu, X, ChevronDown, Crown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Menu, X, ChevronDown, Crown, Bell, LogOut, User } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { GoldButton } from '../ui/ui';
 import { Container } from './index';
-import { ROUTES } from '../../constants/routes';
+import { ROUTES, ROLE_DASHBOARD_MAP, isDashboardRoute } from '../../constants/routes';
+import { useSession } from '../../contexts/SessionContext';
 import { navLinks } from '../../data/uiData';
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, user, logout } = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -65,16 +68,56 @@ export default function Navbar() {
 
         {/* Right actions */}
         <div className="hidden items-center gap-3 lg:flex">
-          <button onClick={() => navigate(ROUTES.LOGIN)} className="text-sm font-medium text-ink/80 transition-colors hover:text-cream">
-            Login
-          </button>
-          <button onClick={() => navigate(ROUTES.REGISTER)} className="rounded-full border border-white/15 px-5 py-2 text-sm font-medium text-ink transition-all hover:border-gold-400/50 hover:text-cream">
-            Register
-          </button>
-          <GoldButton size="sm" onClick={() => navigate(ROUTES.REGISTER)}>
-            List Property
-            <ChevronDown className="h-3.5 w-3.5" />
-          </GoldButton>
+          {isAuthenticated && user ? (
+            <>
+              <button 
+                onClick={() => {
+                  const dashboardRoute = ROLE_DASHBOARD_MAP[user.role] || ROUTES.HOME;
+                  if (isDashboardRoute(location.pathname)) {
+                    navigate(ROUTES.HOME);
+                  } else {
+                    navigate(dashboardRoute);
+                  }
+                }} 
+                className="text-sm font-medium text-ink/80 transition-colors hover:text-cream"
+              >
+                {isDashboardRoute(location.pathname) ? 'Back to Website' : 'Dashboard'}
+              </button>
+              <button 
+                onClick={() => navigate(ROUTES.NOTIFICATION_CENTER)}
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-ink/70 transition-colors hover:text-cream"
+              >
+                <Bell className="h-4 w-4" />
+              </button>
+              <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-ink/70 transition-colors hover:text-cream">
+                {user.avatar ? (
+                  <img src={user.avatar} alt={user.name} className="h-6 w-6 rounded-full object-cover" />
+                ) : (
+                  <User className="h-4 w-4" />
+                )}
+              </button>
+              <GoldButton size="sm" onClick={() => {
+                logout();
+                navigate(ROUTES.HOME);
+              }}>
+                Logout
+                <LogOut className="h-3.5 w-3.5 ml-2" />
+              </GoldButton>
+            </>
+          ) : (
+            <>
+              <button onClick={() => navigate(ROUTES.LOGIN)} className="text-sm font-medium text-ink/80 transition-colors hover:text-cream">
+                Login
+              </button>
+              <button onClick={() => navigate(ROUTES.REGISTER)} className="rounded-full border border-white/15 px-5 py-2 text-sm font-medium text-ink transition-all hover:border-gold-400/50 hover:text-cream">
+                Register
+              </button>
+              <GoldButton size="sm" onClick={() => navigate(ROUTES.REGISTER)}>
+                List Property
+                <ChevronDown className="h-3.5 w-3.5" />
+              </GoldButton>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -103,15 +146,42 @@ export default function Navbar() {
               </button>
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-4">
-              <button onClick={() => { setOpen(false); navigate(ROUTES.LOGIN); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
-                Login
-              </button>
-              <button onClick={() => { setOpen(false); navigate(ROUTES.REGISTER); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
-                Register
-              </button>
-              <GoldButton size="md" onClick={() => { setOpen(false); navigate(ROUTES.REGISTER); }}>
-                List Property
-              </GoldButton>
+              {isAuthenticated && user ? (
+                <>
+                  <button onClick={() => { 
+                    setOpen(false); 
+                    const dashboardRoute = ROLE_DASHBOARD_MAP[user.role] || ROUTES.HOME;
+                    if (isDashboardRoute(location.pathname)) {
+                      navigate(ROUTES.HOME);
+                    } else {
+                      navigate(dashboardRoute);
+                    }
+                  }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
+                    {isDashboardRoute(location.pathname) ? 'Back to Website' : 'Dashboard'}
+                  </button>
+                  <button onClick={() => { setOpen(false); navigate(ROUTES.NOTIFICATION_CENTER); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
+                    Notifications
+                  </button>
+                  <button onClick={() => { setOpen(false); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
+                    Profile
+                  </button>
+                  <GoldButton size="md" onClick={() => { setOpen(false); logout(); navigate(ROUTES.HOME); }}>
+                    Logout
+                  </GoldButton>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => { setOpen(false); navigate(ROUTES.LOGIN); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
+                    Login
+                  </button>
+                  <button onClick={() => { setOpen(false); navigate(ROUTES.REGISTER); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
+                    Register
+                  </button>
+                  <GoldButton size="md" onClick={() => { setOpen(false); navigate(ROUTES.REGISTER); }}>
+                    List Property
+                  </GoldButton>
+                </>
+              )}
             </div>
           </Container>
         </div>

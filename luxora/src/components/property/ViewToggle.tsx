@@ -1,8 +1,8 @@
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Map } from 'lucide-react';
 
 interface ViewToggleProps {
-  viewMode: 'grid' | 'list';
-  setViewMode: (mode: 'grid' | 'list') => void;
+  viewMode: 'grid' | 'list' | 'map';
+  setViewMode: (mode: 'grid' | 'list' | 'map') => void;
 }
 
 export function ViewToggle({ viewMode, setViewMode }: ViewToggleProps) {
@@ -29,6 +29,17 @@ export function ViewToggle({ viewMode, setViewMode }: ViewToggleProps) {
         title="List View"
       >
         <List className="h-4 w-4" />
+      </button>
+      <button
+        onClick={() => setViewMode('map')}
+        className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+          viewMode === 'map'
+            ? 'bg-gold-400 text-navy-900 shadow-lux'
+            : 'text-ink/60 hover:bg-white/5 hover:text-cream'
+        }`}
+        title="Map View"
+      >
+        <Map className="h-4 w-4" />
       </button>
     </div>
   );

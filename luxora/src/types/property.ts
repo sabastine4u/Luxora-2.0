@@ -45,6 +45,7 @@ export type Property = {
     email?: string;
     image?: string;
     verified?: boolean;
+    specialization?: string;
   };
   tag?: string;
   gallery?: string[];
@@ -65,4 +66,16 @@ export type Property = {
   parkingSpaces?: number;
   yearBuilt?: number;
   floorPlans?: string[];
+  coordinates?: { lat: number; lng: number };
+  status?: 'Available' | 'Under Offer' | 'Sold' | 'Rented' | 'Pending' | 'Draft' | 'Archived';
+  mortgageSupport?: boolean;
+  featuredLevel?: 'Standard' | 'Premium' | 'Exclusive';
+  listingTier?: 'Basic' | 'Plus' | 'Pro';
+  virtualTourUrl?: string;
+  inspectionStatus?: 'Pending' | 'Passed' | 'Failed';
+  availabilityDate?: string;
+  videoUrl?: string;
+  brochureUrl?: string;
+  furnishing?: 'Unfurnished' | 'Semi-Furnished' | 'Fully Furnished';
+  paymentOptions?: string[];
 };

@@ -1,22 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { storage } from '../utils/storage';
 
 export function useRecentlyViewed() {
   const [recentlyViewed, setRecentlyViewed] = useState<string[]>(() => {
-    try {
-      const item = window.localStorage.getItem('luxora_recently_viewed');
-      return item ? JSON.parse(item) : [];
-    } catch (error) {
-      console.error('Error reading localStorage', error);
-      return [];
-    }
+    return storage.getItem<string[]>('luxora_recently_viewed', []);
   });
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem('luxora_recently_viewed', JSON.stringify(recentlyViewed));
-    } catch (error) {
-      console.error('Error setting localStorage', error);
-    }
+    storage.setItem('luxora_recently_viewed', recentlyViewed);
   }, [recentlyViewed]);
 
   const addRecentlyViewed = useCallback((id: string) => {

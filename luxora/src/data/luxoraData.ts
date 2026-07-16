@@ -77,7 +77,14 @@ export const properties: Property[] = [
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800"
     ],
     "city": "Eko Atlantic",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.408, "lng": 3.407 },
+    "status": "Available",
+    "mortgageSupport": true,
+    "featuredLevel": "Premium",
+    "videoUrl": "https://www.youtube.com/embed/LXb3EKWsInQ",
+    "brochureUrl": "#",
+    "furnishing": "Fully Furnished"
   },
   {
     "id": "p2",
@@ -141,7 +148,8 @@ export const properties: Property[] = [
     "parkingSpaces": 6,
     "yearBuilt": 2021,
     "city": "Banana Island",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4624, "lng": 3.4542 }
   },
   {
     "id": "p3",
@@ -191,7 +199,8 @@ export const properties: Property[] = [
     "parkingSpaces": 2,
     "yearBuilt": 2019,
     "city": "Lekki",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4698, "lng": 3.5852 }
   },
   {
     "id": "p4",
@@ -496,7 +505,8 @@ export const properties: Property[] = [
     "walkScore": 89,
     "yearBuilt": 2021,
     "city": "Ikoyi",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4531, "lng": 3.4346 }
   },
   {
     "id": "p13",
@@ -574,7 +584,8 @@ export const properties: Property[] = [
     "walkScore": 91,
     "yearBuilt": 2010,
     "city": "Victoria Island",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4281, "lng": 3.4219 }
   },
   {
     "id": "p15",
@@ -842,7 +853,8 @@ export const properties: Property[] = [
     "walkScore": 84,
     "yearBuilt": 2012,
     "city": "Victoria Island",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4281, "lng": 3.4219 }
   },
   {
     "id": "p22",
@@ -1300,7 +1312,8 @@ export const properties: Property[] = [
     "walkScore": 78,
     "yearBuilt": 2022,
     "city": "Asokoro",
-    "state": "Abuja"
+    "state": "Abuja",
+    "coordinates": { "lat": 9.0438, "lng": 7.5255 }
   },
   {
     "id": "p34",
@@ -1339,7 +1352,8 @@ export const properties: Property[] = [
     "walkScore": 75,
     "yearBuilt": 2022,
     "city": "Asokoro",
-    "state": "Abuja"
+    "state": "Abuja",
+    "coordinates": { "lat": 9.0438, "lng": 7.5255 }
   },
   {
     "id": "p35",
@@ -1645,7 +1659,8 @@ export const properties: Property[] = [
     "walkScore": 89,
     "yearBuilt": 2020,
     "city": "Lekki",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4698, "lng": 3.5852 }
   },
   {
     "id": "p43",
@@ -1875,7 +1890,8 @@ export const properties: Property[] = [
     "walkScore": 82,
     "yearBuilt": 2012,
     "city": "Lekki",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4698, "lng": 3.5852 }
   },
   {
     "id": "p49",
@@ -1951,7 +1967,8 @@ export const properties: Property[] = [
     "walkScore": 61,
     "yearBuilt": 2012,
     "city": "Victoria Island",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4281, "lng": 3.4219 }
   },
   {
     "id": "p51",
@@ -1989,7 +2006,8 @@ export const properties: Property[] = [
     "walkScore": 74,
     "yearBuilt": 2014,
     "city": "Victoria Island",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4281, "lng": 3.4219 }
   },
   {
     "id": "p52",
@@ -2027,7 +2045,8 @@ export const properties: Property[] = [
     "walkScore": 84,
     "yearBuilt": 2013,
     "city": "Victoria Island",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4281, "lng": 3.4219 }
   },
   {
     "id": "p53",
@@ -2142,7 +2161,8 @@ export const properties: Property[] = [
     "walkScore": 68,
     "yearBuilt": 2023,
     "city": "Maitama",
-    "state": "Abuja"
+    "state": "Abuja",
+    "coordinates": { "lat": 9.0833, "lng": 7.4950 }
   },
   {
     "id": "p56",
@@ -2371,7 +2391,8 @@ export const properties: Property[] = [
     "walkScore": 77,
     "yearBuilt": 2015,
     "city": "Victoria Island",
-    "state": "Lagos"
+    "state": "Lagos",
+    "coordinates": { "lat": 6.4281, "lng": 3.4219 }
   },
   {
     "id": "p62",

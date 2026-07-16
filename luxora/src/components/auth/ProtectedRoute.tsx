@@ -4,16 +4,25 @@ import { useSession } from '../../contexts/SessionContext';
 import type { UserRole } from '../../contexts/SessionContext';
 import type { Department } from '../../constants/departments';
 import { ROLES } from '../../constants/roles';
-import { ROUTES } from '../../constants/routes';
+import { ROUTES, ROLE_DASHBOARD_MAP } from '../../constants/routes';
 
 export interface ProtectedRouteProps {
   children: ReactNode;
   allowedRoles?: UserRole[];
   allowedDepartments?: Department[];
+  guestOnly?: boolean;
 }
 
-export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, allowedDepartments, guestOnly }: ProtectedRouteProps) {
   const { user, isAuthenticated } = useSession();
+
+  if (guestOnly) {
+    if (isAuthenticated && user) {
+      const dashboardRoute = ROLE_DASHBOARD_MAP[user.role] || ROUTES.HOME;
+      return <Navigate to={dashboardRoute} replace />;
+    }
+    return <>{children}</>;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to={ROUTES.LOGIN} replace />;

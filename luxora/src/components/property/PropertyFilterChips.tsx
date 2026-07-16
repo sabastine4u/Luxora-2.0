@@ -7,6 +7,8 @@ interface PropertyFilterChipsProps {
   setType: (v: string) => void;
   location: string;
   setLocation: (v: string) => void;
+  listingType?: string;
+  setListingType?: (v: string) => void;
   budgetString?: string;
   setBudgetString?: (v: string) => void;
   minPriceM?: number;
@@ -17,6 +19,26 @@ interface PropertyFilterChipsProps {
   setBeds?: (v: string) => void;
   baths?: string;
   setBaths?: (v: string) => void;
+  status?: string;
+  setStatus?: (v: string) => void;
+  amenities?: string[];
+  setAmenities?: (v: string[]) => void;
+  mortgageSupport?: boolean;
+  setMortgageSupport?: (v: boolean) => void;
+  listingTier?: string;
+  setListingTier?: (v: string) => void;
+  furnishing?: string;
+  setFurnishing?: (v: string) => void;
+  availability?: string;
+  setAvailability?: (v: string) => void;
+  paymentPlan?: string[];
+  setPaymentPlan?: (v: string[]) => void;
+  verificationLevel?: string;
+  setVerificationLevel?: (v: string) => void;
+  minArea?: number;
+  setMinArea?: (v: number) => void;
+  maxArea?: number;
+  setMaxArea?: (v: number) => void;
   resetFilters: () => void;
 }
 
@@ -25,6 +47,10 @@ export function PropertyFilterChips(props: PropertyFilterChipsProps) {
 
   if (props.search) {
     chips.push({ label: `"${props.search}"`, onRemove: () => props.setSearch?.('') });
+  }
+  
+  if (props.listingType && props.listingType !== 'Any') {
+    chips.push({ label: props.listingType.charAt(0).toUpperCase() + props.listingType.slice(1), onRemove: () => props.setListingType?.('Any') });
   }
 
   if (props.type && props.type !== 'Any Type') {
@@ -52,6 +78,55 @@ export function PropertyFilterChips(props: PropertyFilterChipsProps) {
   }
   if (props.baths && props.baths !== 'Any') {
     chips.push({ label: `${props.baths}+ Baths`, onRemove: () => props.setBaths!('Any') });
+  }
+  if (props.status && props.status !== 'Any') {
+    chips.push({ label: props.status, onRemove: () => props.setStatus!('Any') });
+  }
+  if (props.listingTier && props.listingTier !== 'Any') {
+    chips.push({ label: props.listingTier, onRemove: () => props.setListingTier!('Any') });
+  }
+  if (props.furnishing && props.furnishing !== 'Any') {
+    chips.push({ label: props.furnishing, onRemove: () => props.setFurnishing!('Any') });
+  }
+  if (props.availability && props.availability !== 'Any') {
+    chips.push({ label: props.availability, onRemove: () => props.setAvailability!('Any') });
+  }
+  if (props.verificationLevel && props.verificationLevel !== 'Any') {
+    chips.push({ label: props.verificationLevel, onRemove: () => props.setVerificationLevel!('Any') });
+  }
+  if (props.mortgageSupport) {
+    chips.push({ label: 'Mortgage Eligible', onRemove: () => props.setMortgageSupport!(false) });
+  }
+  if (props.minArea !== undefined && props.maxArea !== undefined) {
+    if (props.minArea > 0 || props.maxArea < 10000) {
+      chips.push({
+        label: `${props.minArea} - ${props.maxArea === 10000 ? '10k+' : props.maxArea} sqm`,
+        onRemove: () => {
+          props.setMinArea!(0);
+          props.setMaxArea!(10000);
+        }
+      });
+    }
+  }
+  if (props.amenities && props.amenities.length > 0) {
+    props.amenities.forEach(amenity => {
+      chips.push({
+        label: amenity,
+        onRemove: () => {
+          props.setAmenities!(props.amenities!.filter(a => a !== amenity));
+        }
+      });
+    });
+  }
+  if (props.paymentPlan && props.paymentPlan.length > 0) {
+    props.paymentPlan.forEach(plan => {
+      chips.push({
+        label: plan,
+        onRemove: () => {
+          props.setPaymentPlan!(props.paymentPlan!.filter(p => p !== plan));
+        }
+      });
+    });
   }
 
   if (chips.length === 0) return null;

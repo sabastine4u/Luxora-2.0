@@ -10,7 +10,7 @@ interface PropertyGridProps {
   emptyDescription?: string;
   onClearFilters?: () => void;
   gridClassName?: string;
-  viewMode?: 'grid' | 'list';
+  viewMode?: 'grid' | 'list' | 'map';
   children?: React.ReactNode;
 }
 
@@ -45,7 +45,7 @@ export function PropertyGrid({
     <>
       <div className={containerClass}>
         {properties.map(p => (
-          <PropertyCard key={p.id} property={p} variant={viewMode} />
+          <PropertyCard key={p.id} property={p} variant={viewMode === 'map' ? 'grid' : viewMode} />
         ))}
       </div>
       {children}

@@ -1,24 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
+import { storage } from '../utils/storage';
 
 export type CompareResult = 'added' | 'exists' | 'limit_reached';
 
 export function useCompareProperties() {
   const [compareList, setCompareList] = useState<string[]>(() => {
-    try {
-      const item = window.localStorage.getItem('luxora_compare_properties');
-      return item ? JSON.parse(item) : [];
-    } catch (error) {
-      console.error('Error reading localStorage', error);
-      return [];
-    }
+    return storage.getItem<string[]>('luxora_compare_properties', []);
   });
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem('luxora_compare_properties', JSON.stringify(compareList));
-    } catch (error) {
-      console.error('Error setting localStorage', error);
-    }
+    storage.setItem('luxora_compare_properties', compareList);
   }, [compareList]);
 
   const toggleCompareProperty = useCallback((id: string): CompareResult => {

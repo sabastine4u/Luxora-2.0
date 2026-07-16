@@ -49,8 +49,8 @@ export default function AppRoutes() {
       <Route path={ROUTES.AGENCY_DETAILS} element={<AgencyDetailsPage />} />
       <Route path={ROUTES.AGENT_DETAILS} element={<AgentDetailsPage />} />
       <Route path={ROUTES.SEARCH} element={<SearchPage />} />
-      <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-      <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+      <Route path={ROUTES.LOGIN} element={<ProtectedRoute guestOnly><LoginPage /></ProtectedRoute>} />
+      <Route path={ROUTES.REGISTER} element={<ProtectedRoute guestOnly><RegisterPage /></ProtectedRoute>} />
       <Route path={ROUTES.ABOUT} element={<AboutPage />} />
       <Route path={ROUTES.CONTACT} element={<ContactPage />} />
       <Route path={ROUTES.FAQ} element={<FAQPage />} />

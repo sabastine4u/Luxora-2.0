@@ -30,7 +30,7 @@ function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
 // Extend the property mock data with some agent-specific metrics
 const EXTENDED_PROPERTIES = properties.map((prop, i) => ({
   ...prop,
-  status: ['Available', 'Pending', 'Sold', 'Rented', 'Draft', 'Archived'][i % 6],
+  status: ['Available', 'Pending', 'Sold', 'Rented', 'Draft', 'Archived'][i % 6] as import('../../../types/property').Property['status'],
   views: Math.floor(Math.random() * 5000) + 100,
   saves: Math.floor(Math.random() * 500) + 10,
   offers: Math.floor(Math.random() * 5),
@@ -43,7 +43,7 @@ export default function Properties() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<typeof EXTENDED_PROPERTIES[0] | null>(null);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     switch (status) {
       case 'Available': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
       case 'Pending': return 'text-gold-400 bg-gold-400/10 border-gold-400/20';

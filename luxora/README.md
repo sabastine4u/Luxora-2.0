@@ -1,3 +1,10 @@
+# Luxora 2.0
+
+## Development & Testing
+- **Mock Credentials**: See the [Mock Credentials Document](docs/mock-credentials.md) for a complete list of test accounts for all roles and dashboards.
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

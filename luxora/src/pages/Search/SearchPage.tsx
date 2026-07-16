@@ -1,8 +1,7 @@
-import { Search, Map, SlidersHorizontal, ChevronDown, MapPin } from 'lucide-react';
+import { Map, MapPin } from 'lucide-react';
 import { PageLayout } from '../../components/layout';
-import { propertyTypes, locations } from '../../data/uiData';
-import { Slider } from '../../components/ui/Slider';
 import { usePropertySearch } from '../../hooks/usePropertySearch';
+import { PropertyFilterBar } from '../../components/property/PropertyFilterBar';
 import { PropertySortControls } from '../../components/property/PropertySortControls';
 import { PropertyGrid } from '../../components/property/PropertyGrid';
 import { PropertyPagination } from '../../components/property/PropertyPagination';
@@ -15,16 +14,25 @@ export default function SearchPage() {
     search, setSearch,
     type, setType,
     location, setLocation,
-    minPriceM, setMinPriceM,
-    maxPriceM, setMaxPriceM,
+    listingType, setListingType,
+    budgetString, setBudgetString,
     beds, setBeds,
     baths, setBaths,
+    status, setStatus,
+    listingTier, setListingTier,
+    furnishing, setFurnishing,
+    availability, setAvailability,
+    paymentPlan, setPaymentPlan,
+    amenities, setAmenities,
+    mortgageSupport, setMortgageSupport,
+    verificationLevel, setVerificationLevel,
+    minArea, setMinArea,
+    maxArea, setMaxArea,
     sort, setSort,
     page, goToPage,
     filteredProperties,
     paginatedProperties,
     totalPages,
-    totalProperties,
     viewMode,
     setViewMode,
     resetFilters
@@ -33,120 +41,6 @@ export default function SearchPage() {
   return (
     <PageLayout>
       <div className="flex min-h-screen pt-20">
-        {/* Sidebar Filters */}
-        <aside className="hidden w-80 shrink-0 border-r border-white/10 bg-navy-900 p-6 lg:block h-[calc(100vh-80px)] sticky top-20 overflow-y-auto">
-          <div className="mb-6 flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-gold-400" />
-            <h2 className="font-heading text-lg font-bold text-cream">Filters</h2>
-          </div>
-
-          <div className="space-y-6">
-            {/* Search */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-ink/70">Keyword</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/50" />
-                <input
-                  type="text"
-                  placeholder="e.g. Pool, Marina"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-10 pr-4 text-sm text-cream placeholder-ink/50 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
-                />
-              </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-ink/70">Location</label>
-              <div className="relative">
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
-                >
-                  {locations.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/50" />
-              </div>
-            </div>
-
-            {/* Type */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-ink/70">Property Type</label>
-              <div className="relative">
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
-                >
-                  {propertyTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/50" />
-              </div>
-            </div>
-
-            {/* Price Range */}
-            <div>
-              <label className="mb-4 block text-sm font-medium text-ink/70">Price Range (Millions ₦)</label>
-              <div className="space-y-4">
-                <Slider
-                  label="Minimum"
-                  value={minPriceM}
-                  min={0}
-                  max={1000}
-                  step={10}
-                  suffix="M"
-                  prefix="₦"
-                  onChange={(v) => { setMinPriceM(v); if(v > maxPriceM) setMaxPriceM(v); }}
-                />
-                <Slider
-                  label="Maximum"
-                  value={maxPriceM}
-                  min={0}
-                  max={1000}
-                  step={10}
-                  suffix={maxPriceM === 1000 ? "M+" : "M"}
-                  prefix="₦"
-                  onChange={(v) => { setMaxPriceM(v); if(v < minPriceM) setMinPriceM(v); }}
-                />
-              </div>
-            </div>
-
-            {/* Beds & Baths */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-ink/70">Beds (Min)</label>
-                <div className="relative">
-                  <select
-                    value={beds}
-                    onChange={(e) => setBeds(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
-                  >
-                    <option value="Any">Any</option>
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}+</option>)}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/50" />
-                </div>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-ink/70">Baths (Min)</label>
-                <div className="relative">
-                  <select
-                    value={baths}
-                    onChange={(e) => setBaths(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-white/10 bg-navy-800/50 py-2.5 pl-4 pr-10 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
-                  >
-                    <option value="Any">Any</option>
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}+</option>)}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/50" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto bg-navy-900/50">
           
@@ -185,7 +79,12 @@ export default function SearchPage() {
             <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                 <h1 className="text-2xl font-bold font-heading text-cream">Properties for Sale</h1>
-                <PropertyResultsSummary filteredCount={filteredProperties.length} totalCount={totalProperties} />
+                <PropertyResultsSummary 
+                  filteredCount={filteredProperties.length} 
+                  listingType={listingType}
+                  location={location}
+                  type={type}
+                />
               </div>
               
               <div className="flex items-center gap-4">
@@ -194,12 +93,42 @@ export default function SearchPage() {
               </div>
             </div>
 
-            <PropertyFilterChips 
+            <PropertyFilterBar
               search={search} setSearch={setSearch}
+              listingType={listingType} setListingType={setListingType}
               type={type} setType={setType}
               location={location} setLocation={setLocation}
-              minPriceM={minPriceM} setMinPriceM={setMinPriceM}
-              maxPriceM={maxPriceM} setMaxPriceM={setMaxPriceM}
+              budget={budgetString} setBudget={setBudgetString}
+              status={status} setStatus={setStatus}
+              listingTier={listingTier} setListingTier={setListingTier}
+              furnishing={furnishing} setFurnishing={setFurnishing}
+              availability={availability} setAvailability={setAvailability}
+              paymentPlan={paymentPlan} setPaymentPlan={setPaymentPlan}
+              amenities={amenities} setAmenities={setAmenities}
+              mortgageSupport={mortgageSupport} setMortgageSupport={setMortgageSupport}
+              verificationLevel={verificationLevel} setVerificationLevel={setVerificationLevel}
+              minArea={minArea} setMinArea={setMinArea}
+              maxArea={maxArea} setMaxArea={setMaxArea}
+              beds={beds} setBeds={setBeds}
+              baths={baths} setBaths={setBaths}
+            />
+
+            <PropertyFilterChips 
+              search={search} setSearch={setSearch}
+              listingType={listingType} setListingType={setListingType}
+              type={type} setType={setType}
+              location={location} setLocation={setLocation}
+              budgetString={budgetString} setBudgetString={setBudgetString}
+              status={status} setStatus={setStatus}
+              listingTier={listingTier} setListingTier={setListingTier}
+              furnishing={furnishing} setFurnishing={setFurnishing}
+              availability={availability} setAvailability={setAvailability}
+              paymentPlan={paymentPlan} setPaymentPlan={setPaymentPlan}
+              amenities={amenities} setAmenities={setAmenities}
+              mortgageSupport={mortgageSupport} setMortgageSupport={setMortgageSupport}
+              verificationLevel={verificationLevel} setVerificationLevel={setVerificationLevel}
+              minArea={minArea} setMinArea={setMinArea}
+              maxArea={maxArea} setMaxArea={setMaxArea}
               beds={beds} setBeds={setBeds}
               baths={baths} setBaths={setBaths}
               resetFilters={resetFilters}

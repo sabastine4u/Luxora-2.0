@@ -4,6 +4,8 @@ import { ROLES } from '../constants/roles';
 import type { Department } from '../constants/departments';
 import { useCompareProperties, type CompareResult } from '../hooks/useCompareProperties';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
+import { storage } from '../utils/storage';
+import { mockUsers } from '../data/mockUsers';
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
 
@@ -54,7 +56,8 @@ export interface ReportListing {
 interface SessionContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (userData: User) => void;
+  login: (email: string, password?: string) => User;
+  register: (user: User) => User;
   logout: () => void;
   compareList: string[];
   recentlyViewed: string[];
@@ -85,8 +88,7 @@ interface SessionContextType {
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  // Mock initial state - unauthenticated by default
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => storage.getUserSession<User>());
   
   // Additional frontend session state
   const { compareList, toggleCompareProperty, isCompared, clearCompare, setCompareList } = useCompareProperties();
@@ -100,12 +102,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [scheduleViewingModalPropertyId, setScheduleViewingModalPropertyId] = useState<string | null>(null);
   const [reportListingModalPropertyId, setReportListingModalPropertyId] = useState<string | null>(null);
 
-  const login = (userData: User) => {
-    setUser(userData);
+  const login = (email: string, password?: string): User => {
+    const validUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    if (!validUser) {
+      throw new Error('Invalid email or password');
+    }
+    const userToSave: User = {
+      name: validUser.name,
+      email: validUser.email,
+      avatar: validUser.avatar,
+      role: validUser.role,
+      department: validUser.department
+    };
+    setUser(userToSave);
+    storage.setUserSession(userToSave);
+    return userToSave;
+  };
+
+  const register = (newUser: User): User => {
+    setUser(newUser);
+    storage.setUserSession(newUser);
+    return newUser;
   };
 
   const logout = () => {
     setUser(null);
+    storage.clearUserSession();
     setCompareList([]);
     setRecentlyViewed([]);
     setFavoriteAgents([]);
@@ -170,6 +192,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         login,
+        register,
         logout,
         compareList,
         recentlyViewed,

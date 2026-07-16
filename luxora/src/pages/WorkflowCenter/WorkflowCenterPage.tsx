@@ -12,6 +12,7 @@ import { WorkflowAnalytics } from './components/WorkflowAnalytics';
 import { DepartmentOverview } from './components/DepartmentOverview';
 import { ExecutiveInsights } from './components/ExecutiveInsights';
 import { useWorkflowCenter } from './hooks/useWorkflowCenter';
+import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { GhostButton } from '../../components/ui/ui';
 import { Filter, Settings, Bell, GitMerge } from 'lucide-react';
 
@@ -36,8 +37,9 @@ export const WorkflowCenterPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-ink-dark overflow-hidden">
-      <div className="p-6 pb-2 shrink-0">
+    <DashboardLayout activeTab="Workflow Center">
+      <div className="min-h-[calc(100vh-8rem)] flex flex-col bg-gray-50 dark:bg-ink-dark overflow-hidden rounded-2xl border border-gray-100 dark:border-ink-light">
+        <div className="p-6 pb-2 shrink-0">
         <DashboardHeader 
           name="Enterprise Workflow Engine" 
           subtitle="Automate, track, and manage business processes across Luxora." 
@@ -63,7 +65,8 @@ export const WorkflowCenterPage = () => {
         <main className="flex-1 relative overflow-hidden bg-white dark:bg-ink">
           {renderWorkspace()}
         </main>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
