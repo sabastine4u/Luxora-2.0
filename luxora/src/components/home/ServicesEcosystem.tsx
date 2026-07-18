@@ -1,9 +1,12 @@
 import { ArrowUpRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Reveal, SectionHeading } from '../ui/ui';
 import { Section, Container } from '../layout';
 import { services } from '../../data/uiData';
 
 export default function ServicesEcosystem() {
+  const navigate = useNavigate();
+
   return (
     <Section id="services">
       <Container>
@@ -32,8 +35,11 @@ export default function ServicesEcosystem() {
                   <h3 className="mb-2 font-heading text-xl font-semibold text-cream">{s.title}</h3>
                   <p className={`text-sm leading-relaxed text-ink/60 ${i === 0 ? 'max-w-md' : ''}`}>{s.desc}</p>
                 </div>
-                <button className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-300 transition-colors hover:text-gold-200 lg:mt-0">
-                  Explore service <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <button 
+                  onClick={() => navigate(s.route)}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-300 transition-colors hover:text-gold-200 lg:mt-0"
+                >
+                  Explore {s.title} <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </button>
               </div>
             </Reveal>

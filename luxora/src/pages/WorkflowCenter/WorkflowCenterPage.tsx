@@ -12,7 +12,7 @@ import { WorkflowAnalytics } from './components/WorkflowAnalytics';
 import { DepartmentOverview } from './components/DepartmentOverview';
 import { ExecutiveInsights } from './components/ExecutiveInsights';
 import { useWorkflowCenter } from './hooks/useWorkflowCenter';
-import { DashboardLayout } from '../../components/layout/DashboardLayout';
+import { EnterpriseLayout } from '../../components/layout/EnterpriseLayout';
 import { GhostButton } from '../../components/ui/ui';
 import { Filter, Settings, Bell, GitMerge } from 'lucide-react';
 
@@ -37,7 +37,7 @@ export const WorkflowCenterPage = () => {
   };
 
   return (
-    <DashboardLayout activeTab="Workflow Center">
+    <EnterpriseLayout activeTab="Workflow Center">
       <div className="min-h-[calc(100vh-8rem)] flex flex-col bg-gray-50 dark:bg-ink-dark overflow-hidden rounded-2xl border border-gray-100 dark:border-ink-light">
         <div className="p-6 pb-2 shrink-0">
         <DashboardHeader 
@@ -67,6 +67,6 @@ export const WorkflowCenterPage = () => {
         </main>
         </div>
       </div>
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 };

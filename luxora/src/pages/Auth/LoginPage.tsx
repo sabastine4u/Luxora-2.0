@@ -4,7 +4,7 @@ import { Mail, Lock, LogIn, Eye, EyeOff, ShieldCheck, Crown, Star } from 'lucide
 import { PageLayout } from '../../components/layout';
 import { GoldButton } from '../../components/ui/ui';
 import { useSession } from '../../contexts/SessionContext';
-import { ROUTES, ROLE_DASHBOARD_MAP } from '../../constants/routes';
+import { ROUTES, getDashboardRoute } from '../../constants/routes';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ export default function LoginPage() {
     setTimeout(() => {
       try {
         const user = login(email, password);
-        const dashboardRoute = ROLE_DASHBOARD_MAP[user.role] || ROUTES.HOME;
+        const dashboardRoute = getDashboardRoute(user.role);
         
         setIsLoading(false);
         setIsSuccess(true);

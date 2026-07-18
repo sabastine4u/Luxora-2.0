@@ -19,6 +19,11 @@ import { HRCenterPage } from '../pages/HRCenter';
 import PropertiesPage from '../pages/Properties/PropertiesPage'
 import PropertyDetailsPage from '../pages/PropertyDetails/PropertyDetailsPage'
 import AgenciesPage from '../pages/Agencies/AgenciesPage'
+import { PropertyManagementPage } from '../modules/services/pages/PropertyManagementPage'
+import { ProcurementPage } from '../modules/services/pages/ProcurementPage'
+import { MortgagePage } from '../modules/services/pages/MortgagePage'
+import { HomeServicesPage } from '../modules/services/pages/HomeServicesPage'
+import { PropertyIntelligencePage } from '../modules/services/pages/PropertyIntelligencePage'
 import AgencyDetailsPage from '../pages/AgencyDetails/AgencyDetailsPage'
 import AgentDetailsPage from '../pages/AgentDetails/AgentDetailsPage'
 import SearchPage from '../pages/Search/SearchPage'
@@ -36,7 +41,16 @@ import TermsOfServicePage from '../pages/Legal/TermsOfServicePage'
 import NotFoundPage from '../pages/NotFound/NotFoundPage'
 import { ROUTES } from '../constants/routes'
 import { ProtectedRoute } from '../components/auth/ProtectedRoute'
-import { ROLES } from '../constants/roles'
+import { 
+  ROLES, 
+  MANAGEMENT_ALLOWED_ROLES, 
+  PROCUREMENT_ALLOWED_ROLES, 
+  FINANCE_ALLOWED_ROLES, 
+  INTELLIGENCE_ALLOWED_ROLES, 
+  PROPERTY_MANAGEMENT_ALLOWED_ROLES, 
+  HOME_SERVICES_ALLOWED_ROLES, 
+  ALL_ENTERPRISE_ALLOWED_ROLES 
+} from '../constants/roles'
 import { DEPARTMENTS } from '../constants/departments'
 
 export default function AppRoutes() {
@@ -57,6 +71,13 @@ export default function AppRoutes() {
       <Route path={ROUTES.PRIVACY} element={<PrivacyPolicyPage />} />
       <Route path={ROUTES.TERMS} element={<TermsOfServicePage />} />
 
+      {/* Services Experience Platform Routes */}
+      <Route path={ROUTES.SERVICE_PROPERTY_MANAGEMENT} element={<PropertyManagementPage />} />
+      <Route path={ROUTES.SERVICE_PROCUREMENT} element={<ProcurementPage />} />
+      <Route path={ROUTES.SERVICE_MORTGAGE} element={<MortgagePage />} />
+      <Route path={ROUTES.SERVICE_HOME_SERVICES} element={<HomeServicesPage />} />
+      <Route path={ROUTES.SERVICE_PROPERTY_INTELLIGENCE} element={<PropertyIntelligencePage />} />
+
       {/* Protected Dashboard Routes */}
       <Route path={ROUTES.BUYER_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.BUYER]}><BuyerDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.OWNER_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.OWNER]}><OwnerDashboardPage /></ProtectedRoute>} />
@@ -65,15 +86,15 @@ export default function AppRoutes() {
       <Route path={ROUTES.ADMIN_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><AdminDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.SUPER_ADMIN_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}><SuperAdminDashboardPage /></ProtectedRoute>} />
       
-      <Route path={ROUTES.MANAGEMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.MANAGEMENT]}><ManagementDashboardPage /></ProtectedRoute>} />
-      <Route path={ROUTES.PROCUREMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.PROCUREMENT]}><ProcurementDashboardPage /></ProtectedRoute>} />
-      <Route path={ROUTES.FINANCE_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.FINANCE]}><FinanceDashboardPage /></ProtectedRoute>} />
-      <Route path={ROUTES.INTELLIGENCE_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.PROPERTY_INTELLIGENCE]}><IntelligenceDashboardPage /></ProtectedRoute>} />
-      <Route path={ROUTES.PROPERTY_MANAGEMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.PROPERTY_MANAGEMENT]}><PropertyManagementDashboardPage /></ProtectedRoute>} />
-      <Route path={ROUTES.HOME_SERVICES_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} allowedDepartments={[DEPARTMENTS.HOME_SERVICES]}><HomeServicesDashboardPage /></ProtectedRoute>} />
+      <Route path={ROUTES.MANAGEMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={MANAGEMENT_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.MANAGEMENT]}><ManagementDashboardPage /></ProtectedRoute>} />
+      <Route path={ROUTES.PROCUREMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={PROCUREMENT_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.PROCUREMENT]}><ProcurementDashboardPage /></ProtectedRoute>} />
+      <Route path={ROUTES.FINANCE_DASHBOARD} element={<ProtectedRoute allowedRoles={FINANCE_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.FINANCE]}><FinanceDashboardPage /></ProtectedRoute>} />
+      <Route path={ROUTES.INTELLIGENCE_DASHBOARD} element={<ProtectedRoute allowedRoles={INTELLIGENCE_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.PROPERTY_INTELLIGENCE]}><IntelligenceDashboardPage /></ProtectedRoute>} />
+      <Route path={ROUTES.PROPERTY_MANAGEMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={PROPERTY_MANAGEMENT_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.PROPERTY_MANAGEMENT]}><PropertyManagementDashboardPage /></ProtectedRoute>} />
+      <Route path={ROUTES.HOME_SERVICES_DASHBOARD} element={<ProtectedRoute allowedRoles={HOME_SERVICES_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.HOME_SERVICES]}><HomeServicesDashboardPage /></ProtectedRoute>} />
       
-      <Route path={ROUTES.COMMUNICATION_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY, ROLES.FINANCE, ROLES.PROCUREMENT, ROLES.ANALYST, ROLES.PROPERTY_MANAGER, ROLES.SERVICE_ADMIN]}><CommunicationCenterPage /></ProtectedRoute>} />
-      <Route path={ROUTES.NOTIFICATION_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY, ROLES.FINANCE, ROLES.PROCUREMENT, ROLES.ANALYST, ROLES.PROPERTY_MANAGER, ROLES.SERVICE_ADMIN]}><NotificationCenterPage /></ProtectedRoute>} />
+      <Route path={ROUTES.COMMUNICATION_CENTER} element={<ProtectedRoute allowedRoles={ALL_ENTERPRISE_ALLOWED_ROLES}><CommunicationCenterPage /></ProtectedRoute>} />
+      <Route path={ROUTES.NOTIFICATION_CENTER} element={<ProtectedRoute allowedRoles={ALL_ENTERPRISE_ALLOWED_ROLES}><NotificationCenterPage /></ProtectedRoute>} />
       <Route path={ROUTES.WORKFLOW_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER]}><WorkflowCenterPage /></ProtectedRoute>} />
       <Route path={ROUTES.DOCUMENT_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY, ROLES.FINANCE, ROLES.PROCUREMENT]}><DocumentCenterPage /></ProtectedRoute>} />
       <Route 

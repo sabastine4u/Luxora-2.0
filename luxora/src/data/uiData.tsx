@@ -18,14 +18,15 @@ export const pillars = [
   { icon: Sparkles, title: 'Premium Experience', desc: 'A platform built to Apple-level standards — clean, fast, and beautifully designed.' },
 ];
 
+import { ROUTES } from '../constants/routes';
+
 // ServicesEcosystem
 export const services = [
-  { icon: KeyRound, title: 'Property Management', desc: 'Full-service management for owners — tenant sourcing, rent collection, maintenance, and reporting.', tag: 'For Owners' },
-  { icon: Package, title: 'Procurement', desc: 'Source building materials, fittings, and furnishings through our vetted supplier network.', tag: 'For Builders' },
-  { icon: Wallet, title: 'Mortgage Assistance', desc: 'Get pre-approved, compare lenders, and access flexible payment plans tailored to you.', tag: 'For Buyers' },
-
-  { icon: Wrench, title: 'Home Services', desc: 'Cleaning, repairs, renovations, and moving — book trusted professionals in minutes.', tag: 'For Everyone' },
-  { icon: Brain, title: 'Property Intelligence', desc: 'Investment scores, market analytics, and area growth data to power your decisions.', tag: 'For Investors' },
+  { icon: KeyRound, title: 'Property Management', desc: 'Full-service management for owners — tenant sourcing, rent collection, maintenance, and reporting.', tag: 'For Owners', route: ROUTES.SERVICE_PROPERTY_MANAGEMENT },
+  { icon: Package, title: 'Procurement', desc: 'Source building materials, fittings, and furnishings through our vetted supplier network.', tag: 'For Builders', route: ROUTES.SERVICE_PROCUREMENT },
+  { icon: Wallet, title: 'Mortgage Assistance', desc: 'Get pre-approved, compare lenders, and access flexible payment plans tailored to you.', tag: 'For Buyers', route: ROUTES.SERVICE_MORTGAGE },
+  { icon: Wrench, title: 'Home Services', desc: 'Cleaning, repairs, renovations, and moving — book trusted professionals in minutes.', tag: 'For Everyone', route: ROUTES.SERVICE_HOME_SERVICES },
+  { icon: Brain, title: 'Property Intelligence', desc: 'Investment scores, market analytics, and area growth data to power your decisions.', tag: 'For Investors', route: ROUTES.SERVICE_PROPERTY_INTELLIGENCE },
 ];
 
 // TrustVerification

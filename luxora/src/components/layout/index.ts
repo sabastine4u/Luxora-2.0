@@ -6,3 +6,4 @@ export * from './Breadcrumb';
 export * from './EmptyState';
 export * from './LoadingState';
 export * from './DashboardLayout';
+export * from './EnterpriseLayout';

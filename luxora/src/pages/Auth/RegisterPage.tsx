@@ -6,7 +6,7 @@ import { GoldButton } from '../../components/ui/ui';
 import { useSession } from '../../contexts/SessionContext';
 import type { UserRole } from '../../contexts/SessionContext';
 import { ROLES } from '../../constants/roles';
-import { ROUTES, ROLE_DASHBOARD_MAP } from '../../constants/routes';
+import { ROUTES, getDashboardRoute } from '../../constants/routes';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -97,7 +97,7 @@ export default function RegisterPage() {
         setIsSuccess(true);
 
         setTimeout(() => {
-          const dashboardRoute = ROLE_DASHBOARD_MAP[newUser.role] || ROUTES.HOME;
+          const dashboardRoute = getDashboardRoute(newUser.role);
           navigate(dashboardRoute);
         }, 1200);
       }, 1500);

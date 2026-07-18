@@ -8,7 +8,7 @@ import { FollowUpCenter } from './components/FollowUpCenter';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { PresenceDashboard } from './components/PresenceDashboard';
 import { AnnouncementCenter } from './components/AnnouncementCenter';
-import { DashboardLayout } from '../../components/layout/DashboardLayout';
+import { EnterpriseLayout } from '../../components/layout/EnterpriseLayout';
 
 export default function CommunicationCenterPage() {
   const {
@@ -36,7 +36,7 @@ export default function CommunicationCenterPage() {
   }, {} as Record<string, number>);
 
   return (
-    <DashboardLayout activeTab="Communication Center">
+    <EnterpriseLayout activeTab="Communication Center">
       <div className="h-[calc(100vh-theme(spacing.20))] flex bg-white dark:bg-ink rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-ink-light">
       <LeftNavigation 
         activeCategory={activeCategory} 
@@ -76,6 +76,6 @@ export default function CommunicationCenterPage() {
         </>
       )}
       </div>
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 }

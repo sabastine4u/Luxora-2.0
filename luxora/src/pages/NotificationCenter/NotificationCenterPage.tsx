@@ -12,7 +12,7 @@ import { DepartmentDashboard } from './components/DepartmentDashboard';
 import { NotificationPreferences } from './components/NotificationPreferences';
 import { NotificationDetailModal } from './components/NotificationDetailModal';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
-import { DashboardLayout } from '../../components/layout/DashboardLayout';
+import { EnterpriseLayout } from '../../components/layout/EnterpriseLayout';
 import { Search } from 'lucide-react';
 import type { Notification } from './types/notificationTypes';
 
@@ -79,7 +79,7 @@ export const NotificationCenterPage = () => {
   };
 
   return (
-    <DashboardLayout activeTab="Notification Center">
+    <EnterpriseLayout activeTab="Notification Center">
       <div className="min-h-[calc(100vh-8rem)] flex flex-col bg-gray-50 dark:bg-ink-dark overflow-hidden rounded-2xl border border-gray-100 dark:border-ink-light">
         <div className="p-6 pb-2 shrink-0">
         <DashboardHeader 
@@ -125,6 +125,6 @@ export const NotificationCenterPage = () => {
         onClose={() => setSelectedNotification(null)} 
       />
       </div>
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 };

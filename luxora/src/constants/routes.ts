@@ -24,6 +24,14 @@ export const ROUTES = {
   PRIVACY: '/privacy',
   LOGIN: '/login',
   REGISTER: '/register',
+  
+  // Services Experience Platform
+  SERVICE_PROPERTY_MANAGEMENT: '/services/property-management',
+  SERVICE_PROCUREMENT: '/services/procurement',
+  SERVICE_MORTGAGE: '/services/mortgage',
+  SERVICE_HOME_SERVICES: '/services/home-services',
+  SERVICE_PROPERTY_INTELLIGENCE: '/services/property-intelligence',
+
   BUYER_DASHBOARD: '/buyer-dashboard',
   OWNER_DASHBOARD: '/owner-dashboard',
   AGENT_DASHBOARD: '/agent-dashboard',
@@ -56,6 +64,12 @@ export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   [ROLES.PROPERTY_MANAGER]: ROUTES.PROPERTY_MANAGEMENT_DASHBOARD,
   [ROLES.SERVICE_ADMIN]: ROUTES.HOME_SERVICES_DASHBOARD,
 };
+
+export const getDashboardRoute = (role?: string | null): string => {
+  if (!role) return ROUTES.HOME;
+  return ROLE_DASHBOARD_MAP[role] || ROUTES.HOME;
+};
+
 
 export const isDashboardRoute = (pathname: string): boolean => {
   return pathname === ROUTES.ADMIN_DASHBOARD || pathname.includes('-dashboard') || pathname.includes('-center');

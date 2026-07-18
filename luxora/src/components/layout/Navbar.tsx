@@ -3,9 +3,10 @@ import { Menu, X, ChevronDown, Crown, Bell, LogOut, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GoldButton } from '../ui/ui';
 import { Container } from './index';
-import { ROUTES, ROLE_DASHBOARD_MAP, isDashboardRoute } from '../../constants/routes';
+import { ROUTES, getDashboardRoute, isDashboardRoute } from '../../constants/routes';
 import { useSession } from '../../contexts/SessionContext';
 import { navLinks } from '../../data/uiData';
+import NotificationPanel from '../dashboard/NotificationPanel';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -72,7 +74,7 @@ export default function Navbar() {
             <>
               <button 
                 onClick={() => {
-                  const dashboardRoute = ROLE_DASHBOARD_MAP[user.role] || ROUTES.HOME;
+                  const dashboardRoute = getDashboardRoute(user.role);
                   if (isDashboardRoute(location.pathname)) {
                     navigate(ROUTES.HOME);
                   } else {
@@ -84,7 +86,7 @@ export default function Navbar() {
                 {isDashboardRoute(location.pathname) ? 'Back to Website' : 'Dashboard'}
               </button>
               <button 
-                onClick={() => navigate(ROUTES.NOTIFICATION_CENTER)}
+                onClick={() => setNotificationsOpen(true)}
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-ink/70 transition-colors hover:text-cream"
               >
                 <Bell className="h-4 w-4" />
@@ -150,7 +152,7 @@ export default function Navbar() {
                 <>
                   <button onClick={() => { 
                     setOpen(false); 
-                    const dashboardRoute = ROLE_DASHBOARD_MAP[user.role] || ROUTES.HOME;
+                    const dashboardRoute = getDashboardRoute(user.role);
                     if (isDashboardRoute(location.pathname)) {
                       navigate(ROUTES.HOME);
                     } else {
@@ -159,7 +161,7 @@ export default function Navbar() {
                   }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
                     {isDashboardRoute(location.pathname) ? 'Back to Website' : 'Dashboard'}
                   </button>
-                  <button onClick={() => { setOpen(false); navigate(ROUTES.NOTIFICATION_CENTER); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
+                  <button onClick={() => { setOpen(false); setNotificationsOpen(true); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
                     Notifications
                   </button>
                   <button onClick={() => { setOpen(false); }} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-ink">
@@ -186,6 +188,10 @@ export default function Navbar() {
           </Container>
         </div>
       )}
+      <NotificationPanel 
+        isOpen={notificationsOpen} 
+        onClose={() => setNotificationsOpen(false)} 
+      />
     </header>
   );
 }
