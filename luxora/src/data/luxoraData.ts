@@ -2772,3 +2772,26 @@ export const reviews: Review[] = [
   }
 ];
 
+export const ROLE_NAV_MAP: Record<string, NavItem[]> = {
+  [ROLES.BUYER]: buyerNav,
+  [ROLES.OWNER]: ownerNav,
+  [ROLES.AGENT]: agentNav,
+  [ROLES.AGENCY]: agencyNav,
+  [ROLES.SUPER_ADMIN]: superAdminNav,
+  [ROLES.ADMIN]: adminNav,
+  [ROLES.MANAGER]: managementNav,
+  [ROLES.PROCUREMENT]: procurementNav,
+  [ROLES.FINANCE]: financeNav,
+  [ROLES.ANALYST]: intelligenceNav,
+  [ROLES.PROPERTY_MANAGER]: propertyManagerNav,
+  [ROLES.SERVICE_ADMIN]: homeServicesNav,
+};
+
+export const ENTERPRISE_MODULE_MAP: Record<string, string[]> = {
+  [ROLES.FINANCE]: ['Finance', 'Reports', 'Workflow', 'Documents'],
+  [ROLES.MANAGER]: ['Workflow', 'Compliance', 'Notifications', 'Reports'],
+  [ROLES.PROCUREMENT]: ['Procurement', 'Vendors', 'Workflow', 'Finance Requests'],
+  [ROLES.ADMIN]: ['All'],
+  [ROLES.SUPER_ADMIN]: ['All'],
+};
+

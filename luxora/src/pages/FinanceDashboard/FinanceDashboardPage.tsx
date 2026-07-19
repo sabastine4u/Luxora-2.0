@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DashboardLayout } from '../../components/layout';
+import { EnterpriseLayout } from '../../components/layout';
 import Revenue from './components/Revenue';
 import Transactions from './components/Transactions';
 import OwnerPayments from './components/OwnerPayments';
@@ -31,8 +31,8 @@ export default function FinanceDashboardPage() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <EnterpriseLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {renderContent()}
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 }

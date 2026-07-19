@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DashboardLayout } from '../../components/layout';
+import { EnterpriseLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import TeamManagement from './components/TeamManagement';
 import Performance from './components/Performance';
@@ -21,8 +21,8 @@ export default function ManagementDashboardPage() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <EnterpriseLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {renderContent()}
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 }

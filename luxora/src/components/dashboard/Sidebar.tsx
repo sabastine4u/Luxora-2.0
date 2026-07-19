@@ -3,7 +3,7 @@ import {
   Package, Brain, KeyRound, Wrench, Handshake, UserCircle, Shield,
   FileBarChart, Settings, Crown, ChevronLeft, LogOut, Heart, MessageSquare, Eye, FileCheck, Home, TrendingUp, Calendar, AlertCircle, Activity, Banknote, Briefcase, ShoppingCart, ShieldAlert, UserCog, PieChart, Megaphone, ChartBar, Calculator, LineChart, MapPin, Map, FileText
 } from 'lucide-react';
-import { sidebarNav, buyerNav, ownerNav, agentNav, agencyNav, adminNav, superAdminNav, managementNav, procurementNav, financeNav, intelligenceNav, propertyManagerNav, homeServicesNav } from '../../data/luxoraData';
+import { sidebarNav, ROLE_NAV_MAP } from '../../data/luxoraData';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Building2, ShieldCheck, Landmark, Users, Wallet,
@@ -32,18 +32,9 @@ export default function Sidebar({
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
-  const navItems = user?.role === 'Buyer' ? buyerNav : 
-                   user?.role === 'Owner' ? ownerNav : 
-                   user?.role === 'Agent' ? agentNav : 
-                   user?.role === 'Agency' ? agencyNav : 
-                   user?.role === 'Super Admin' ? superAdminNav : 
-                   user?.role === 'Admin' ? adminNav : 
-                   user?.role === 'Manager' ? managementNav : 
-                   user?.role === 'Procurement Officer' ? procurementNav : 
-                   user?.role === 'Finance Manager' ? financeNav : 
-                   user?.role === 'Data Analyst' ? intelligenceNav : 
-                   user?.role === 'Property Manager' ? propertyManagerNav : 
-                   user?.role === 'Service Manager' ? homeServicesNav : sidebarNav;
+  const navItems = user?.role && ROLE_NAV_MAP[user.role] 
+    ? ROLE_NAV_MAP[user.role] 
+    : sidebarNav;
 
   return (
     <>

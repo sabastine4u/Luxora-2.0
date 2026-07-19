@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DashboardLayout } from '../../components/layout';
+import { EnterpriseLayout } from '../../components/layout';
 import VendorDirectory from './components/VendorDirectory';
 import VendorDetails from './components/VendorDetails';
 import RFQs from './components/RFQs';
@@ -35,8 +35,8 @@ export default function ProcurementDashboardPage() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <EnterpriseLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {renderContent()}
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DashboardLayout } from '../../components/layout';
+import { EnterpriseLayout } from '../../components/layout';
 import MarketTrends from './components/MarketTrends';
 import ROICalculator from './components/ROICalculator';
 import RentalYield from './components/RentalYield';
@@ -25,8 +25,8 @@ export default function IntelligenceDashboardPage() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <EnterpriseLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {renderContent()}
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DashboardLayout } from '../../components/layout';
+import { EnterpriseLayout } from '../../components/layout';
 import Cleaning from './components/Cleaning';
 import Moving from './components/Moving';
 import Painting from './components/Painting';
@@ -33,8 +33,8 @@ export default function HomeServicesDashboardPage() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <EnterpriseLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {renderContent()}
-    </DashboardLayout>
+    </EnterpriseLayout>
   );
 }

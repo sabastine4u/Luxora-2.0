@@ -1,4 +1,4 @@
-import { Menu, Search, Bell, ChevronDown, Crown, LogOut, User } from 'lucide-react';
+import { Menu, Search, Bell, ChevronDown, Crown, LogOut, User, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { ROUTES } from '../../constants/routes';
@@ -8,10 +8,16 @@ export default function Topbar({
   title,
   onMenu,
   onToggleNotifications,
+  onToggleCommunication,
+  breadcrumb,
+  actions,
 }: {
-  title: string;
+  title?: string;
   onMenu: () => void;
   onToggleNotifications?: () => void;
+  onToggleCommunication?: () => void;
+  breadcrumb?: React.ReactNode;
+  actions?: React.ReactNode;
 }) {
   const navigate = useNavigate();
   const { user, logout } = useSession();
@@ -44,8 +50,14 @@ export default function Topbar({
           <Menu className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="font-heading text-lg font-bold text-cream md:text-xl">{title}</h1>
-          <p className="hidden text-xs text-ink/50 sm:block">Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}</p>
+          {breadcrumb ? (
+            breadcrumb
+          ) : (
+            <>
+              <h1 className="font-heading text-lg font-bold text-cream md:text-xl">{title}</h1>
+              <p className="hidden text-xs text-ink/50 sm:block">Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}</p>
+            </>
+          )}
         </div>
       </div>
 
@@ -77,6 +89,19 @@ export default function Topbar({
           <Bell className="h-4 w-4" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold-400 ring-2 ring-navy-900" />
         </button>
+
+        {/* Communications */}
+        {onToggleCommunication && (
+          <button 
+            onClick={onToggleCommunication}
+            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-ink/70 transition-colors hover:text-cream"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </button>
+        )}
+
+        {/* Custom Actions */}
+        {actions && <div className="hidden md:flex items-center gap-2">{actions}</div>}
 
         {/* Profile */}
         <div className="relative" ref={dropdownRef}>
