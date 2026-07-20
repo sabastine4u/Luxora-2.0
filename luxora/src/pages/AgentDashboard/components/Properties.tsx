@@ -9,6 +9,7 @@ import { EmptyState } from '../../../components/layout/EmptyState';
 import { PropertyCard } from '../../../components/property/PropertyCard';
 import { properties } from '../../../data/luxoraData';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { useToast } from '../../../contexts/ToastContext';
 
 // --- MOCK DATA ---
 const KPI_DATA = [
@@ -40,6 +41,7 @@ const EXTENDED_PROPERTIES = properties.map((prop, i) => ({
 
 // --- COMPONENT ---
 export default function Properties() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<typeof EXTENDED_PROPERTIES[0] | null>(null);
 
@@ -188,11 +190,11 @@ export default function Properties() {
               </div>
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-2 gap-3">
-                <GoldButton size="sm" onClick={() => alert('Mock: Edit Listing')}><FileText className="h-4 w-4 mr-2" /> Edit Listing</GoldButton>
-                <GhostButton size="sm" onClick={() => alert('Mock: Share Listing')}><Send className="h-4 w-4 mr-2" /> Share</GhostButton>
-                <GhostButton size="sm" onClick={() => alert('Mock: Schedule Viewing')}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
-                <GhostButton size="sm" onClick={() => alert('Mock: View Offers')}><FileCheck className="h-4 w-4 mr-2" /> View Offers ({selectedProperty.offers})</GhostButton>
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Edit Listing', description: 'Opening listing editor...' })}><FileText className="h-4 w-4 mr-2" /> Edit Listing</GoldButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Listing Shared', description: 'Listing link copied to clipboard.' })}><Send className="h-4 w-4 mr-2" /> Share</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Schedule Viewing', description: 'Opening scheduling interface...' })}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Offers', description: 'Opening offers dashboard...' })}><FileCheck className="h-4 w-4 mr-2" /> View Offers ({selectedProperty.offers})</GhostButton>
               </div>
 
               {/* Property Information */}

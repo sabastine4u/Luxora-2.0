@@ -7,6 +7,7 @@ import {
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { useToast } from '../../../contexts/ToastContext';
 
 // --- MOCK DATA ---
 const KPI_DATA = [
@@ -96,6 +97,7 @@ const ACTIVITY_TIMELINE = [
 
 // --- COMPONENT ---
 export default function AssignedLeads() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -284,10 +286,10 @@ export default function AssignedLeads() {
 
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-3">
-                <GoldButton size="sm" onClick={() => alert('Mock: Call Buyer')}><Phone className="h-4 w-4 mr-2" /> Call Buyer</GoldButton>
-                <GhostButton size="sm" onClick={() => alert('Mock: Email Buyer')}><Mail className="h-4 w-4 mr-2" /> Email</GhostButton>
-                <GhostButton size="sm" onClick={() => alert('Mock: Schedule Viewing')}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
-                <GhostButton size="sm" onClick={() => alert('Mock: Move Pipeline Stage')}><ArrowRight className="h-4 w-4 mr-2" /> Move Stage</GhostButton>
+                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Call Buyer', description: 'Initiating call...' })}><Phone className="h-4 w-4 mr-2" /> Call Buyer</GoldButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Email Buyer', description: 'Opening email interface...' })}><Mail className="h-4 w-4 mr-2" /> Email</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Schedule Viewing', description: 'Opening scheduling interface...' })}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Move Pipeline Stage', description: 'Updating lead stage...' })}><ArrowRight className="h-4 w-4 mr-2" /> Move Stage</GhostButton>
               </div>
 
               {/* Requirements & Budget */}

@@ -13,6 +13,7 @@ import { MortgageCalculator } from '../../components/property/MortgageCalculator
 import { getSimilarProperties } from '../../utils/propertyRecommendations';
 import { useSession } from '../../contexts/SessionContext';
 import { useFavorites } from '../../contexts/FavoriteContext';
+import { useToast } from '../../contexts/ToastContext';
 import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
 import { ROUTES } from '../../constants/routes';
 
@@ -28,8 +29,7 @@ export default function PropertyDetailsPage() {
   const [contactLoading, setContactLoading] = useState(false);
   const [contactSuccess, setContactSuccess] = useState(false);
 
-  // General Toast State
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Tabs State
   const [activeTab, setActiveTab] = useState('Overview');
@@ -59,11 +59,6 @@ export default function PropertyDetailsPage() {
   const tabs = ['Overview', 'Amenities', 'Location', 'Floor Plan', 'Virtual Tour', 'Property Video'];
   const saved = isFavorite(property.id);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setContactLoading(true);
@@ -85,7 +80,7 @@ export default function PropertyDetailsPage() {
       }
     } else {
       navigator.clipboard.writeText(window.location.href);
-      showToast('Link copied to clipboard!');
+      showToast({ type: 'success', title: 'Link Copied', description: 'Link copied to clipboard!' });
     }
   };
 
@@ -93,18 +88,18 @@ export default function PropertyDetailsPage() {
     if (property.brochureUrl && property.brochureUrl !== '#') {
       window.open(property.brochureUrl, '_blank');
     } else {
-      showToast('Brochure coming soon. Please contact the agent for more information.');
+      showToast({ type: 'info', title: 'Coming Soon', description: 'Brochure coming soon. Please contact the agent for more information.' });
     }
   };
 
   const handleCompareClick = () => {
     const result = toggleCompareProperty(property.id);
     if (result === 'limit_reached') {
-      showToast('You can compare up to 4 properties.');
+      showToast({ type: 'warning', title: 'Limit Reached', description: 'You can compare up to 4 properties.' });
     } else if (result === 'added') {
-      showToast('Added to Compare');
+      showToast({ type: 'success', title: 'Added to Compare', description: 'Property added to your compare list.' });
     } else if (result === 'exists') {
-      showToast('Removed from Compare');
+      showToast({ type: 'info', title: 'Removed from Compare', description: 'Property removed from your compare list.' });
     }
   };
 
@@ -646,12 +641,6 @@ export default function PropertyDetailsPage() {
         </div>
       )}
 
-      {/* Toast Overlay */}
-      {toastMessage && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-navy-900 text-cream border border-gold-400/30 px-6 py-3 rounded-full text-sm font-medium shadow-xl shadow-navy-900/50 whitespace-nowrap animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {toastMessage}
-        </div>
-      )}
     </PageLayout>
   );
 }

@@ -4,6 +4,7 @@ import { GhostButton, GoldButton } from '../ui/ui';
 import { EmptyState } from '../layout/EmptyState';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Contact {
   id: string;
@@ -36,6 +37,7 @@ interface MessagingUIProps {
 
 export function MessagingUI({ userRole }: MessagingUIProps) {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   // Generate mock contacts based on role
   const getMockContacts = (): Contact[] => {
@@ -381,7 +383,7 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
                {userRole === 'Agent' ? (
                  <>
                    <GhostButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}>Open Property</GhostButton>
-                   <GhostButton size="sm" onClick={() => alert('Mock: Calling Client...')}>Call Client</GhostButton>
+                   <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Calling Client', description: 'Initiating call...' })}>Call Client</GhostButton>
                    <GhostButton size="sm">Schedule Viewing</GhostButton>
                    <GoldButton size="sm">View Offer</GoldButton>
                  </>

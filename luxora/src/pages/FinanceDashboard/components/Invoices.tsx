@@ -4,8 +4,10 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
 import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function Invoices() {
+  const { showToast } = useToast();
   const invoices = [
     { id: 'INV-FIN-9901', client: 'Lagos Homes Ltd', type: 'Agency Subscription (Annual)', amount: '₦500,000', status: 'Paid', date: 'Oct 01, 2025' },
     { id: 'INV-FIN-9902', client: 'David Smith', type: 'Premium Listing Fee', amount: '₦25,000', status: 'Overdue', date: 'Sep 15, 2025' },
@@ -27,7 +29,7 @@ export default function Invoices() {
               creatorId: 'current-user-finance',
               timestamp: new Date().toISOString()
             });
-            alert('Success: Invoice Generated');
+            showToast({ type: 'success', title: 'Invoice Generated', description: 'New invoice generated successfully.' });
           }, 500);
         }}><Plus className="h-4 w-4" /> Create Invoice</GoldButton>
       </div>

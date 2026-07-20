@@ -4,6 +4,7 @@ import type { Property } from '../../types';
 import { GoldButton, GhostButton } from '../ui/ui';
 import { useSession } from '../../contexts/SessionContext';
 import { useFavorites } from '../../contexts/FavoriteContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
 import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
@@ -25,7 +26,7 @@ export function PropertySidebar({ property, onContactClick }: PropertySidebarPro
   const navigate = useNavigate();
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const saved = isFavorite(property.id);
 
@@ -47,15 +48,11 @@ export function PropertySidebar({ property, onContactClick }: PropertySidebarPro
     executeWithLoading('compare', () => {
       const result = toggleCompareProperty(property.id);
       if (result === 'limit_reached') {
-        setToastMessage('You can compare up to 4 properties.');
+        showToast({ type: 'warning', title: 'Limit Reached', description: 'You can compare up to 4 properties.' });
       } else if (result === 'added') {
-        setToastMessage('Added to Compare');
+        showToast({ type: 'success', title: 'Added to Compare', description: 'Property added to your compare list.' });
       } else if (result === 'exists') {
-        setToastMessage('Already in Compare');
-      }
-      
-      if (result) {
-        setTimeout(() => setToastMessage(null), 3000);
+        showToast({ type: 'info', title: 'Already in Compare', description: 'Property is already in your compare list.' });
       }
     });
   };
@@ -188,13 +185,6 @@ export function PropertySidebar({ property, onContactClick }: PropertySidebarPro
           <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Report this listing
         </button>
       </div>
-
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-navy-900 text-cream border border-gold-400/30 px-6 py-3 rounded-full text-sm font-medium shadow-xl shadow-navy-900/50 whitespace-nowrap animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 }

@@ -4,8 +4,10 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
 import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function OwnerPayments() {
+  const { showToast } = useToast();
   const payments = [
     { id: 'PAY-OW-102', owner: 'Chief Adebayo', property: 'Lekki Phase 1 Apt', amount: '₦120,000,000', period: 'Sep 2025', status: 'Cleared', date: 'Oct 05, 2025' },
     { id: 'PAY-OW-103', owner: 'Ngozi Okafor', property: 'Abuja Central Plaza', amount: '₦45,000,000', period: 'Sep 2025', status: 'Processing', date: 'Oct 06, 2025' },
@@ -27,7 +29,7 @@ export default function OwnerPayments() {
               processorId: 'current-user-finance',
               timestamp: new Date().toISOString()
             });
-            alert('Success: Batch Payouts Processed');
+            showToast({ type: 'success', title: 'Payouts Processed', description: 'Batch payouts processed successfully.' });
           }, 500);
         }}>Process Batch Payout</GoldButton>
       </div>

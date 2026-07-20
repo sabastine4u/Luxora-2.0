@@ -4,8 +4,10 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
 import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function PurchaseRequests() {
+  const { showToast } = useToast();
   const requests = [
     { id: 'PR-1023', department: 'IT Operations', item: 'MacBook Pro M3 (x3)', amount: '₦5,400,000', status: 'Pending Approval', date: 'Oct 02, 2025' },
     { id: 'PR-1024', department: 'Marketing', item: 'Event Booth Setup', amount: '₦1,200,000', status: 'Approved', date: 'Oct 01, 2025' },
@@ -77,7 +79,7 @@ export default function PurchaseRequests() {
                           approverId: 'current-user',
                           timestamp: new Date().toISOString()
                         });
-                        alert('Success: PR Approved');
+                        showToast({ type: 'success', title: 'PR Approved', description: 'Purchase Request approved successfully.' });
                       }, 500);
                     }}
                   ><CheckCircle className="h-4 w-4" /></button>
@@ -91,7 +93,7 @@ export default function PurchaseRequests() {
                           rejectorId: 'current-user',
                           timestamp: new Date().toISOString()
                         });
-                        alert('Success: PR Rejected');
+                        showToast({ type: 'success', title: 'PR Rejected', description: 'Purchase Request has been rejected.' });
                       }, 500);
                     }}
                   ><XCircle className="h-4 w-4" /></button>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { properties } from '../../../data/luxoraData';
 import { useFavorites } from '../../../contexts/FavoriteContext';
 import { useSession } from '../../../contexts/SessionContext';
+import { useToast } from '../../../contexts/ToastContext';
 import { PropertyCard } from '../../../components/property/PropertyCard';
 import { EmptyState } from '../../../components/layout';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
@@ -20,7 +21,7 @@ export default function SavedProperties() {
   const [filterLocation, setFilterLocation] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const baseProps = useMemo(() => {
     return savedProperties
@@ -110,15 +111,10 @@ export default function SavedProperties() {
     }
   };
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
   const handleBulkRemove = () => {
     selectedIds.forEach(id => toggleFavorite(id));
     setSelectedIds(new Set());
-    showToast('Properties removed from favorites.');
+    showToast({ type: 'success', title: 'Removed', description: 'Properties removed from favorites.' });
   };
 
   const handleBulkCompare = () => {
@@ -136,16 +132,16 @@ export default function SavedProperties() {
     }
     setSelectedIds(new Set());
     if (limitHit) {
-      showToast(`Added ${added} to compare. Compare limit (4) reached.`);
+      showToast({ type: 'warning', title: 'Compare Limit Reached', description: `Added ${added} to compare. Compare limit (4) reached.` });
     } else {
-      showToast(`Added ${added} properties to compare.`);
+      showToast({ type: 'success', title: 'Added to Compare', description: `Added ${added} properties to compare.` });
     }
   };
 
   const handleBulkShare = () => {
     // Mock share functionality
     setSelectedIds(new Set());
-    showToast('Properties shared successfully.');
+    showToast({ type: 'success', title: 'Shared', description: 'Properties shared successfully.' });
   };
 
   if (baseProps.length === 0) {
@@ -318,13 +314,6 @@ export default function SavedProperties() {
             title="No matching properties"
             description="Adjust your search and filter criteria to find what you're looking for."
           />
-        </div>
-      )}
-
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-navy-900 text-cream border border-gold-400/30 px-6 py-3 rounded-full text-sm font-medium shadow-xl shadow-navy-900/50 whitespace-nowrap animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {toastMessage}
         </div>
       )}
     </div>

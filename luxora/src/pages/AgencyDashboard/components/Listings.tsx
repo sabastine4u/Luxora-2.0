@@ -10,8 +10,10 @@ import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ListingDetailModal } from './modals/ListingDetailModal';
 import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
 import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function Listings() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -127,7 +129,7 @@ export default function Listings() {
                         agentId: 'AGT-001',
                         timestamp: new Date().toISOString()
                       });
-                      alert('Success: Agent Assigned to Selected Listings');
+                      showToast({ type: 'success', title: 'Agent Assigned', description: 'Agent successfully assigned to selected listings.' });
                     }, 500);
                   }}>Assign Agent</GhostButton>
                   <GhostButton className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10">Archive</GhostButton>

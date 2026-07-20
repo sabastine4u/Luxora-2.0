@@ -11,9 +11,11 @@ import { Modal } from '../../../components/ui/Modal';
 import { SettingsLayout } from '../../../components/dashboard/shared/layouts/SettingsLayout';
 import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function Settings() {
   const { user } = useSession();
+  const { showToast } = useToast();
   
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
@@ -388,7 +390,7 @@ export default function Settings() {
                     <p className="text-xs text-ink/50">Last changed 2 months ago</p>
                   </div>
                 </div>
-                <GhostButton size="sm" onClick={() => alert('Mock: Change Password')}>Change</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Change Password', description: 'Opening password change dialog...' })}>Change</GhostButton>
               </div>
 
               <div className="flex items-center justify-between">
@@ -399,13 +401,13 @@ export default function Settings() {
                     <p className="text-xs text-ink/50">Enabled via Authenticator App</p>
                   </div>
                 </div>
-                <GhostButton size="sm" onClick={() => alert('Mock: Setup 2FA')}>Manage</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Two-Factor Auth', description: 'Opening 2FA setup...' })}>Manage</GhostButton>
               </div>
               
               <div className="border-t border-white/10 pt-4 space-y-4">
                 <h4 className="text-sm font-semibold text-cream flex justify-between items-center">
                   Recent Login Activity
-                  <GhostButton size="sm" onClick={() => alert('Mock: View All Sessions')}>View All</GhostButton>
+                  <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Session History', description: 'Viewing all active sessions...' })}>View All</GhostButton>
                 </h4>
                 <div className="flex items-center justify-between bg-navy-900/50 p-3 rounded-xl border border-white/5">
                   <div className="flex items-center gap-3">
@@ -474,7 +476,7 @@ export default function Settings() {
         isOpen={deleteModalOpen} 
         onClose={() => setDeleteModalOpen(false)}
         title="Delete Account"
-        actionButton={<GhostButton onClick={() => alert('Mock: Account Deleted')} className="bg-rose-500/20 text-rose-400 border-rose-500/30 hover:bg-rose-500 hover:text-white" size="sm">Confirm Deletion</GhostButton>}
+        actionButton={<GhostButton onClick={() => { showToast({ type: 'error', title: 'Account Deleted', description: 'Your account has been successfully deleted.' }); setDeleteModalOpen(false); }} className="bg-rose-500/20 text-rose-400 border-rose-500/30 hover:bg-rose-500 hover:text-white" size="sm">Confirm Deletion</GhostButton>}
       >
         <div className="space-y-4">
           <p className="text-sm text-ink/80">
@@ -490,7 +492,7 @@ export default function Settings() {
         isOpen={deactivateModalOpen} 
         onClose={() => setDeactivateModalOpen(false)}
         title="Deactivate Account"
-        actionButton={<GoldButton onClick={() => alert('Mock: Account Deactivated')} size="sm">Deactivate Now</GoldButton>}
+        actionButton={<GoldButton onClick={() => { showToast({ type: 'warning', title: 'Account Deactivated', description: 'Your account has been deactivated.' }); setDeactivateModalOpen(false); }} size="sm">Deactivate Now</GoldButton>}
       >
         <div className="space-y-4">
           <p className="text-sm text-ink/80">

@@ -3,6 +3,7 @@ import { Route, CheckCircle2, Clock, XCircle, AlertTriangle, MessageSquare, Uplo
 import { properties } from '../../../data/luxoraData';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
+import { useToast } from '../../../contexts/ToastContext';
 import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
 import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
 
@@ -127,6 +128,7 @@ const mockJourneys: ListingJourneyData[] = [
 ];
 
 export default function ListingJourney() {
+  const { showToast } = useToast();
   const [selectedId, setSelectedId] = useState(mockJourneys[0].id);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   
@@ -140,7 +142,7 @@ export default function ListingJourney() {
           title="No listing journey available."
           description="Submit a property to start tracking its journey."
           actionLabel="Submit Property"
-          onAction={() => alert('Mock: Submit Property')}
+          onAction={() => showToast({ type: 'info', title: 'Submit Property', description: 'Opening property submission form...' })}
         />
       </div>
     );
@@ -223,7 +225,7 @@ export default function ListingJourney() {
 
             {/* Quick Actions */}
             <div className="sm:col-span-2 mt-auto flex flex-wrap gap-2">
-              <GoldButton size="sm" onClick={() => alert('Mock: Contact')}><MessageSquare className="h-4 w-4 mr-2" /> Contact Agent</GoldButton>
+              <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Contact Agent', description: 'Opening contact form...' })}><MessageSquare className="h-4 w-4 mr-2" /> Contact Agent</GoldButton>
               <GhostButton size="sm" onClick={() => {
                 console.log('[Backend Simulation] Uploading documents...');
                 setTimeout(() => {
@@ -231,13 +233,13 @@ export default function ListingJourney() {
                     propertyId: journey.id,
                     timestamp: new Date().toISOString()
                   });
-                  alert('Success: Documents Uploaded');
+                  showToast({ type: 'success', title: 'Documents Uploaded', description: 'Your documents have been successfully uploaded.' });
                 }, 500);
               }}>
                 <Upload className="h-4 w-4 mr-2" /> Upload Missing Docs
               </GhostButton>
-              <GhostButton size="sm" onClick={() => alert('Mock: View Listing')}><Eye className="h-4 w-4 mr-2" /> View Listing</GhostButton>
-              <GhostButton size="sm" onClick={() => alert('Mock: Download')}><Download className="h-4 w-4 mr-2" /> Download Timeline</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Listing', description: 'Opening listing preview...' })}><Eye className="h-4 w-4 mr-2" /> View Listing</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Download Started', description: 'Timeline download has started.' })}><Download className="h-4 w-4 mr-2" /> Download Timeline</GhostButton>
             </div>
           </div>
         </div>

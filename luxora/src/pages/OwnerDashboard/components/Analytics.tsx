@@ -3,8 +3,10 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { EmptyState } from '../../../components/layout/EmptyState';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function Analytics() {
+  const { showToast } = useToast();
   // Mock Data
   const hasAnalytics = true; // Toggle for empty state
 
@@ -75,7 +77,7 @@ export default function Analytics() {
           title="No analytics available."
           description="You do not have any active properties generating data."
           actionLabel="View Listings"
-          onAction={() => alert('Mock: View Listings')}
+          onAction={() => showToast({ type: 'info', title: 'View Listings', description: 'Navigating to your listings...' })}
         />
       </div>
     );
@@ -90,8 +92,8 @@ export default function Analytics() {
           <p className="text-sm text-ink/60">Track the performance of your listings, engagement, and business growth.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton onClick={() => alert('Mock: Export Report')}><FileText className="h-4 w-4 mr-2" /> Export Report</GhostButton>
-          <GoldButton onClick={() => alert('Mock: Download PDF')}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
+          <GhostButton onClick={() => showToast({ type: 'success', title: 'Export Report', description: 'Your report is being exported.' })}><FileText className="h-4 w-4 mr-2" /> Export Report</GhostButton>
+          <GoldButton onClick={() => showToast({ type: 'success', title: 'Download PDF', description: 'PDF download started.' })}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
         </div>
       </div>
 

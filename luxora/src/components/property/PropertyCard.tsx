@@ -1,9 +1,10 @@
-import { useState, memo } from 'react';
+import { memo } from 'react';
 import { Bed, Bath, Maximize, Heart, MapPin, BadgeCheck, Scale, AlertTriangle, Share2, Car, Calendar, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { type properties } from '../../data/luxoraData';
 import { useSession } from '../../contexts/SessionContext';
 import { useFavorites } from '../../contexts/FavoriteContext';
+import { useToast } from '../../contexts/ToastContext';
 import { ROUTES } from '../../constants/routes';
 import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
 
@@ -29,29 +30,23 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
 
   const saved = isFavorite(p.id);
   const compared = isCompared(p.id);
-
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
+  const { showToast } = useToast();
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleFavorite(p.id);
-    showToast(saved ? 'Removed from Saved' : 'Added to Saved');
+    showToast({ type: 'success', title: saved ? 'Removed' : 'Added to Saved', description: saved ? 'Property removed from your favorites.' : 'Property added to your favorites.' });
   };
 
   const handleCompareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const result = toggleCompareProperty(p.id);
     if (result === 'limit_reached') {
-      showToast('You can compare up to 4 properties.');
+      showToast({ type: 'warning', title: 'Limit Reached', description: 'You can compare up to 4 properties.' });
     } else if (result === 'added') {
-      showToast('Added to Compare');
+      showToast({ type: 'success', title: 'Added to Compare', description: 'Property added to your compare list.' });
     } else if (result === 'exists') {
-      showToast('Already in Compare');
+      showToast({ type: 'info', title: 'Already in Compare', description: 'Property is already in your compare list.' });
     }
   };
 
@@ -59,7 +54,7 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/property/${p.id}`);
-      showToast('Link copied to clipboard');
+      showToast({ type: 'success', title: 'Link Copied', description: 'Link copied to clipboard.' });
     } catch (err) {
       console.error(err);
     }
@@ -228,13 +223,6 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
           </button>
         </div>
       </div>
-      
-      {/* Toast */}
-      {toastMessage && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-navy-900/95 text-cream border border-gold-400/30 px-4 py-2.5 rounded-xl text-sm font-medium shadow-2xl shadow-black/50 whitespace-nowrap animate-in fade-in zoom-in duration-300 backdrop-blur-md">
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 });

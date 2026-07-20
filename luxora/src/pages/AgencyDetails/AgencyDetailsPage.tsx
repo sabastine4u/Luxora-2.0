@@ -17,8 +17,10 @@ import {
 } from '../../utils/agency';
 import { agencies, reviews } from '../../data/luxoraData';
 import { ROUTES } from '../../constants/routes';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function AgencyDetailsPage() {
+  const { showToast } = useToast();
   const { slug } = useParams<{ slug: string }>();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -130,7 +132,7 @@ export default function AgencyDetailsPage() {
               </GhostButton>
               <GhostButton 
                 className="gap-2 w-full sm:w-auto justify-center"
-                onClick={() => alert(`Visiting ${agencyName} office at ${serviceAreas[0] || 'Lagos'}`)}
+                onClick={() => showToast({ type: 'info', title: 'Visiting Office', description: `Navigating to ${agencyName} office at ${serviceAreas[0] || 'Lagos'}` })}
               >
                 <MapPin className="h-4 w-4" /> Visit Office
               </GhostButton>

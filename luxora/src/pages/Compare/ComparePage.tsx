@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../contexts/SessionContext';
+import { useToast } from '../../contexts/ToastContext';
 import { properties } from '../../data/luxoraData';
 import { GhostButton, GoldButton } from '../../components/ui/ui';
 import { EmptyState } from '../../components/layout/EmptyState';
@@ -49,6 +50,7 @@ const generateMockData = (id: string) => {
 export default function ComparePage() {
   const navigate = useNavigate();
   const { compareList, toggleCompareProperty, isAuthenticated, openScheduleViewingModal, openReportListingModal } = useSession();
+  const { showToast } = useToast();
   const [highlightDifferences, setHighlightDifferences] = useState(false);
 
   type MockedProperty = typeof properties[0] & ReturnType<typeof generateMockData>;
@@ -126,9 +128,9 @@ export default function ComparePage() {
           description={`Comparing ${selectedProps.length} of 4 properties side-by-side to make informed decisions.`}
           action={
             <div className="flex items-center gap-3 flex-wrap">
-              <GhostButton size="sm" onClick={() => alert('Print preview opened')}><Printer className="h-4 w-4 mr-2"/> Print</GhostButton>
-              <GhostButton size="sm" onClick={() => alert('PDF downloaded')}><Download className="h-4 w-4 mr-2"/> Export PDF</GhostButton>
-              <GhostButton size="sm" onClick={() => alert('Link copied to clipboard')}><Share2 className="h-4 w-4 mr-2"/> Share</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Print Preview', description: 'Print preview opened.' })}><Printer className="h-4 w-4 mr-2"/> Print</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Export Complete', description: 'PDF downloaded successfully.' })}><Download className="h-4 w-4 mr-2"/> Export PDF</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Link Copied', description: 'Link copied to clipboard.' })}><Share2 className="h-4 w-4 mr-2"/> Share</GhostButton>
             </div>
           }
         />
@@ -197,7 +199,7 @@ export default function ComparePage() {
                       <GoldButton className="w-full" size="sm" onClick={() => navigate(ROUTES.PROPERTY_DETAILS.replace(':id', p.id))}>View Details</GoldButton>
                       <div className="grid grid-cols-2 gap-2">
                         <GhostButton className="w-full" size="sm" onClick={() => isAuthenticated ? openScheduleViewingModal(p.id) : navigate(ROUTES.LOGIN)}>Schedule</GhostButton>
-                        <GhostButton className="w-full" size="sm" onClick={() => isAuthenticated ? alert('Offer initiated') : navigate(ROUTES.LOGIN)}>Offer</GhostButton>
+                        <GhostButton className="w-full" size="sm" onClick={() => isAuthenticated ? showToast({ type: 'success', title: 'Offer Initiated', description: 'Your offer process has started.' }) : navigate(ROUTES.LOGIN)}>Offer</GhostButton>
                       </div>
                     </div>
                     
@@ -284,7 +286,7 @@ export default function ComparePage() {
                         <div className="text-[10px] text-ink/60">{p.agent.agency}</div>
                       </div>
                     </div>
-                    <GhostButton className="w-full mt-4" size="sm" onClick={() => isAuthenticated ? alert('Contact modal opened') : navigate(ROUTES.LOGIN)}>Contact Agent</GhostButton>
+                    <GhostButton className="w-full mt-4" size="sm" onClick={() => isAuthenticated ? showToast({ type: 'info', title: 'Agent Contacted', description: 'Contact modal opened.' }) : navigate(ROUTES.LOGIN)}>Contact Agent</GhostButton>
                   </div>
                 ))}
               </div>
