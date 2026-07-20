@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import FeaturedProperties from '../../components/home/FeaturedProperties';
 import Hero from '../../components/home/Hero';
 import PopularCities from '../../components/home/PopularCities';
@@ -15,6 +16,20 @@ const Testimonials = lazy(() => import('../../components/home/Testimonials'));
 
 const Fallback = () => <div className="min-h-[400px] animate-pulse rounded-3xl bg-navy-900/20" />;
 export default function HomePage() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [location.hash]);
+
   return (
     <PageLayout>
         {/* Hero — what is Luxora? */}

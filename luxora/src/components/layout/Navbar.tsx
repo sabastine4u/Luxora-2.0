@@ -27,9 +27,16 @@ export default function Navbar() {
       case 'Buy': navigate(`${ROUTES.PROPERTIES}?type=buy`); break;
       case 'Rent': navigate(`${ROUTES.PROPERTIES}?type=rent`); break;
       case 'Lease': navigate(`${ROUTES.PROPERTIES}?type=lease`); break;
-      case 'List Property': navigate(ROUTES.REGISTER); break;
+      case 'Search': navigate(ROUTES.SEARCH); break;
       case 'Agencies': navigate(ROUTES.AGENCIES); break;
-      case 'Services': navigate('/#services'); break;
+      case 'Services': 
+        if (location.pathname === ROUTES.HOME) {
+          document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+          window.history.pushState(null, '', '/#services');
+        } else {
+          navigate('/#services');
+        }
+        break;
       case 'About': navigate(ROUTES.ABOUT); break;
       case 'Contact': navigate(ROUTES.CONTACT); break;
       default: navigate(`/#${link.toLowerCase().replace(/\s+/g, '-')}`); break;
@@ -57,15 +64,20 @@ export default function Navbar() {
 
         {/* Desktop links */}
         <div className="hidden items-center gap-1 lg:flex">
-          {navLinks.map((link) => (
-            <button
-              key={link}
-              onClick={() => handleNavClick(link)}
-              className="rounded-full px-3.5 py-2 text-sm font-medium text-ink/80 transition-colors hover:bg-white/5 hover:text-cream"
-            >
-              {link}
-            </button>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = link === 'Search' && location.pathname === ROUTES.SEARCH;
+            return (
+              <button
+                key={link}
+                onClick={() => handleNavClick(link)}
+                className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors hover:bg-white/5 hover:text-cream ${
+                  isActive ? 'text-gold-400' : 'text-ink/80'
+                }`}
+              >
+                {link}
+              </button>
+            );
+          })}
         </div>
 
         {/* Right actions */}
@@ -135,18 +147,23 @@ export default function Navbar() {
       {open && (
         <div className="border-t border-white/10 bg-navy-900/95 backdrop-blur-xl lg:hidden">
           <Container className="flex flex-col gap-1 py-4">
-            {navLinks.map((link) => (
-              <button
-                key={link}
-                onClick={() => {
-                  setOpen(false);
-                  handleNavClick(link);
-                }}
-                className="rounded-xl px-4 py-3 text-left text-sm font-medium text-ink/80 transition-colors hover:bg-white/5 hover:text-cream"
-              >
-                {link}
-              </button>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = link === 'Search' && location.pathname === ROUTES.SEARCH;
+              return (
+                <button
+                  key={link}
+                  onClick={() => {
+                    setOpen(false);
+                    handleNavClick(link);
+                  }}
+                  className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-white/5 hover:text-cream ${
+                    isActive ? 'text-gold-400 bg-white/5' : 'text-ink/80'
+                  }`}
+                >
+                  {link}
+                </button>
+              );
+            })}
             <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-4">
               {isAuthenticated && user ? (
                 <>
