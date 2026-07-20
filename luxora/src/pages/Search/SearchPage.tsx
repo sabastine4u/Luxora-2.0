@@ -35,7 +35,8 @@ export default function SearchPage() {
     totalPages,
     viewMode,
     setViewMode,
-    resetFilters
+    resetFilters,
+    itemsPerPage
   } = usePropertySearch({ initialItemsPerPage: 6 });
 
   return (
@@ -81,6 +82,8 @@ export default function SearchPage() {
                 <h1 className="text-2xl font-bold font-heading text-cream">Properties for Sale</h1>
                 <PropertyResultsSummary 
                   filteredCount={filteredProperties.length} 
+                  currentPage={page}
+                  itemsPerPage={itemsPerPage}
                   listingType={listingType}
                   location={location}
                   type={type}

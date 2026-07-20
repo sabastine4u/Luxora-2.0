@@ -7,6 +7,7 @@ import { ScheduleViewingModal } from './components/property/ScheduleViewingModal
 import { ReportListingModal } from './components/property/ReportListingModal'
 import { FloatingCompareBar } from './components/property/FloatingCompareBar'
 import { ScrollToTopButton } from './components/ui/ScrollToTopButton'
+import { ScrollToTop } from './components/common/ScrollToTop'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       <SessionProvider>
         <FavoriteProvider>
           <AppRoutes />
+          <ScrollToTop />
           <ScheduleViewingModal />
           <ReportListingModal />
           <FloatingCompareBar />

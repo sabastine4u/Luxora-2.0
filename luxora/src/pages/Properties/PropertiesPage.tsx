@@ -36,7 +36,8 @@ export default function PropertiesPage() {
     totalPages,
     viewMode,
     setViewMode,
-    resetFilters
+    resetFilters,
+    itemsPerPage
   } = usePropertySearch({ 
     initialItemsPerPage: 9
   });
@@ -101,6 +102,8 @@ export default function PropertiesPage() {
           <div className="mt-4 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center">
             <PropertyResultsSummary 
               filteredCount={filteredProperties.length} 
+              currentPage={page}
+              itemsPerPage={itemsPerPage}
               listingType={listingType}
               location={filterLocation}
               type={type}

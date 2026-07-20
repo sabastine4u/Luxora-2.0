@@ -8,8 +8,7 @@ import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusB
 import { properties } from '../../../data/luxoraData';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ListingDetailModal } from './modals/ListingDetailModal';
-import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
-import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function Listings() {
@@ -66,10 +65,10 @@ export default function Listings() {
         subtitle="Manage listings, marketing campaigns, and property visibility."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => showToast({ type: 'info', title: 'Import CSV', description: 'CSV import will be available during backend integration.' })}>
               <Upload className="h-4 w-4" /> Import CSV
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => showToast({ type: 'info', title: 'New Listing', description: 'Listing creation will be available during backend integration.' })}>
               <Plus className="h-4 w-4" /> New Listing
             </GoldButton>
           </div>
@@ -119,20 +118,10 @@ export default function Listings() {
                 <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
                   <span className="text-sm text-ink/60">{selectedIds.size} selected</span>
                   {/* Advanced Bulk Actions */}
-                  <GhostButton className="px-3 text-xs h-8">Publish</GhostButton>
-                  <GhostButton className="px-3 text-xs h-8">Feature</GhostButton>
-                  <GhostButton className="px-3 text-xs h-8" onClick={() => {
-                    console.log('[Backend Simulation] Assigning agent to listings...');
-                    setTimeout(() => {
-                      publishEvent(ENTERPRISE_EVENTS.AGENCY_AGENT_ASSIGNED, {
-                        listingIds: Array.from(selectedIds),
-                        agentId: 'AGT-001',
-                        timestamp: new Date().toISOString()
-                      });
-                      showToast({ type: 'success', title: 'Agent Assigned', description: 'Agent successfully assigned to selected listings.' });
-                    }, 500);
-                  }}>Assign Agent</GhostButton>
-                  <GhostButton className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10">Archive</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8" onClick={() => showToast({ type: 'info', title: 'Publish Listings', description: 'Publishing will be available during backend integration.' })}>Publish</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8" onClick={() => showToast({ type: 'info', title: 'Feature Listings', description: 'Featuring will be available during backend integration.' })}>Feature</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8" onClick={() => showToast({ type: 'info', title: 'Assign Agent', description: 'Agent assignment will be available during backend integration.' })}>Assign Agent</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10" onClick={() => showToast({ type: 'info', title: 'Archive Listings', description: 'Archiving will be available during backend integration.' })}>Archive</GhostButton>
                 </div>
               )}
               <GhostButton className="px-3 flex items-center gap-2"><Filter className="h-4 w-4" /> Filters</GhostButton>
@@ -218,10 +207,10 @@ export default function Listings() {
                     >
                       <BarChart3 className="h-4 w-4" />
                     </button>
-                    <button className="p-1.5 text-ink/60 hover:text-blue-400 rounded hover:bg-blue-400/10 transition-colors" title="Edit">
+                    <button className="p-1.5 text-ink/60 hover:text-blue-400 rounded hover:bg-blue-400/10 transition-colors" title="Edit" onClick={() => showToast({ type: 'info', title: 'Edit Listing', description: 'Listing editing will be available during backend integration.' })}>
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button className="p-1.5 text-ink/60 hover:text-rose-400 rounded hover:bg-rose-400/10 transition-colors" title="Archive">
+                    <button className="p-1.5 text-ink/60 hover:text-rose-400 rounded hover:bg-rose-400/10 transition-colors" title="Archive" onClick={() => showToast({ type: 'info', title: 'Archive Listing', description: 'Archiving will be available during backend integration.' })}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>

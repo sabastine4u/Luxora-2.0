@@ -91,7 +91,7 @@ export default function RentalIncome() {
           title="No rental income available."
           description="You do not have any rented properties generating income yet."
           actionLabel="View Listings"
-          onAction={() => showToast({ type: 'info', title: 'View Listings', description: 'Navigating to your listings...' })}
+          onAction={() => showToast({ type: 'info', title: 'View Listings', description: 'Listing navigation will be available during backend integration.' })}
         />
       </div>
     );
@@ -106,8 +106,8 @@ export default function RentalIncome() {
           <p className="text-sm text-ink/60">Monitor rental performance, income, occupancy, and payment history.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton onClick={() => showToast({ type: 'success', title: 'Export Statement', description: 'Your statement is being exported.' })}><FileText className="h-4 w-4 mr-2" /> Export Statement</GhostButton>
-          <GoldButton onClick={() => showToast({ type: 'success', title: 'Download PDF', description: 'PDF download started.' })}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
+          <GhostButton onClick={() => showToast({ type: 'info', title: 'Export Statement', description: 'Export features will be available during backend integration.' })}><FileText className="h-4 w-4 mr-2" /> Export Statement</GhostButton>
+          <GoldButton onClick={() => showToast({ type: 'info', title: 'Download PDF', description: 'PDF downloads will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
         </div>
       </div>
 
@@ -376,8 +376,8 @@ export default function RentalIncome() {
                   <div className="flex justify-between items-center pt-3 border-t border-white/5">
                     <div className="font-bold text-cream">{formatMoney(up.amount)}</div>
                     <div className="flex gap-2">
-                      <GhostButton size="sm" className="px-2" onClick={() => showToast({ type: 'info', title: 'View Details', description: 'Opening payment details...' })}><Eye className="h-4 w-4" /></GhostButton>
-                      <GhostButton size="sm" className="px-2" onClick={() => showToast({ type: 'info', title: 'Contact Tenant', description: 'Opening messaging interface...' })}><MessageSquare className="h-4 w-4" /></GhostButton>
+                      <GhostButton size="sm" className="px-2" onClick={() => showToast({ type: 'info', title: 'View Details', description: 'Payment details will be available during backend integration.' })}><Eye className="h-4 w-4" /></GhostButton>
+                      <GhostButton size="sm" className="px-2" onClick={() => showToast({ type: 'info', title: 'Contact Tenant', description: 'Messaging will be available during backend integration.' })}><MessageSquare className="h-4 w-4" /></GhostButton>
                     </div>
                   </div>
                 </div>

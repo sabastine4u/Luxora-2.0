@@ -128,9 +128,9 @@ export default function ComparePage() {
           description={`Comparing ${selectedProps.length} of 4 properties side-by-side to make informed decisions.`}
           action={
             <div className="flex items-center gap-3 flex-wrap">
-              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Print Preview', description: 'Print preview opened.' })}><Printer className="h-4 w-4 mr-2"/> Print</GhostButton>
-              <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Export Complete', description: 'PDF downloaded successfully.' })}><Download className="h-4 w-4 mr-2"/> Export PDF</GhostButton>
-              <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Link Copied', description: 'Link copied to clipboard.' })}><Share2 className="h-4 w-4 mr-2"/> Share</GhostButton>
+              <GhostButton size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 mr-2"/> Print</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Export PDF', description: 'PDF export will be available during backend integration.' })}><Download className="h-4 w-4 mr-2"/> Export PDF</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Share Compare', description: 'Sharing features will be available during backend integration.' })}><Share2 className="h-4 w-4 mr-2"/> Share</GhostButton>
             </div>
           }
         />
@@ -199,7 +199,7 @@ export default function ComparePage() {
                       <GoldButton className="w-full" size="sm" onClick={() => navigate(ROUTES.PROPERTY_DETAILS.replace(':id', p.id))}>View Details</GoldButton>
                       <div className="grid grid-cols-2 gap-2">
                         <GhostButton className="w-full" size="sm" onClick={() => isAuthenticated ? openScheduleViewingModal(p.id) : navigate(ROUTES.LOGIN)}>Schedule</GhostButton>
-                        <GhostButton className="w-full" size="sm" onClick={() => isAuthenticated ? showToast({ type: 'success', title: 'Offer Initiated', description: 'Your offer process has started.' }) : navigate(ROUTES.LOGIN)}>Offer</GhostButton>
+                        <GhostButton className="w-full" size="sm" onClick={() => isAuthenticated ? showToast({ type: 'info', title: 'Make Offer', description: 'Offer functionality will be available during backend integration.' }) : navigate(ROUTES.LOGIN)}>Offer</GhostButton>
                       </div>
                     </div>
                     

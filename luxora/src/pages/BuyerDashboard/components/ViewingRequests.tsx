@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../constants/routes';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { useToast } from '../../../contexts/ToastContext';
 
 const mockViewings = [
   { 
@@ -107,6 +108,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ViewingRequests() {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -202,11 +204,11 @@ export default function ViewingRequests() {
       </div>
       <div className="flex flex-wrap gap-3 pt-4 border-t border-white/5">
         <GoldButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}><Home className="h-4 w-4 mr-2"/> View Property</GoldButton>
-        <GhostButton size="sm"><Phone className="h-4 w-4 mr-2"/> Contact Agent</GhostButton>
+        <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Contact Agent', description: 'Agent messaging will be available during backend integration.' })}><Phone className="h-4 w-4 mr-2"/> Contact Agent</GhostButton>
         {viewing.status !== 'Completed' && viewing.status !== 'Cancelled' && (
            <>
-             <GhostButton size="sm" className="text-purple-400 hover:text-purple-300 border-purple-400/30">Reschedule Request</GhostButton>
-             <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30">Cancel Request</GhostButton>
+             <GhostButton size="sm" className="text-purple-400 hover:text-purple-300 border-purple-400/30" onClick={() => showToast({ type: 'info', title: 'Reschedule Request', description: 'Rescheduling will be available during backend integration.' })}>Reschedule Request</GhostButton>
+             <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30" onClick={() => showToast({ type: 'info', title: 'Cancel Request', description: 'Cancellation will be available during backend integration.' })}>Cancel Request</GhostButton>
            </>
         )}
       </div>

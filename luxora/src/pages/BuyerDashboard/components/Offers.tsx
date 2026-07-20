@@ -7,6 +7,7 @@ import { ROUTES } from '../../../constants/routes';
 import { formatCurrency } from '../../../utils';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { useToast } from '../../../contexts/ToastContext';
 
 const mockOffers = [
   { 
@@ -137,6 +138,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function Offers() {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -255,13 +257,13 @@ export default function Offers() {
       
       <div className="flex flex-wrap gap-3 pt-4 border-t border-white/5 mt-4">
         <GoldButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}><Home className="h-4 w-4 mr-2"/> View Property</GoldButton>
-        <GhostButton size="sm"><FileText className="h-4 w-4 mr-2"/> View Offer Details</GhostButton>
+        <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Offer Details', description: 'Offer details will be available during backend integration.' })}><FileText className="h-4 w-4 mr-2"/> View Offer Details</GhostButton>
         {offer.status === 'Counter Offer Received' && (
-           <GoldButton size="sm"><RefreshCw className="h-4 w-4 mr-2"/> Respond to Counter</GoldButton>
+           <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Respond to Counter', description: 'Counter responses will be available during backend integration.' })}><RefreshCw className="h-4 w-4 mr-2"/> Respond to Counter</GoldButton>
         )}
-        <GhostButton size="sm"><Phone className="h-4 w-4 mr-2"/> Contact Agent</GhostButton>
+        <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Contact Agent', description: 'Agent messaging will be available during backend integration.' })}><Phone className="h-4 w-4 mr-2"/> Contact Agent</GhostButton>
         {['Draft', 'Submitted', 'Under Review', 'Counter Offer Received'].includes(offer.status) && (
-           <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30"><X className="h-4 w-4 mr-2"/> Withdraw Offer</GhostButton>
+           <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30" onClick={() => showToast({ type: 'info', title: 'Withdraw Offer', description: 'Offer withdrawal will be available during backend integration.' })}><X className="h-4 w-4 mr-2"/> Withdraw Offer</GhostButton>
         )}
       </div>
     </div>

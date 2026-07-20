@@ -139,9 +139,7 @@ export default function SavedProperties() {
   };
 
   const handleBulkShare = () => {
-    // Mock share functionality
-    setSelectedIds(new Set());
-    showToast({ type: 'success', title: 'Shared', description: 'Properties shared successfully.' });
+    showToast({ type: 'info', title: 'Share Properties', description: 'Bulk sharing will be available during backend integration.' });
   };
 
   if (baseProps.length === 0) {

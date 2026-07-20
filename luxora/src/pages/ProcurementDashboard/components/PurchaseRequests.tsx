@@ -2,8 +2,7 @@ import { FileCheck, CheckCircle, XCircle, Filter } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
-import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function PurchaseRequests() {
@@ -71,35 +70,15 @@ export default function PurchaseRequests() {
                 <div className="flex justify-end gap-2">
                   <button 
                     className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
-                    onClick={() => {
-                      console.log('[Backend Simulation] Approving PR...');
-                      setTimeout(() => {
-                        publishEvent(ENTERPRISE_EVENTS.PROCUREMENT_PURCHASE_REQUEST_APPROVED, {
-                          requestId: pr.id,
-                          approverId: 'current-user',
-                          timestamp: new Date().toISOString()
-                        });
-                        showToast({ type: 'success', title: 'PR Approved', description: 'Purchase Request approved successfully.' });
-                      }, 500);
-                    }}
+                    onClick={() => showToast({ type: 'info', title: 'Approve PR', description: 'PR approval will be available during backend integration.' })}
                   ><CheckCircle className="h-4 w-4" /></button>
                   <button 
                     className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors"
-                    onClick={() => {
-                      console.log('[Backend Simulation] Rejecting PR...');
-                      setTimeout(() => {
-                        publishEvent(ENTERPRISE_EVENTS.PROCUREMENT_PURCHASE_REQUEST_REJECTED, {
-                          requestId: pr.id,
-                          rejectorId: 'current-user',
-                          timestamp: new Date().toISOString()
-                        });
-                        showToast({ type: 'success', title: 'PR Rejected', description: 'Purchase Request has been rejected.' });
-                      }, 500);
-                    }}
+                    onClick={() => showToast({ type: 'info', title: 'Reject PR', description: 'PR rejection will be available during backend integration.' })}
                   ><XCircle className="h-4 w-4" /></button>
                 </div>
               ) : (
-                <button className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors">View</button>
+                <button className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors" onClick={() => showToast({ type: 'info', title: 'View PR Details', description: 'PR detail view will be available during backend integration.' })}>View</button>
               )
             )
           }

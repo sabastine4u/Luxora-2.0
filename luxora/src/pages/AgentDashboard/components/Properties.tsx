@@ -71,8 +71,8 @@ export default function Properties() {
           <p className="text-sm text-ink/60">Manage listings assigned to you.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton size="sm"><ArrowUpRight className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
-          <GoldButton size="sm"><Plus className="h-4 w-4 mr-2"/> Add Listing</GoldButton>
+          <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Export CSV', description: 'CSV export will be available during backend integration.' })}><ArrowUpRight className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
+          <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Add Listing', description: 'Listing creation will be available during backend integration.' })}><Plus className="h-4 w-4 mr-2"/> Add Listing</GoldButton>
         </div>
       </div>
 
@@ -191,10 +191,10 @@ export default function Properties() {
 
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Edit Listing', description: 'Opening listing editor...' })}><FileText className="h-4 w-4 mr-2" /> Edit Listing</GoldButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Listing Shared', description: 'Listing link copied to clipboard.' })}><Send className="h-4 w-4 mr-2" /> Share</GhostButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Schedule Viewing', description: 'Opening scheduling interface...' })}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Offers', description: 'Opening offers dashboard...' })}><FileCheck className="h-4 w-4 mr-2" /> View Offers ({selectedProperty.offers})</GhostButton>
+                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Edit Listing', description: 'Listing editing will be available during backend integration.' })}><FileText className="h-4 w-4 mr-2" /> Edit Listing</GoldButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Share Listing', description: 'Listing sharing will be available during backend integration.' })}><Send className="h-4 w-4 mr-2" /> Share</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Schedule Viewing', description: 'Viewing scheduling will be available during backend integration.' })}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
+                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Offers', description: 'Offers dashboard will be available during backend integration.' })}><FileCheck className="h-4 w-4 mr-2" /> View Offers ({selectedProperty.offers})</GhostButton>
               </div>
 
               {/* Property Information */}
@@ -265,7 +265,7 @@ export default function Properties() {
               </div>
 
               {/* View Full Details Link */}
-              <GhostButton className="w-full text-gold-400 hover:text-gold-300">View Full Details <ArrowRight className="h-4 w-4 ml-2" /></GhostButton>
+              <GhostButton className="w-full text-gold-400 hover:text-gold-300" onClick={() => showToast({ type: 'info', title: 'View Details', description: 'Full detail view will be available during backend integration.' })}>View Full Details <ArrowRight className="h-4 w-4 ml-2" /></GhostButton>
 
             </div>
           </div>

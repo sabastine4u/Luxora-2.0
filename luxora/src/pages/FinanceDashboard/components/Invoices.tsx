@@ -2,8 +2,7 @@ import { FileText, Download, Plus } from 'lucide-react';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
-import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function Invoices() {
@@ -21,17 +20,7 @@ export default function Invoices() {
           <h2 className="font-heading text-2xl font-bold text-cream">Client & Agency Invoices</h2>
           <p className="text-sm text-ink/60">Manage accounts receivable, subscriptions, and listing fees.</p>
         </div>
-        <GoldButton className="flex items-center gap-2" onClick={() => {
-          console.log('[Backend Simulation] Generating invoice...');
-          setTimeout(() => {
-            publishEvent(ENTERPRISE_EVENTS.FINANCE_INVOICE_GENERATED, {
-              invoiceId: `INV-FIN-${Math.floor(1000 + Math.random() * 9000)}`,
-              creatorId: 'current-user-finance',
-              timestamp: new Date().toISOString()
-            });
-            showToast({ type: 'success', title: 'Invoice Generated', description: 'New invoice generated successfully.' });
-          }, 500);
-        }}><Plus className="h-4 w-4" /> Create Invoice</GoldButton>
+        <GoldButton className="flex items-center gap-2" onClick={() => showToast({ type: 'info', title: 'Create Invoice', description: 'Invoice creation will be available during backend integration.' })}><Plus className="h-4 w-4" /> Create Invoice</GoldButton>
       </div>
 
       <DataTableToolbar
@@ -39,7 +28,7 @@ export default function Invoices() {
         onSearchChange={() => {}}
         searchPlaceholder="Search invoices..."
         actions={
-          <GhostButton className="px-4"><Download className="h-4 w-4 mr-2" /> Export</GhostButton>
+          <GhostButton className="px-4" onClick={() => showToast({ type: 'info', title: 'Export Invoices', description: 'Exporting will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Export</GhostButton>
         }
       />
 

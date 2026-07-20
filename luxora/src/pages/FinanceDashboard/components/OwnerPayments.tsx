@@ -2,8 +2,7 @@ import { Download, Banknote, CheckCircle } from 'lucide-react';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
-import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function OwnerPayments() {
@@ -21,17 +20,7 @@ export default function OwnerPayments() {
           <h2 className="font-heading text-2xl font-bold text-cream">Owner Payouts</h2>
           <p className="text-sm text-ink/60">Manage disbursements to property owners after platform fee deductions.</p>
         </div>
-        <GoldButton onClick={() => {
-          console.log('[Backend Simulation] Processing batch payouts...');
-          setTimeout(() => {
-            publishEvent(ENTERPRISE_EVENTS.FINANCE_PAYMENT_COMPLETED, {
-              paymentId: 'BATCH-PAY-001',
-              processorId: 'current-user-finance',
-              timestamp: new Date().toISOString()
-            });
-            showToast({ type: 'success', title: 'Payouts Processed', description: 'Batch payouts processed successfully.' });
-          }, 500);
-        }}>Process Batch Payout</GoldButton>
+        <GoldButton onClick={() => showToast({ type: 'info', title: 'Process Payouts', description: 'Batch payouts will be available during backend integration.' })}>Process Batch Payout</GoldButton>
       </div>
 
       <DataTableToolbar
@@ -39,7 +28,7 @@ export default function OwnerPayments() {
         onSearchChange={() => {}}
         searchPlaceholder="Search by owner or property..."
         actions={
-          <GhostButton className="px-4"><Download className="h-4 w-4 mr-2" /> Export</GhostButton>
+          <GhostButton className="px-4" onClick={() => showToast({ type: 'info', title: 'Export Payouts', description: 'Exporting will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Export</GhostButton>
         }
       />
 

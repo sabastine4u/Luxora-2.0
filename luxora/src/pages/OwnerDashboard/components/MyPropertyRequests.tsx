@@ -6,8 +6,7 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { properties } from '../../../data/luxoraData';
 
-import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
-import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
+
 import { useToast } from '../../../contexts/ToastContext';
 
 // Types
@@ -141,19 +140,7 @@ export default function MyPropertyRequests() {
   }, [search, statusFilter, typeFilter, sortOrder]);
 
   const handlePropertySubmit = () => {
-    // 1. Simulate backend validation and processing
-    console.log('[Backend Simulation] Processing property submission...');
-    
-    // 2. Mock Backend Success
-    setTimeout(() => {
-      // 3. Publish Enterprise Event on success
-      publishEvent(ENTERPRISE_EVENTS.PROPERTY_SUBMITTED, {
-        propertyId: 'PR-NEW',
-        ownerId: 'current-user-owner',
-        timestamp: new Date().toISOString()
-      });
-      showToast({ type: 'success', title: 'Property Submitted', description: 'Your property has been submitted successfully.' });
-    }, 500);
+    showToast({ type: 'info', title: 'Submit Property', description: 'Property submission form will be available during backend integration.' });
   };
 
   return (
@@ -280,10 +267,10 @@ export default function MyPropertyRequests() {
                       <button onClick={() => setSelectedReq(req)} className="p-2 text-ink/50 hover:text-gold-400 transition-colors" title="View Details">
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="p-2 text-ink/50 hover:text-emerald-400 transition-colors" title="Upload Documents" onClick={() => showToast({ type: 'info', title: 'Upload Documents', description: 'Opening document upload modal...' })}>
+                      <button className="p-2 text-ink/50 hover:text-emerald-400 transition-colors" title="Upload Documents" onClick={() => showToast({ type: 'info', title: 'Upload Documents', description: 'Document upload will be available during backend integration.' })}>
                         <Upload className="h-4 w-4" />
                       </button>
-                      <button className="p-2 text-ink/50 hover:text-rose-400 transition-colors" title="Withdraw Request" onClick={() => showToast({ type: 'warning', title: 'Withdraw Request', description: 'Initiating request withdrawal...' })}>
+                      <button className="p-2 text-ink/50 hover:text-rose-400 transition-colors" title="Withdraw Request" onClick={() => showToast({ type: 'info', title: 'Withdraw Request', description: 'Request withdrawal will be available during backend integration.' })}>
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -390,7 +377,7 @@ export default function MyPropertyRequests() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold text-cream">Submitted Documents</h4>
-                  <button className="text-[10px] uppercase tracking-wider font-semibold text-gold-400 hover:text-gold-300" onClick={() => showToast({ type: 'info', title: 'Upload Documents', description: 'Opening document upload modal...' })}>Upload</button>
+                  <button className="text-[10px] uppercase tracking-wider font-semibold text-gold-400 hover:text-gold-300" onClick={() => showToast({ type: 'info', title: 'Upload Documents', description: 'Document upload will be available during backend integration.' })}>Upload</button>
                 </div>
                 {selectedReq.documents.length > 0 ? (
                   <div className="space-y-3">
@@ -430,8 +417,8 @@ export default function MyPropertyRequests() {
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/5 flex gap-3 shrink-0">
-              <GoldButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Track Progress', description: 'Opening progress tracker...' })}>Track Progress</GoldButton>
-              <GhostButton className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10" onClick={() => showToast({ type: 'warning', title: 'Withdraw Request', description: 'Initiating request withdrawal...' })}><Trash2 className="h-4 w-4 mr-2" /> Withdraw</GhostButton>
+              <GoldButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Track Progress', description: 'Progress tracking will be available during backend integration.' })}>Track Progress</GoldButton>
+              <GhostButton className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10" onClick={() => showToast({ type: 'info', title: 'Withdraw Request', description: 'Request withdrawal will be available during backend integration.' })}><Trash2 className="h-4 w-4 mr-2" /> Withdraw</GhostButton>
             </div>
           </div>
         </>

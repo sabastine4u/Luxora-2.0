@@ -208,7 +208,7 @@ export default function Offers() {
               title="No offers available."
               description="There are currently no offers matching your filters."
               actionLabel="View Listings"
-              onAction={() => showToast({ type: 'info', title: 'View Listings', description: 'Navigating to your listings...' })}
+              onAction={() => showToast({ type: 'info', title: 'View Listings', description: 'Listing navigation will be available during backend integration.' })}
             />
           ) : (
             <>
@@ -452,18 +452,18 @@ export default function Offers() {
               {selectedOffer.status === 'Pending' || selectedOffer.status === 'Countered' ? (
                 <>
                   <div className="flex gap-3">
-                    <GoldButton className="flex-1 justify-center" onClick={() => showToast({ type: 'success', title: 'Offer Accepted', description: 'You have accepted this offer.' })}><Handshake className="h-4 w-4 mr-2" /> Accept</GoldButton>
+                    <GoldButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Accept Offer', description: 'Offer acceptance will be available during backend integration.' })}><Handshake className="h-4 w-4 mr-2" /> Accept</GoldButton>
                     <GhostButton className="flex-1 justify-center bg-yellow-500/10 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20" onClick={() => setIsCounterModalOpen(true)}>Counter Offer</GhostButton>
                   </div>
                   <div className="flex gap-3">
-                    <GhostButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Message Buyer', description: 'Opening messaging interface...' })}><MessageSquare className="h-4 w-4 mr-2" /> Message Buyer</GhostButton>
-                    <GhostButton className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10" onClick={() => showToast({ type: 'error', title: 'Offer Rejected', description: 'You have rejected this offer.' })}><XCircle className="h-4 w-4 mr-2" /> Reject</GhostButton>
+                    <GhostButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Message Buyer', description: 'Messaging will be available during backend integration.' })}><MessageSquare className="h-4 w-4 mr-2" /> Message Buyer</GhostButton>
+                    <GhostButton className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10" onClick={() => showToast({ type: 'info', title: 'Reject Offer', description: 'Offer rejection will be available during backend integration.' })}><XCircle className="h-4 w-4 mr-2" /> Reject</GhostButton>
                   </div>
                 </>
               ) : (
                 <div className="flex gap-3">
-                  <GhostButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Schedule Meeting', description: 'Opening scheduling interface...' })}><Calendar className="h-4 w-4 mr-2" /> Schedule Meeting</GhostButton>
-                  <GhostButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Message Buyer', description: 'Opening messaging interface...' })}><MessageSquare className="h-4 w-4 mr-2" /> Message Buyer</GhostButton>
+                  <GhostButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Schedule Meeting', description: 'Meeting scheduling will be available during backend integration.' })}><Calendar className="h-4 w-4 mr-2" /> Schedule Meeting</GhostButton>
+                  <GhostButton className="flex-1 justify-center" onClick={() => showToast({ type: 'info', title: 'Message Buyer', description: 'Messaging will be available during backend integration.' })}><MessageSquare className="h-4 w-4 mr-2" /> Message Buyer</GhostButton>
                 </div>
               )}
             </div>
@@ -498,7 +498,7 @@ export default function Offers() {
             />
           </div>
           <div className="pt-4 flex gap-3">
-            <GoldButton className="flex-1 justify-center" onClick={() => { showToast({ type: 'success', title: 'Counter Offer Sent', description: 'Your counter offer has been submitted.' }); setIsCounterModalOpen(false); }}>Send Counter Offer</GoldButton>
+            <GoldButton className="flex-1 justify-center" onClick={() => { showToast({ type: 'info', title: 'Send Counter Offer', description: 'Counter offers will be available during backend integration.' }); setIsCounterModalOpen(false); }}>Send Counter Offer</GoldButton>
             <GhostButton className="flex-1 justify-center" onClick={() => setIsCounterModalOpen(false)}>Cancel</GhostButton>
           </div>
         </div>

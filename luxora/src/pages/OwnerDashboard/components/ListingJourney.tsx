@@ -142,7 +142,7 @@ export default function ListingJourney() {
           title="No listing journey available."
           description="Submit a property to start tracking its journey."
           actionLabel="Submit Property"
-          onAction={() => showToast({ type: 'info', title: 'Submit Property', description: 'Opening property submission form...' })}
+          onAction={() => showToast({ type: 'info', title: 'Submit Property', description: 'Property Submission will be available during backend integration.' })}
         />
       </div>
     );
@@ -225,7 +225,7 @@ export default function ListingJourney() {
 
             {/* Quick Actions */}
             <div className="sm:col-span-2 mt-auto flex flex-wrap gap-2">
-              <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Contact Agent', description: 'Opening contact form...' })}><MessageSquare className="h-4 w-4 mr-2" /> Contact Agent</GoldButton>
+              <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Contact Agent', description: 'Contact form will be available during backend integration.' })}><MessageSquare className="h-4 w-4 mr-2" /> Contact Agent</GoldButton>
               <GhostButton size="sm" onClick={() => {
                 console.log('[Backend Simulation] Uploading documents...');
                 setTimeout(() => {
@@ -238,8 +238,8 @@ export default function ListingJourney() {
               }}>
                 <Upload className="h-4 w-4 mr-2" /> Upload Missing Docs
               </GhostButton>
-              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Listing', description: 'Opening listing preview...' })}><Eye className="h-4 w-4 mr-2" /> View Listing</GhostButton>
-              <GhostButton size="sm" onClick={() => showToast({ type: 'success', title: 'Download Started', description: 'Timeline download has started.' })}><Download className="h-4 w-4 mr-2" /> Download Timeline</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Listing', description: 'Listing preview will be available during backend integration.' })}><Eye className="h-4 w-4 mr-2" /> View Listing</GhostButton>
+              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Download Timeline', description: 'Timeline downloads will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Download Timeline</GhostButton>
             </div>
           </div>
         </div>
@@ -390,7 +390,7 @@ export default function ListingJourney() {
                   </div>
                 </div>
               ))}
-              <GhostButton className="w-full text-xs py-2 mt-4">View Full History</GhostButton>
+              <GhostButton className="w-full text-xs py-2 mt-4" onClick={() => showToast({ type: 'info', title: 'Full History', description: 'Full history will be available during backend integration.' })}>View Full History</GhostButton>
             </div>
           </div>
         </div>

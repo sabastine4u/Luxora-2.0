@@ -122,7 +122,7 @@ export default function VerificationProgress() {
           title="No verification process found."
           description="Submit a property to begin the verification and publishing process."
           actionLabel="Submit Property"
-          onAction={() => showToast({ type: 'info', title: 'Submit Property', description: 'Opening property submission form...' })}
+          onAction={() => showToast({ type: 'info', title: 'Submit Property', description: 'Property submission will be available during backend integration.' })}
         />
       </div>
     );
@@ -232,8 +232,8 @@ export default function VerificationProgress() {
                 </div>
               </div>
               <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
-                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Upload Document', description: 'Opening document upload modal...' })}><Upload className="h-4 w-4 mr-2" /> Upload Document</GoldButton>
-                <GhostButton size="sm" className="border-rose-400/20 text-rose-400 hover:bg-rose-500/10" onClick={() => showToast({ type: 'info', title: 'Contact Officer', description: 'Opening messaging interface...' })}>Contact Officer</GhostButton>
+                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Upload Document', description: 'Document upload will be available during backend integration.' })}><Upload className="h-4 w-4 mr-2" /> Upload Document</GoldButton>
+                <GhostButton size="sm" className="border-rose-400/20 text-rose-400 hover:bg-rose-500/10" onClick={() => showToast({ type: 'info', title: 'Contact Officer', description: 'Officer messaging will be available during backend integration.' })}>Contact Officer</GhostButton>
               </div>
             </div>
           )}

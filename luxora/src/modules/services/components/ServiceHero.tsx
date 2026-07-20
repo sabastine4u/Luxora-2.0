@@ -11,11 +11,13 @@ export function ServiceHero({ data }: { data: ServiceData }) {
 
 
   return (
-    <section className="relative min-h-[80vh] flex items-center pt-24 pb-12 overflow-hidden">
-      <div className="absolute inset-0">
+    <section className="relative min-h-[80vh] flex items-center pt-24 pb-12 overflow-hidden bg-navy-900">
+      <div className="absolute inset-0 bg-navy-900">
         <img 
           src={data.heroImage || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80'} 
           alt={data.name} 
+          loading="eager"
+          fetchPriority="high"
           className="w-full h-full object-cover opacity-40" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-navy-900 via-navy-900/60 to-transparent" />

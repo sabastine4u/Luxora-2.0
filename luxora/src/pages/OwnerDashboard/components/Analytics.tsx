@@ -92,8 +92,8 @@ export default function Analytics() {
           <p className="text-sm text-ink/60">Track the performance of your listings, engagement, and business growth.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton onClick={() => showToast({ type: 'success', title: 'Export Report', description: 'Your report is being exported.' })}><FileText className="h-4 w-4 mr-2" /> Export Report</GhostButton>
-          <GoldButton onClick={() => showToast({ type: 'success', title: 'Download PDF', description: 'PDF download started.' })}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
+          <GhostButton onClick={() => showToast({ type: 'info', title: 'Export Report', description: 'Export report features will be available during backend integration.' })}><FileText className="h-4 w-4 mr-2" /> Export Report</GhostButton>
+          <GoldButton onClick={() => showToast({ type: 'info', title: 'Download PDF', description: 'PDF downloads will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
         </div>
       </div>
 

@@ -38,6 +38,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    background-color: #0B1120;
   }
 
   body {

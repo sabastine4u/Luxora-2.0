@@ -44,9 +44,9 @@ export default function Hero() {
     // According to instructions: Never hardcode parameter names that don't already exist in usePropertySearch
     // usePropertySearch has: type, location, budgetString
     if (listingType) params.append('listingType', listingType);
-    if (type && type !== 'Any Type') params.append('type', type);
+    if (type && type !== 'Any Type') params.append('propertyType', type);
     if (location && location !== 'Any Location') params.append('location', location);
-    if (budget && budget !== 'Any Budget') params.append('budgetString', budget);
+    if (budget && budget !== 'Any Budget') params.append('budget', budget);
     
     navigate(`${ROUTES.PROPERTIES}?${params.toString()}`);
   };

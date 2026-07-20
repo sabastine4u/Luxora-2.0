@@ -24,9 +24,9 @@ export default function Navbar() {
 
   const handleNavClick = (link: string) => {
     switch(link) {
-      case 'Buy': navigate(`${ROUTES.PROPERTIES}?type=buy`); break;
-      case 'Rent': navigate(`${ROUTES.PROPERTIES}?type=rent`); break;
-      case 'Lease': navigate(`${ROUTES.PROPERTIES}?type=lease`); break;
+      case 'Buy': navigate(`${ROUTES.PROPERTIES}?listingType=buy`); break;
+      case 'Rent': navigate(`${ROUTES.PROPERTIES}?listingType=rent`); break;
+      case 'Lease': navigate(`${ROUTES.PROPERTIES}?listingType=lease`); break;
       case 'Search': navigate(ROUTES.SEARCH); break;
       case 'Agencies': navigate(ROUTES.AGENCIES); break;
       case 'Services': 
