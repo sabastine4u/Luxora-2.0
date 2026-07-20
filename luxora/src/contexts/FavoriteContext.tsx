@@ -4,6 +4,8 @@ import { storage } from '../utils/storage';
 import { useSession } from './SessionContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
+import { publishEvent } from '../modules/enterprise/events/publishEvent';
+import { ENTERPRISE_EVENTS } from '../modules/enterprise/events/registry';
 
 interface FavoriteContextType {
   favoriteProperties: string[];
@@ -34,13 +36,20 @@ export function FavoriteProvider({ children }: { children: ReactNode }) {
       navigate(ROUTES.LOGIN);
       return;
     }
-    setFavoriteProperties(prev => {
-      if (prev.includes(id)) {
-        return prev.filter(pid => pid !== id);
-      }
-      return [...prev, id];
-    });
-  }, [isAuthenticated, navigate]);
+
+    const isAdding = !favoriteProperties.includes(id);
+
+    if (isAdding) {
+      publishEvent(ENTERPRISE_EVENTS.BUYER_PROPERTY_SAVED, {
+        propertyId: id,
+        buyerId: 'current-user-buyer',
+        timestamp: new Date().toISOString()
+      });
+      setFavoriteProperties(prev => [...prev, id]);
+    } else {
+      setFavoriteProperties(prev => prev.filter(pid => pid !== id));
+    }
+  }, [isAuthenticated, navigate, favoriteProperties]);
 
   const isFavorite = useCallback((id: string) => {
     return favoriteProperties.includes(id);

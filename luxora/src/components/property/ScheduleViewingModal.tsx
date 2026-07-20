@@ -6,6 +6,8 @@ import { Modal } from '../ui/Modal';
 import { GoldButton, GhostButton } from '../ui/ui';
 import { Calendar, Clock, Users, Phone, Mail, MessageCircle, CheckCircle2, MapPin } from 'lucide-react';
 import { ROUTES } from '../../constants/routes';
+import { publishEvent } from '../../modules/enterprise/events/publishEvent';
+import { ENTERPRISE_EVENTS } from '../../modules/enterprise/events/registry';
 
 export function ScheduleViewingModal() {
   const navigate = useNavigate();
@@ -53,18 +55,32 @@ export function ScheduleViewingModal() {
     const viewingId = `VR-${Math.floor(1000 + Math.random() * 9000)}`;
     setLastCreatedId(viewingId);
     
-    addViewingRequest({
-      id: viewingId,
-      propertyId: property.id,
-      propertyName: property.title,
-      date: formData.date,
-      time: formData.time,
-      status: 'Pending',
-      agent: property.agent,
-      createdAt: new Date().toISOString()
-    });
+    // 1. Simulate Backend Action
+    console.log('[Backend Simulation] Booking property inspection...');
+    
+    setTimeout(() => {
+      // 2. Original Frontend State Update
+      addViewingRequest({
+        id: viewingId,
+        propertyId: property.id,
+        propertyName: property.title,
+        date: formData.date,
+        time: formData.time,
+        status: 'Pending',
+        agent: property.agent,
+        createdAt: new Date().toISOString()
+      });
 
-    setStep('success');
+      // 3. Publish Enterprise Event on success
+      publishEvent(ENTERPRISE_EVENTS.BUYER_INSPECTION_REQUESTED, {
+        propertyId: property.id,
+        buyerId: 'current-user-buyer',
+        viewingId: viewingId,
+        timestamp: new Date().toISOString()
+      });
+
+      setStep('success');
+    }, 500);
   };
 
   const handleClose = () => {

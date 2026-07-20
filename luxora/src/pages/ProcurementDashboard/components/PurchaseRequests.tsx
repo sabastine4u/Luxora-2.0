@@ -2,6 +2,8 @@ import { FileCheck, CheckCircle, XCircle, Filter } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
+import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
 
 export default function PurchaseRequests() {
   const requests = [
@@ -65,8 +67,34 @@ export default function PurchaseRequests() {
             render: (pr) => (
               pr.status === 'Pending Approval' ? (
                 <div className="flex justify-end gap-2">
-                  <button className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"><CheckCircle className="h-4 w-4" /></button>
-                  <button className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors"><XCircle className="h-4 w-4" /></button>
+                  <button 
+                    className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
+                    onClick={() => {
+                      console.log('[Backend Simulation] Approving PR...');
+                      setTimeout(() => {
+                        publishEvent(ENTERPRISE_EVENTS.PROCUREMENT_PURCHASE_REQUEST_APPROVED, {
+                          requestId: pr.id,
+                          approverId: 'current-user',
+                          timestamp: new Date().toISOString()
+                        });
+                        alert('Success: PR Approved');
+                      }, 500);
+                    }}
+                  ><CheckCircle className="h-4 w-4" /></button>
+                  <button 
+                    className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors"
+                    onClick={() => {
+                      console.log('[Backend Simulation] Rejecting PR...');
+                      setTimeout(() => {
+                        publishEvent(ENTERPRISE_EVENTS.PROCUREMENT_PURCHASE_REQUEST_REJECTED, {
+                          requestId: pr.id,
+                          rejectorId: 'current-user',
+                          timestamp: new Date().toISOString()
+                        });
+                        alert('Success: PR Rejected');
+                      }, 500);
+                    }}
+                  ><XCircle className="h-4 w-4" /></button>
                 </div>
               ) : (
                 <button className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors">View</button>

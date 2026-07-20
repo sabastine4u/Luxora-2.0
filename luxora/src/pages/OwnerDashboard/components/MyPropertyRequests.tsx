@@ -6,10 +6,14 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { properties } from '../../../data/luxoraData';
 
+import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
+
 // Types
 type RequestStatus = 'Draft' | 'Submitted' | 'Documents Pending' | 'Documents Verified' | 'Inspection Scheduled' | 'Inspection Complete' | 'Approved' | 'Published' | 'Rejected';
 
 interface PropertyRequest {
+
   id: string;
   name: string;
   type: string;
@@ -29,6 +33,7 @@ interface PropertyRequest {
 }
 
 const mockRequests: PropertyRequest[] = [
+
   {
     id: 'PR-101',
     name: 'The Sapphire Residences',
@@ -133,6 +138,22 @@ export default function MyPropertyRequests() {
     });
   }, [search, statusFilter, typeFilter, sortOrder]);
 
+  const handlePropertySubmit = () => {
+    // 1. Simulate backend validation and processing
+    console.log('[Backend Simulation] Processing property submission...');
+    
+    // 2. Mock Backend Success
+    setTimeout(() => {
+      // 3. Publish Enterprise Event on success
+      publishEvent(ENTERPRISE_EVENTS.PROPERTY_SUBMITTED, {
+        propertyId: 'PR-NEW',
+        ownerId: 'current-user-owner',
+        timestamp: new Date().toISOString()
+      });
+      alert('Success: Property Submitted');
+    }, 500);
+  };
+
   return (
     <div className="space-y-6 relative pb-12">
       {/* Header */}
@@ -141,7 +162,7 @@ export default function MyPropertyRequests() {
           <h2 className="font-heading text-2xl font-bold text-cream">Property Requests <span className="text-sm font-normal text-gold-400 ml-2">({mockRequests.length} Total)</span></h2>
           <p className="text-sm text-ink/60">Track every property you have submitted for verification and publication.</p>
         </div>
-        <GoldButton className="flex items-center gap-2">
+        <GoldButton className="flex items-center gap-2" onClick={handlePropertySubmit}>
           <Plus className="h-4 w-4" /> Submit New Property
         </GoldButton>
       </div>

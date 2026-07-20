@@ -2,6 +2,8 @@ import { Download, Banknote, CheckCircle } from 'lucide-react';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
+import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
 
 export default function OwnerPayments() {
   const payments = [
@@ -17,7 +19,17 @@ export default function OwnerPayments() {
           <h2 className="font-heading text-2xl font-bold text-cream">Owner Payouts</h2>
           <p className="text-sm text-ink/60">Manage disbursements to property owners after platform fee deductions.</p>
         </div>
-        <GoldButton>Process Batch Payout</GoldButton>
+        <GoldButton onClick={() => {
+          console.log('[Backend Simulation] Processing batch payouts...');
+          setTimeout(() => {
+            publishEvent(ENTERPRISE_EVENTS.FINANCE_PAYMENT_COMPLETED, {
+              paymentId: 'BATCH-PAY-001',
+              processorId: 'current-user-finance',
+              timestamp: new Date().toISOString()
+            });
+            alert('Success: Batch Payouts Processed');
+          }, 500);
+        }}>Process Batch Payout</GoldButton>
       </div>
 
       <DataTableToolbar

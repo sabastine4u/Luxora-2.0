@@ -3,6 +3,8 @@ import { Route, CheckCircle2, Clock, XCircle, AlertTriangle, MessageSquare, Uplo
 import { properties } from '../../../data/luxoraData';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
+import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
+import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
 
 type StageStatus = 'Completed' | 'Current' | 'Pending' | 'Delayed' | 'Rejected';
 
@@ -222,7 +224,18 @@ export default function ListingJourney() {
             {/* Quick Actions */}
             <div className="sm:col-span-2 mt-auto flex flex-wrap gap-2">
               <GoldButton size="sm" onClick={() => alert('Mock: Contact')}><MessageSquare className="h-4 w-4 mr-2" /> Contact Agent</GoldButton>
-              <GhostButton size="sm" onClick={() => alert('Mock: Upload')}><Upload className="h-4 w-4 mr-2" /> Upload Missing Docs</GhostButton>
+              <GhostButton size="sm" onClick={() => {
+                console.log('[Backend Simulation] Uploading documents...');
+                setTimeout(() => {
+                  publishEvent(ENTERPRISE_EVENTS.AGENT_DOCUMENTS_UPLOADED, {
+                    propertyId: journey.id,
+                    timestamp: new Date().toISOString()
+                  });
+                  alert('Success: Documents Uploaded');
+                }, 500);
+              }}>
+                <Upload className="h-4 w-4 mr-2" /> Upload Missing Docs
+              </GhostButton>
               <GhostButton size="sm" onClick={() => alert('Mock: View Listing')}><Eye className="h-4 w-4 mr-2" /> View Listing</GhostButton>
               <GhostButton size="sm" onClick={() => alert('Mock: Download')}><Download className="h-4 w-4 mr-2" /> Download Timeline</GhostButton>
             </div>

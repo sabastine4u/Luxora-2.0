@@ -8,6 +8,8 @@ import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusB
 import { properties } from '../../../data/luxoraData';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ListingDetailModal } from './modals/ListingDetailModal';
+import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
+import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
 
 export default function Listings() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,7 +119,17 @@ export default function Listings() {
                   {/* Advanced Bulk Actions */}
                   <GhostButton className="px-3 text-xs h-8">Publish</GhostButton>
                   <GhostButton className="px-3 text-xs h-8">Feature</GhostButton>
-                  <GhostButton className="px-3 text-xs h-8">Assign Agent</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8" onClick={() => {
+                    console.log('[Backend Simulation] Assigning agent to listings...');
+                    setTimeout(() => {
+                      publishEvent(ENTERPRISE_EVENTS.AGENCY_AGENT_ASSIGNED, {
+                        listingIds: Array.from(selectedIds),
+                        agentId: 'AGT-001',
+                        timestamp: new Date().toISOString()
+                      });
+                      alert('Success: Agent Assigned to Selected Listings');
+                    }, 500);
+                  }}>Assign Agent</GhostButton>
                   <GhostButton className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10">Archive</GhostButton>
                 </div>
               )}
