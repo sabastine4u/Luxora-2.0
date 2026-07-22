@@ -9,13 +9,17 @@ import Inspections from './components/Inspections';
 import Expenses from './components/Expenses';
 import Income from './components/Income';
 import Analytics from './components/Analytics';
+import Overview from './components/Overview';
+import Messages from './components/Messages';
+import Settings from './components/Settings';
 
 export default function PropertyManagementDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Tenants');
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Tenants': return <Tenants />;
+      case 'Overview': return <Overview />;
+      case 'Tenants': return <Tenants onNavigate={setActiveTab} />;
       case 'Rent Collection': return <RentCollection />;
       case 'Maintenance': return <Maintenance />;
       case 'Lease Tracking': return <LeaseTracking />;
@@ -24,7 +28,9 @@ export default function PropertyManagementDashboardPage() {
       case 'Expenses': return <Expenses />;
       case 'Income': return <Income />;
       case 'Analytics': return <Analytics />;
-      default: return <Tenants />;
+      case 'Messages': return <Messages />;
+      case 'Settings': return <Settings />;
+      default: return <Overview />;
     }
   };
 

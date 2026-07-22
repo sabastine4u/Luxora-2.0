@@ -1,10 +1,10 @@
-import { Download, FileBarChart, Filter } from 'lucide-react';
+import { Download, FileBarChart, Filter, Eye, User, CreditCard } from 'lucide-react';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { useToast } from '../../../contexts/ToastContext';
+import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Invoices() {
-  const { showToast } = useToast();
+  const { showWorkflowToast } = useWorkflowToast();
   const invoices = [
     { id: 'INV-2025-099', vendor: 'Amazon Web Services', amount: '₦14,500,000', date: 'Oct 05, 2025', due: 'Oct 15, 2025', status: 'Unpaid' },
     { id: 'INV-2025-098', vendor: 'Global Tech Supplies', amount: '₦8,500,000', date: 'Sep 28, 2025', due: 'Oct 12, 2025', status: 'Processing' },
@@ -25,7 +25,7 @@ export default function Invoices() {
         onSearchChange={() => {}}
         searchPlaceholder="Search invoices..."
         actions={
-          <button className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors" onClick={() => showToast({ type: 'info', title: 'Filter Status', description: 'Status filtering will be available during backend integration.' })}>
+          <button className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors" onClick={() => showWorkflowToast('Filter Status')}>
             <Filter className="h-4 w-4 mr-2" /> Status
           </button>
         }
@@ -71,7 +71,24 @@ export default function Invoices() {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
             render: () => (
-              <button className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors" onClick={() => showToast({ type: 'info', title: 'Download Invoice', description: 'Invoice downloads will be available during backend integration.' })}><Download className="h-4 w-4" /></button>
+              <div className="flex justify-end gap-2">
+                <button 
+                  className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors" 
+                  onClick={() => showWorkflowToast('Invoice Details')}
+                ><Eye className="h-4 w-4" /></button>
+                <button 
+                  className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors" 
+                  onClick={() => showWorkflowToast('Vendor Info')}
+                ><User className="h-4 w-4" /></button>
+                <button 
+                  className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors" 
+                  onClick={() => showWorkflowToast('Payment Status')}
+                ><CreditCard className="h-4 w-4" /></button>
+                <button 
+                  className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors" 
+                  onClick={() => showWorkflowToast('Download Invoice')}
+                ><Download className="h-4 w-4" /></button>
+              </div>
             )
           }
         ]}

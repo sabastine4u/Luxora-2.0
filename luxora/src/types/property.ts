@@ -1,3 +1,5 @@
+import type { UserRole } from '../contexts/SessionContext';
+
 export type PropertyType = 
   | 'Apartment'
   | 'Duplex'
@@ -20,10 +22,13 @@ export type TransactionType =
   | 'rent'
   | 'lease';
 
+export type PropertyOrigin = 'agent' | 'admin' | 'luxora';
+
 export type Property = {
   id: string;
   transactionType: TransactionType;
   title: string;
+  description?: string;
   location: string;
   city: string;
   state: string;
@@ -78,4 +83,14 @@ export type Property = {
   brochureUrl?: string;
   furnishing?: 'Unfurnished' | 'Semi-Furnished' | 'Fully Furnished';
   paymentOptions?: string[];
+  
+  // Private Property Management Data
+  ownerId?: string;
+  agentId?: string;
+  agencyId?: string;
+  createdBy?: string;
+  createdByRole?: UserRole;
+  origin?: PropertyOrigin;
+  createdAt?: string;
+  updatedAt?: string;
 };

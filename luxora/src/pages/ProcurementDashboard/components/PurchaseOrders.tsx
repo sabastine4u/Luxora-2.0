@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Download, ShoppingCart } from 'lucide-react';
+import { Download, ShoppingCart, Eye, Truck, UserPlus } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function PurchaseOrders() {
   const [searchQuery, setSearchQuery] = useState('');
+  const { showWorkflowToast } = useWorkflowToast();
 
   const orders = [
     { id: 'PO-9921', vendor: 'Global Tech Supplies', item: 'Dell XPS Laptops (x5)', amount: '₦8,500,000', status: 'Fulfilled', date: 'Sep 15, 2025' },
@@ -20,7 +22,7 @@ export default function PurchaseOrders() {
           <h2 className="font-heading text-2xl font-bold text-cream">Purchase Orders (PO)</h2>
           <p className="text-sm text-ink/60">Track external orders sent to vendors.</p>
         </div>
-        <GoldButton>Create PO</GoldButton>
+        <GoldButton onClick={() => showWorkflowToast('Create PO')}>Create PO</GoldButton>
       </div>
 
       <DataTableToolbar
@@ -66,7 +68,24 @@ export default function PurchaseOrders() {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
             render: () => (
-              <button className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"><Download className="h-4 w-4" /></button>
+              <div className="flex justify-end gap-2">
+                <button 
+                  className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"
+                  onClick={() => showWorkflowToast('View Details')}
+                ><Eye className="h-4 w-4" /></button>
+                <button 
+                  className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
+                  onClick={() => showWorkflowToast('Track Delivery')}
+                ><Truck className="h-4 w-4" /></button>
+                <button 
+                  className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
+                  onClick={() => showWorkflowToast('Assign Vendor')}
+                ><UserPlus className="h-4 w-4" /></button>
+                <button 
+                  className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"
+                  onClick={() => showWorkflowToast('Download PO')}
+                ><Download className="h-4 w-4" /></button>
+              </div>
             )
           }
         ]}

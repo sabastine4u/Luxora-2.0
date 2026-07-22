@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Building2, Activity, ShieldAlert, Target, Search, ArrowRight, Zap, RefreshCcw, DollarSign, Briefcase } from 'lucide-react';
+import { Building2, Activity, ShieldAlert, Search, Zap, DollarSign, Briefcase } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { GoldButton, GhostButton } from '../../../components/ui/ui';
+
 import { StatusBadge } from './shared/StatusBadge';
 import { DepartmentDetailModal } from './modals/DepartmentDetailModal';
 
@@ -36,12 +36,6 @@ export default function DepartmentOversight() {
         subtitle="Monitor department workloads, resource consumption, and operational risks."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
-              <RefreshCcw className="h-4 w-4" /> Sync Metrics
-            </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <Target className="h-4 w-4" /> New Initiative
-            </GoldButton>
           </div>
         }
       />
@@ -225,9 +219,6 @@ export default function DepartmentOversight() {
                 </div>
               ))}
             </div>
-            <GhostButton className="w-full mt-6 text-xs flex items-center justify-center gap-2">
-              View All Initiatives <ArrowRight className="h-3 w-3" />
-            </GhostButton>
           </div>
 
           {/* Operational Risk Dashboard */}

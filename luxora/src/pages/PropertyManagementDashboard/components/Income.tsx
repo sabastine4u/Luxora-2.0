@@ -1,8 +1,24 @@
-import { TrendingUp, Download, ArrowUpRight } from 'lucide-react';
-import { GhostButton } from '../../../components/ui/ui';
+import { TrendingUp, ArrowUpRight } from 'lucide-react';
+import { useState } from 'react';
+import { EnterpriseExportMenu } from '../../../components/enterprise/EnterpriseExportMenu';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { useToast } from '../../../contexts/ToastContext';
+import { GhostButton } from '../../../components/ui/ui';
+import { IncomeFormModal } from './modals/IncomeFormModal';
+
+
 
 export default function Income() {
+  const { showToast } = useToast();
+  const [modalState, setModalState] = useState<'log' | null>(null);
+
+  const handleAction = (action: string) => {
+    showToast({
+      title: 'Backend Integration',
+      description: `Action "${action}" is ready for backend integration.`,
+      type: 'info'
+    });
+  };
   const incomeSources = [
     { id: 'INC-1', source: 'Rent Payments', amount: '₦45,500,000', percentage: '85%' },
     { id: 'INC-2', source: 'Late Fees', amount: '₦1,200,000', percentage: '2%' },
@@ -18,7 +34,12 @@ export default function Income() {
           <h2 className="font-heading text-2xl font-bold text-cream">Income Breakdown</h2>
           <p className="text-sm text-ink/60">Analyze revenue streams beyond base rent.</p>
         </div>
-        <GhostButton className="px-4"><Download className="h-4 w-4 mr-2" /> Export CSV</GhostButton>
+        <div className="flex gap-3">
+          <GhostButton onClick={() => setModalState('log')}>Log Income</GhostButton>
+          <EnterpriseExportMenu 
+            onExport={(format) => handleAction(`Export Income Data (${format})`)} 
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
@@ -57,6 +78,12 @@ export default function Income() {
             )
           }
         ]}
+      />
+
+      <IncomeFormModal 
+        isOpen={modalState === 'log'}
+        onClose={() => setModalState(null)}
+        onSubmit={(data) => handleAction(`Log Income for ${data.propertyId}: ₦${data.amount}`)}
       />
     </div>
   );

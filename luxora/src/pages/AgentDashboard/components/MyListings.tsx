@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Download, Home, Building2, Eye, Heart, TrendingUp, Filter, AlertCircle, Sparkles, CheckCircle2, Clock, Award, Share2, Megaphone, Target, Video } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
@@ -10,9 +11,12 @@ import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { ListingDetailModal } from './modals/ListingDetailModal';
 
+import { ROUTES } from '../../../constants/routes';
+
 export default function MyListings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedListing, setSelectedListing] = useState<any | null>(null);
+  const navigate = useNavigate();
 
   const listings = [
     { id: 'L-1001', property: 'Skyline Penthouse', location: 'Victoria Island', price: '₦850,000,000', status: 'Active', views: 1240, inquiries: 15, daysOnMarket: 12, qualityScore: 98 },
@@ -64,7 +68,7 @@ export default function MyListings() {
             <GhostButton className="flex items-center gap-2">
               <Download className="h-4 w-4" /> Export Report
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton onClick={() => navigate(ROUTES.CREATE_LISTING)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" /> Add Listing
             </GoldButton>
           </div>

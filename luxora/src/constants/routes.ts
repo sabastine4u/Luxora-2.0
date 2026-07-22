@@ -46,6 +46,7 @@ export const ROUTES = {
   HOME_SERVICES_DASHBOARD: '/home-services-dashboard',
   COMMUNICATION_CENTER: '/communication-center',
   NOTIFICATION_CENTER: '/notification-center',
+  CREATE_LISTING: '/dashboard/create-listing',
 } as const;
 
 import { ROLES } from './roles';

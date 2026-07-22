@@ -1,8 +1,7 @@
-import { Activity, Users, CheckCircle2, Megaphone, Target, ChevronRight, FileText, Calendar, Building2, TrendingUp, AlertTriangle, Clock, Zap, MessageSquare, Briefcase, ListTodo, ShieldAlert } from 'lucide-react';
+import { Activity, Users, CheckCircle2, Megaphone, Target, FileText, Calendar, Building2, TrendingUp, AlertTriangle, Clock, Zap, MessageSquare, Briefcase, ListTodo, ShieldAlert } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
-import { GoldButton, GhostButton } from '../../../components/ui/ui';
 
 export default function Overview() {
   const organizationHealth = [
@@ -43,12 +42,6 @@ export default function Overview() {
         subtitle="Executive command center for organizational health, approvals, and strategic milestones."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" /> View Calendar
-            </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Generate Executive Report
-            </GoldButton>
           </div>
         }
       />
@@ -170,7 +163,6 @@ export default function Overview() {
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-heading text-lg font-semibold text-cream">Executive Decision Queue</h3>
-              <GhostButton className="text-sm">View All Queue</GhostButton>
             </div>
             <div className="space-y-3">
               {pendingApprovals.map((approval) => (
@@ -247,9 +239,6 @@ export default function Overview() {
                   </div>
                 ))}
               </div>
-              <GhostButton className="w-full mt-4 flex items-center justify-center gap-2 text-xs">
-                View Roadmap <ChevronRight className="h-4 w-4" />
-              </GhostButton>
             </div>
           </div>
 

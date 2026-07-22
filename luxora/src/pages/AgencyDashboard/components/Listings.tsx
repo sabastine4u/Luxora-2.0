@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Filter, Edit, Trash2, MapPin, Building2, CheckCircle2, AlertCircle, BarChart3, Share2, Upload, Star } from 'lucide-react';
+import { Filter, Edit, Trash2, MapPin, Building2, CheckCircle2, AlertCircle, BarChart3, Share2, Star } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { GhostButton } from '../../../components/ui/ui';
 import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
 import { properties } from '../../../data/luxoraData';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
@@ -63,16 +63,6 @@ export default function Listings() {
       <DashboardHeader
         name="Property Management"
         subtitle="Manage listings, marketing campaigns, and property visibility."
-        actions={
-          <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2" onClick={() => showToast({ type: 'info', title: 'Import CSV', description: 'CSV import will be available during backend integration.' })}>
-              <Upload className="h-4 w-4" /> Import CSV
-            </GhostButton>
-            <GoldButton className="flex items-center gap-2" onClick={() => showToast({ type: 'info', title: 'New Listing', description: 'Listing creation will be available during backend integration.' })}>
-              <Plus className="h-4 w-4" /> New Listing
-            </GoldButton>
-          </div>
-        }
       />
 
       {/* Listing Lifecycle Summary */}

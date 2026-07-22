@@ -1,14 +1,14 @@
 import { 
   Building2, Users, Target, UserCircle, 
-  Plus, TrendingUp, CheckCircle2, AlertTriangle, FileText,
+  TrendingUp, CheckCircle2, AlertTriangle, FileText,
   Calendar, Star, DollarSign, Clock, Zap
 } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
-import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { GhostButton } from '../../../components/ui/ui';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 
-export default function Overview() {
+export default function Overview({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const upcomingMeetings = [
     { title: 'Client Meeting - Aliko Dangote', time: '10:00 AM', desc: 'Discussing Banana Island Plot', icon: Users, color: 'text-blue-400' },
     { title: 'Property Inspection', time: '1:00 PM', desc: 'The Continental Duplex with Inspector', icon: Building2, color: 'text-emerald-400' },
@@ -28,31 +28,25 @@ export default function Overview() {
         subtitle="Executive dashboard, daily briefing, and agency performance."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" /> Schedule
+            <GhostButton className="flex items-center gap-2" onClick={() => onNavigate?.('Agents')}>
+              <Users className="h-4 w-4" /> Manage Roster
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Add New
-            </GoldButton>
           </div>
         }
       />
 
       {/* Quick Action Center */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
-          <Plus className="h-4 w-4" /> Add Listing
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
+        <button onClick={() => onNavigate?.('Clients')} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
           <UserCircle className="h-4 w-4" /> Add Client
         </button>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
+        <button onClick={() => onNavigate?.('Leads')} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
           <Target className="h-4 w-4" /> Register Lead
         </button>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
+        <button onClick={() => onNavigate?.('Agents')} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
           <Users className="h-4 w-4" /> Invite Agent
         </button>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
+        <button onClick={() => onNavigate?.('Performance')} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
           <FileText className="h-4 w-4" /> Create Report
         </button>
       </div>

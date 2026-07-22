@@ -1,9 +1,9 @@
-import { Mail, Phone, Users, Filter } from 'lucide-react';
+import { Users, Filter } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 
-export default function VendorDirectory() {
+export default function VendorDirectory({ onNavigate }: { onNavigate?: (tab: string, id?: string) => void }) {
   const vendors = [
     { id: 'VND-001', name: 'Global Tech Supplies', category: 'IT Hardware', status: 'Active', rating: 4.8 },
     { id: 'VND-002', name: 'Lagos Office Works', category: 'Office Supplies', status: 'Active', rating: 4.5 },
@@ -34,7 +34,14 @@ export default function VendorDirectory() {
         columns={[
           {
             header: "Vendor ID",
-            render: (vendor) => <span className="font-medium text-cream">{vendor.id}</span>
+            render: (vendor) => (
+              <button 
+                onClick={() => onNavigate?.('Vendor Details', vendor.id)}
+                className="font-medium text-gold-400 hover:underline"
+              >
+                {vendor.id}
+              </button>
+            )
           },
           {
             header: "Name",
@@ -61,12 +68,16 @@ export default function VendorDirectory() {
             render: (vendor) => <span className="font-bold text-gold-400">{vendor.rating > 0 ? `${vendor.rating} ★` : '-'}</span>
           },
           {
-            header: <div className="text-right">Contact</div>,
+            header: <div className="text-right">Actions</div>,
             className: "text-right",
-            render: () => (
+            render: (vendor) => (
               <div className="flex justify-end gap-2">
-                <button className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"><Mail className="h-4 w-4" /></button>
-                <button className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"><Phone className="h-4 w-4" /></button>
+                <button 
+                  onClick={() => onNavigate?.('Vendor Details', vendor.id)}
+                  className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors"
+                >
+                  View Details
+                </button>
               </div>
             )
           }

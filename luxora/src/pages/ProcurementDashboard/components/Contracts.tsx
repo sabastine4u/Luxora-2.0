@@ -1,12 +1,18 @@
-import { Handshake, Calendar, FileText } from 'lucide-react';
+import { Handshake, Calendar, FileText, Eye } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
+import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Contracts() {
+  const { showWorkflowToast } = useWorkflowToast();
   const contracts = [
     { id: 'CTR-001', vendor: 'Amazon Web Services', type: 'Software Subscription', value: '$12,000/yr', expiry: 'Jan 15, 2026', status: 'Active' },
     { id: 'CTR-002', vendor: 'Paystack', type: 'Payment Gateway SLA', value: '1.5% per tx', expiry: 'Auto-Renew', status: 'Active' },
     { id: 'CTR-003', vendor: 'Prime Cleaners Ltd', type: 'Facility Management', value: '₦400,000/mo', expiry: 'Nov 01, 2025', status: 'Expiring Soon' },
   ];
+
+  const handleWorkflow = (action: string) => {
+    showWorkflowToast(action);
+  };
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -15,7 +21,7 @@ export default function Contracts() {
           <h2 className="font-heading text-2xl font-bold text-cream">Vendor Contracts & SLAs</h2>
           <p className="text-sm text-ink/60">Manage legal agreements, expirations, and renewals.</p>
         </div>
-        <GoldButton>Upload Contract</GoldButton>
+        <GoldButton onClick={() => handleWorkflow('Upload Contract')}>Upload Contract</GoldButton>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
@@ -44,14 +50,28 @@ export default function Contracts() {
             </div>
 
             <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-               <button className="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center gap-1">
-                 <FileText className="h-3.5 w-3.5" /> View Document
+               <button 
+                 onClick={() => handleWorkflow('View Document')}
+                 className="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center gap-1"
+               >
+                 <FileText className="h-3.5 w-3.5" /> Document
                </button>
-               {ctr.status === 'Expiring Soon' && (
-                 <button className="text-xs font-semibold text-cream bg-rose-500 hover:bg-rose-600 px-3 py-1.5 rounded-lg transition-colors">
-                   Renew Now
+               <div className="flex gap-2">
+                 <button 
+                   onClick={() => handleWorkflow('View Contract Details')}
+                   className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                 >
+                   <Eye className="h-3.5 w-3.5" /> Details
                  </button>
-               )}
+                 {ctr.status === 'Expiring Soon' && (
+                   <button 
+                     onClick={() => handleWorkflow('Renew Contract')}
+                     className="text-xs font-semibold text-cream bg-rose-500 hover:bg-rose-600 px-2 py-1 rounded transition-colors"
+                   >
+                     Renew
+                   </button>
+                 )}
+               </div>
             </div>
           </div>
         ))}

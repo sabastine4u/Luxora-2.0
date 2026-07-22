@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { EnterpriseLayout } from '../../components/layout';
+import Overview from './components/Overview';
+import Messages from './components/Messages';
+import Settings from './components/Settings';
 import Revenue from './components/Revenue';
 import Transactions from './components/Transactions';
 import OwnerPayments from './components/OwnerPayments';
@@ -10,12 +13,18 @@ import Refunds from './components/Refunds';
 import MortgageStatistics from './components/MortgageStatistics';
 import Budget from './components/Budget';
 import Reports from './components/Reports';
+import Payroll from './components/Payroll';
+import TaxCenter from './components/TaxCenter';
+import AuditLogs from './components/AuditLogs';
+import Forecasting from './components/Forecasting';
 
 export default function FinanceDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Revenue');
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Overview': return <Overview />;
+      case 'Messages': return <Messages />;
       case 'Revenue': return <Revenue />;
       case 'Transactions': return <Transactions />;
       case 'Owner Payments': return <OwnerPayments />;
@@ -26,7 +35,12 @@ export default function FinanceDashboardPage() {
       case 'Mortgage Statistics': return <MortgageStatistics />;
       case 'Budget': return <Budget />;
       case 'Reports': return <Reports />;
-      default: return <Revenue />;
+      case 'Payroll': return <Payroll />;
+      case 'Tax Center': return <TaxCenter />;
+      case 'Audit Logs': return <AuditLogs />;
+      case 'Forecasting': return <Forecasting />;
+      case 'Settings': return <Settings />;
+      default: return <Overview />;
     }
   };
 

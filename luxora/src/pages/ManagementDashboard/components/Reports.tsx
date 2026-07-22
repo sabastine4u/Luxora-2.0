@@ -4,7 +4,7 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { GoldButton, GhostButton } from '../../../components/ui/ui';
+import { GhostButton } from '../../../components/ui/ui';
 import { StatusBadge } from './shared/StatusBadge';
 import { ReportPreviewModal } from './modals/ReportPreviewModal';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
@@ -39,12 +39,6 @@ export default function Reports() {
         subtitle="Executive reporting workspace, analytics exports, and scheduled automated insights."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" /> Manage Schedule
-            </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Generate New Report
-            </GoldButton>
           </div>
         }
       />

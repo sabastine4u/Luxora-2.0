@@ -1,9 +1,11 @@
-import { Wrench, Building2, Filter } from 'lucide-react';
+import { Wrench, Building2, Filter, Eye, History } from 'lucide-react';
 import { GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Assets() {
+  const { showWorkflowToast } = useWorkflowToast();
   const assets = [
     { tag: 'AST-LND-001', name: 'Land Rover Defender', category: 'Vehicles', location: 'Lagos HQ', assignedTo: 'Operations', status: 'Active' },
     { tag: 'AST-IT-105', name: 'Server Rack A2', category: 'IT Infrastructure', location: 'Abuja Data Center', assignedTo: 'IT Dept', status: 'Active' },
@@ -17,7 +19,7 @@ export default function Assets() {
           <h2 className="font-heading text-2xl font-bold text-cream">Fixed Assets Register</h2>
           <p className="text-sm text-ink/60">Manage company-owned vehicles, equipment, and large assets.</p>
         </div>
-        <GoldButton>Register Asset</GoldButton>
+        <GoldButton onClick={() => showWorkflowToast('Register Asset')}>Register Asset</GoldButton>
       </div>
 
       <DataTableToolbar
@@ -25,7 +27,10 @@ export default function Assets() {
         onSearchChange={() => {}}
         searchPlaceholder="Search by tag or name..."
         actions={
-          <button className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors">
+          <button 
+            className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors"
+            onClick={() => showWorkflowToast('Category Filter')}
+          >
             <Filter className="h-4 w-4 mr-2" /> Category
           </button>
         }
@@ -67,7 +72,20 @@ export default function Assets() {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
             render: () => (
-              <button className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors" title="Schedule Maintenance"><Wrench className="h-4 w-4" /></button>
+              <div className="flex justify-end gap-2">
+                <button 
+                  className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
+                  onClick={() => showWorkflowToast('Asset Details')}
+                ><Eye className="h-4 w-4" /></button>
+                <button 
+                  className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
+                  onClick={() => showWorkflowToast('Assignment History')}
+                ><History className="h-4 w-4" /></button>
+                <button 
+                  className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"
+                  onClick={() => showWorkflowToast('Schedule Maintenance')}
+                ><Wrench className="h-4 w-4" /></button>
+              </div>
             )
           }
         ]}

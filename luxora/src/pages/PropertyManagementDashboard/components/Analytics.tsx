@@ -1,7 +1,17 @@
-import { PieChart, Download, Activity, Users } from 'lucide-react';
-import { GhostButton } from '../../../components/ui/ui';
+import { PieChart, Activity, Users } from 'lucide-react';
+import { EnterpriseExportMenu } from '../../../components/enterprise/EnterpriseExportMenu';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function Analytics() {
+  const { showToast } = useToast();
+
+  const handleAction = (action: string) => {
+    showToast({
+      title: 'Backend Integration',
+      description: `Action "${action}" is ready for backend integration.`,
+      type: 'info'
+    });
+  };
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -9,7 +19,9 @@ export default function Analytics() {
           <h2 className="font-heading text-2xl font-bold text-cream">Portfolio Analytics</h2>
           <p className="text-sm text-ink/60">High-level metrics on property performance and occupancy.</p>
         </div>
-        <GhostButton className="px-4"><Download className="h-4 w-4 mr-2" /> Export Report</GhostButton>
+        <EnterpriseExportMenu 
+          onExport={(format) => handleAction(`Export Analytics (${format})`)} 
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

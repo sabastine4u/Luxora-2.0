@@ -7,20 +7,24 @@ import Leads from './components/Leads';
 import Clients from './components/Clients';
 import Performance from './components/Performance';
 import Commissions from './components/Commissions';
+import Messages from './components/Messages';
+import Settings from './components/Settings';
 
 export default function AgencyDashboardPage() {
   const [activeTab, setActiveTab] = useState('Overview');
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Overview': return <Overview />;
+      case 'Overview': return <Overview onNavigate={setActiveTab} />;
+      case 'Messages': return <Messages />;
       case 'Listings': return <Listings />;
       case 'Agents': return <Agents />;
       case 'Leads': return <Leads />;
       case 'Clients': return <Clients />;
       case 'Performance': return <Performance />;
       case 'Commissions': return <Commissions />;
-      default: return <Overview />;
+      case 'Settings': return <Settings />;
+      default: return <Overview onNavigate={setActiveTab} />;
     }
   };
 

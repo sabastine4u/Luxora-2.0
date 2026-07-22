@@ -2,7 +2,8 @@ import type { ReactNode, SVGProps } from 'react';
 
 export interface ButtonProps {
   children: ReactNode;
-  onClick?: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onClick?: (e?: any) => void;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
@@ -13,3 +14,5 @@ export type IconProps = SVGProps<SVGSVGElement>;
 
 export * from './agent';
 export * from './property';
+export * from './propertyManager';
+export * from './homeServices';

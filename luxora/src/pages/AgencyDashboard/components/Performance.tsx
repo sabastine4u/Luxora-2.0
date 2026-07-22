@@ -1,4 +1,4 @@
-import { TrendingUp, Target, Building2, BarChart3, Activity, Star, Calendar, DollarSign, ArrowUpRight, ArrowDownRight, PieChart } from 'lucide-react';
+import { TrendingUp, Target, Building2, Activity, Star, DollarSign, ArrowUpRight, ArrowDownRight, PieChart } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
@@ -24,16 +24,6 @@ export default function Performance() {
       <DashboardHeader
         name="Agency Performance"
         subtitle="Executive intelligence, market analysis, and agency productivity."
-        actions={
-          <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" /> Q4 2025
-            </GhostButton>
-            <GhostButton className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" /> Executive Report
-            </GhostButton>
-          </div>
-        }
       />
 
       {/* Executive KPI Dashboard */}

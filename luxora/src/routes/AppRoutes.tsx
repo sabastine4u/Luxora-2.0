@@ -39,6 +39,7 @@ import FAQPage from '../pages/FAQ/FAQPage'
 import PrivacyPolicyPage from '../pages/Legal/PrivacyPolicyPage'
 import TermsOfServicePage from '../pages/Legal/TermsOfServicePage'
 import NotFoundPage from '../pages/NotFound/NotFoundPage'
+import CreateListingPage from '../pages/Dashboard/CreateListing/CreateListingPage'
 import { ROUTES } from '../constants/routes'
 import { ProtectedRoute } from '../components/auth/ProtectedRoute'
 import { 
@@ -79,6 +80,7 @@ export default function AppRoutes() {
       <Route path={ROUTES.SERVICE_PROPERTY_INTELLIGENCE} element={<PropertyIntelligencePage />} />
 
       {/* Protected Dashboard Routes */}
+      <Route path={ROUTES.CREATE_LISTING} element={<ProtectedRoute allowedRoles={[ROLES.AGENT, ROLES.ADMIN, ROLES.SUPER_ADMIN]}><CreateListingPage /></ProtectedRoute>} />
       <Route path={ROUTES.BUYER_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.BUYER]}><BuyerDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.OWNER_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.OWNER]}><OwnerDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.AGENT_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.AGENT]}><AgentDashboardPage /></ProtectedRoute>} />

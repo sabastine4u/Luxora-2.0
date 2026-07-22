@@ -11,6 +11,9 @@ import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 
+import { ROUTES } from '../../../constants/routes';
+import { useNavigate } from 'react-router-dom';
+
 const mockListings = [
   { id: 'LST-801', title: 'Skyline Penthouse', owner: 'Aliko Dangote', location: 'Ikoyi, Lagos', price: '₦450M', status: 'Pending Review', priority: 'High' },
   { id: 'LST-802', title: 'Banana Island Mansion', owner: 'Tony Elumelu', location: 'Banana Island', price: '₦1.2B', status: 'Approved', priority: 'Normal' },
@@ -24,6 +27,7 @@ export default function Listings() {
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<string | null>(null);
   const [previewListing, setPreviewListing] = useState<Record<string, unknown> | null>(null);
+  const navigate = useNavigate();
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedRows);
@@ -57,6 +61,11 @@ export default function Listings() {
       <DashboardHeader 
         name="Listing Moderation"
         subtitle="Review and moderate property listings before they go live."
+        actions={
+          <GoldButton onClick={() => navigate(ROUTES.CREATE_LISTING)} className="flex items-center gap-2">
+            Create Platform Listing
+          </GoldButton>
+        }
       />
 
       <div className="mb-2">

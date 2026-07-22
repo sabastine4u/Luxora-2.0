@@ -1,8 +1,7 @@
-import { Target, TrendingUp, Award, BarChart3, AlertTriangle, ArrowRight, Activity, FileText } from 'lucide-react';
+import { Target, TrendingUp, Award, AlertTriangle, Activity } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
-import { GhostButton, GoldButton } from '../../../components/ui/ui';
 
 export default function Performance() {
   const departmentScores = [
@@ -32,12 +31,6 @@ export default function Performance() {
         subtitle="Quarterly scorecards, executive insights, and organizational productivity."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> View Full Report
-            </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" /> Custom Analytics
-            </GoldButton>
           </div>
         }
       />
@@ -121,9 +114,6 @@ export default function Performance() {
                   </div>
                 ))}
               </div>
-              <GhostButton className="w-full mt-4 flex items-center justify-center gap-2 text-xs">
-                View Full Rankings <ArrowRight className="h-4 w-4" />
-              </GhostButton>
             </div>
 
             {/* Goal Achievement Breakdown */}

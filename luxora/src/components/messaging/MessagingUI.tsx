@@ -32,7 +32,7 @@ interface Message {
 }
 
 interface MessagingUIProps {
-  userRole: 'Buyer' | 'Owner' | 'Agent' | 'Agency' | 'Admin';
+  userRole: 'Buyer' | 'Owner' | 'Agent' | 'Agency' | 'Admin' | 'Manager' | 'Procurement' | 'Finance' | 'Analyst' | 'Property Manager';
 }
 
 export function MessagingUI({ userRole }: MessagingUIProps) {
@@ -141,6 +141,15 @@ export function MessagingUI({ userRole }: MessagingUIProps) {
         { id: 'manager-1', name: 'Sarah Jenkins', role: 'Property Manager', avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 0, time: 'Sep 28', lastMessage: 'The maintenance report for the Ikoyi block is attached.', isOnline: false },
         { id: 'admin-1', name: 'System Notifications', role: 'Admin', avatar: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=200&h=200&fit=crop', unread: 0, time: 'Sep 25', lastMessage: 'Your agency license verification is complete.', isOnline: true },
         { id: 'super-1', name: 'Luxora Corporate', role: 'Super Admin', avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 0, time: 'Sep 20', lastMessage: 'Please review the updated platform terms.', isOnline: false }
+      ];
+    }
+
+    if (userRole === 'Finance') {
+      return [
+        { id: 'admin-1', name: 'System Notifications', role: 'Admin', avatar: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=200&h=200&fit=crop', unread: 2, time: '09:00 AM', lastMessage: 'Monthly reconciliation report is ready for review.', isOnline: true },
+        { id: 'manager-1', name: 'Olivia Chen', role: 'Management', avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 1, time: 'Yesterday', lastMessage: 'Can we discuss the budget variance for Q3?', isOnline: true },
+        { id: 'procurement-1', name: 'David Kim', role: 'Procurement', avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 0, time: 'Monday', lastMessage: 'Vendor invoice #INV-492 has been uploaded.', isOnline: false },
+        { id: 'agent-1', name: 'Sarah Jenkins', role: 'Agent', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=200', unread: 0, time: 'Last Week', lastMessage: 'When will my commission for the Ikoyi deal be processed?', isOnline: true }
       ];
     }
 

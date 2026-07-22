@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Users, Filter, UserPlus, CheckCircle2, AlertTriangle, ArrowRightLeft, Clock, Award, Star, Activity } from 'lucide-react';
+import { Users, Filter, CheckCircle2, AlertTriangle, ArrowRightLeft, Clock, Award, Star, Activity } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { GoldButton, GhostButton } from '../../../components/ui/ui';
+import { GhostButton } from '../../../components/ui/ui';
 import { StatusBadge } from './shared/StatusBadge';
 import { ManagementTeamDetailModal } from './modals/ManagementTeamDetailModal';
 
@@ -37,12 +37,6 @@ export default function TeamManagement() {
         subtitle="Manage cross-department personnel, workforce distribution, and enterprise capacity."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
-              <ArrowRightLeft className="h-4 w-4" /> Transfer Request
-            </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" /> Add Personnel
-            </GoldButton>
           </div>
         }
       />

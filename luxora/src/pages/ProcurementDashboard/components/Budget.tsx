@@ -1,6 +1,10 @@
-import { PieChart } from 'lucide-react';
+import { PieChart, Download, Eye } from 'lucide-react';
+import { GoldButton } from '../../../components/ui/ui';
+import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Budget() {
+  const { showWorkflowToast } = useWorkflowToast();
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -8,11 +12,19 @@ export default function Budget() {
           <h2 className="font-heading text-2xl font-bold text-cream">Procurement Budget Allocation</h2>
           <p className="text-sm text-ink/60">Monitor departmental spending against allocated budgets.</p>
         </div>
-        <select className="rounded-xl border border-white/10 bg-navy-900/80 py-2 px-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none appearance-none">
-          <option>Q4 2025</option>
-          <option>Q3 2025</option>
-          <option>FY 2025</option>
-        </select>
+        <div className="flex gap-2">
+          <select 
+            className="rounded-xl border border-white/10 bg-navy-900/80 py-2 px-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none appearance-none cursor-pointer"
+            onChange={(e) => showWorkflowToast(`Filter: ${e.target.value}`)}
+          >
+            <option>Q4 2025</option>
+            <option>Q3 2025</option>
+            <option>FY 2025</option>
+          </select>
+          <GoldButton onClick={() => showWorkflowToast('Download Budget Report')}>
+            <Download className="h-4 w-4 mr-2 inline-block" /> Report
+          </GoldButton>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
@@ -37,9 +49,12 @@ export default function Budget() {
          
          <div className="space-y-6">
             <div>
-              <div className="flex justify-between text-sm mb-2">
+              <div className="flex justify-between text-sm mb-2 items-center">
                 <span className="text-cream font-medium">IT & Infrastructure</span>
-                <span className="text-ink/60">₦45.0M / ₦60.0M <span className="text-emerald-400 ml-2">(75%)</span></span>
+                <div className="flex items-center gap-4">
+                  <span className="text-ink/60">₦45.0M / ₦60.0M <span className="text-emerald-400 ml-2">(75%)</span></span>
+                  <button onClick={() => showWorkflowToast('Department Budget Details')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
+                </div>
               </div>
               <div className="h-3 bg-navy-900 rounded-full overflow-hidden">
                 <div className="h-full bg-blue-400 w-[75%]"></div>
@@ -47,9 +62,12 @@ export default function Budget() {
             </div>
             
             <div>
-              <div className="flex justify-between text-sm mb-2">
+              <div className="flex justify-between text-sm mb-2 items-center">
                 <span className="text-cream font-medium">Marketing & Events</span>
-                <span className="text-ink/60">₦28.5M / ₦30.0M <span className="text-rose-400 ml-2">(95%)</span></span>
+                <div className="flex items-center gap-4">
+                  <span className="text-ink/60">₦28.5M / ₦30.0M <span className="text-rose-400 ml-2">(95%)</span></span>
+                  <button onClick={() => showWorkflowToast('Department Budget Details')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
+                </div>
               </div>
               <div className="h-3 bg-navy-900 rounded-full overflow-hidden flex">
                 <div className="h-full bg-rose-400 w-[95%]"></div>
@@ -57,9 +75,12 @@ export default function Budget() {
             </div>
 
             <div>
-              <div className="flex justify-between text-sm mb-2">
+              <div className="flex justify-between text-sm mb-2 items-center">
                 <span className="text-cream font-medium">Facilities & Maintenance</span>
-                <span className="text-ink/60">₦11.0M / ₦40.0M <span className="text-emerald-400 ml-2">(27.5%)</span></span>
+                <div className="flex items-center gap-4">
+                  <span className="text-ink/60">₦11.0M / ₦40.0M <span className="text-emerald-400 ml-2">(27.5%)</span></span>
+                  <button onClick={() => showWorkflowToast('Department Budget Details')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
+                </div>
               </div>
               <div className="h-3 bg-navy-900 rounded-full overflow-hidden flex">
                 <div className="h-full bg-emerald-400 w-[27.5%]"></div>
