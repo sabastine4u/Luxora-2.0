@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import Listings from './components/Listings';
@@ -11,7 +11,12 @@ import Messages from './components/Messages';
 import Settings from './components/Settings';
 
 export default function AgencyDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Overview';
+
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   const renderContent = () => {
     switch (activeTab) {

@@ -7,40 +7,13 @@ import { DataTableToolbar } from '../../../components/dashboard/shared/filters/D
 import { ReportDetailModal } from './ReportDetailModal';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-
-export interface ComplaintTicket {
-  id: string;
-  type: string;
-  user: string;
-  target: string;
-  status: string;
-  priority: string;
-  date: string;
-  [key: string]: unknown;
-}
-
-const mockComplaints: ComplaintTicket[] = [
-  { id: 'TKT-504', type: 'Listing Dispute', user: 'Ngozi Eze (Buyer)', target: 'Skyline Penthouse', status: 'Open', priority: 'High', date: '2 hours ago' },
-  { id: 'TKT-503', type: 'Agent Conduct', user: 'Anonymous (Owner)', target: 'Oluwaseun Adeyemi', status: 'In Progress', priority: 'Medium', date: '1 day ago' },
-  { id: 'TKT-502', type: 'Platform Bug', user: 'Chidi Okafor (Agent)', target: 'Messaging System', status: 'Resolved', priority: 'Low', date: '3 days ago' },
-];
+import { adminComplaints } from '../../../data/adminData';
+import type { AdminComplaint } from '../../../types/admin';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 
 export default function Complaints() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedReport, setSelectedReport] = useState<Record<string, unknown> | null>(null);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'High': return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
-      case 'Medium': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
-      case 'Low': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
-      case 'Open':
-      case 'Under Review': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
-      case 'Resolved': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-      case 'Closed': return 'text-ink/60 bg-white/5 border-white/10';
-      default: return 'text-ink/60 bg-white/5 border-white/10';
-    }
-  };
+  const [selectedReport, setSelectedReport] = useState<AdminComplaint | null>(null);
 
   return (
     <div className="space-y-6">
@@ -96,16 +69,16 @@ export default function Complaints() {
       />
 
       <DataTable
-        data={mockComplaints}
+        data={adminComplaints}
         keyExtractor={(ticket) => ticket.id}
         columns={[
           {
             header: "Ticket ID",
-            render: (ticket: ComplaintTicket) => <span className="font-medium text-cream">{ticket.id}</span>
+            render: (ticket: AdminComplaint) => <span className="font-medium text-cream">{ticket.id}</span>
           },
           {
             header: "Type / Priority",
-            render: (ticket: ComplaintTicket) => (
+            render: (ticket: AdminComplaint) => (
               <>
                 <div className="font-semibold text-cream">{ticket.type}</div>
                 <div className={`text-xs mt-0.5 ${ticket.priority === 'High' ? 'text-rose-400' : ticket.priority === 'Medium' ? 'text-yellow-400' : 'text-blue-400'}`}>
@@ -116,24 +89,27 @@ export default function Complaints() {
           },
           {
             header: "Reported By",
-            render: (ticket: ComplaintTicket) => <span className="text-ink/60">{ticket.user}</span>
+            render: (ticket: AdminComplaint) => <span className="text-ink/60">{ticket.user}</span>
           },
           {
             header: "Target",
-            render: (ticket: ComplaintTicket) => <span className="text-ink/60">{ticket.target}</span>
-          },
-          {
-            header: "Status",
-            render: (ticket: ComplaintTicket) => (
-              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${getStatusColor(ticket.status)}`}>
-                {ticket.status}
-              </span>
+            render: (ticket: AdminComplaint) => (
+              <div className="flex flex-col gap-1">
+                <div className="w-fit">
+                  <EnterpriseStatusBadge status={ticket.status} />
+                </div>
+                {ticket.priority === 'High' && (
+                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase w-fit text-rose-400 bg-rose-400/10 border-rose-400/20">
+                    High Priority
+                  </span>
+                )}
+              </div>
             )
           },
           {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
-            render: (ticket: ComplaintTicket) => (
+            render: (ticket: AdminComplaint) => (
               <div className="flex items-center justify-end gap-2">
                 {ticket.status !== 'Resolved' && (
                   <button className="rounded-lg p-2 text-ink/40 hover:bg-emerald-400/10 hover:text-emerald-400 transition-colors" title="Mark Resolved">
@@ -166,7 +142,7 @@ export default function Complaints() {
       <ReportDetailModal 
         isOpen={!!selectedReport}
         onClose={() => setSelectedReport(null)}
-        report={selectedReport}
+        report={selectedReport as Record<string, unknown> | null}
       />
     </div>
   );

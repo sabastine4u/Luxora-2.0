@@ -16,3 +16,6 @@ export * from './agent';
 export * from './property';
 export * from './propertyManager';
 export * from './homeServices';
+export * from './buyer';
+export * from './owner';
+export * from './management';

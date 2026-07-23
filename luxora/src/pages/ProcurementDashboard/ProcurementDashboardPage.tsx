@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { EnterpriseLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import Messages from './components/Messages';
@@ -17,14 +17,19 @@ import Payments from './components/Payments';
 import Reports from './components/Reports';
 
 export default function ProcurementDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Overview');
-  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Overview';
+  const selectedVendorId = searchParams.get('vendorId');
 
   const handleNavigate = (tab: string, id?: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('tab', tab);
     if (id) {
-      setSelectedVendorId(id);
+      newParams.set('vendorId', id);
+    } else {
+      newParams.delete('vendorId');
     }
-    setActiveTab(tab);
+    setSearchParams(newParams);
   };
 
   const renderContent = () => {
@@ -33,7 +38,7 @@ export default function ProcurementDashboardPage() {
       case 'Messages': return <Messages />;
       case 'Settings': return <Settings />;
       case 'Vendor Directory': return <VendorDirectory onNavigate={handleNavigate} />;
-      case 'Vendor Details': return <VendorDetails vendorId={selectedVendorId} onBack={() => setActiveTab('Vendor Directory')} />;
+      case 'Vendor Details': return <VendorDetails vendorId={selectedVendorId} onBack={() => handleNavigate('Vendor Directory')} />;
       case 'RFQs': return <RFQs />;
       case 'Purchase Requests': return <PurchaseRequests />;
       case 'Purchase Orders': return <PurchaseOrders />;
@@ -48,8 +53,12 @@ export default function ProcurementDashboardPage() {
     }
   };
 
+  const handleTabChange = (tab: string) => {
+    handleNavigate(tab);
+  };
+
   return (
-    <EnterpriseLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <EnterpriseLayout activeTab={activeTab} onTabChange={handleTabChange}>
       {renderContent()}
     </EnterpriseLayout>
   );

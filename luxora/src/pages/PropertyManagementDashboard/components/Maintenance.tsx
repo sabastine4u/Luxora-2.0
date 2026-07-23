@@ -9,7 +9,7 @@ import { useToast } from '../../../contexts/ToastContext';
 import type { MaintenanceRequest } from '../../../types/propertyManager';
 import { MaintenanceRequestModal } from './modals/MaintenanceRequestModal';
 import { VendorSelectionModal } from './modals/VendorSelectionModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 export default function Maintenance() {
   const requests: MaintenanceRequest[] = [
     { id: 'MNT-102', title: 'Leaking AC Unit', propertyId: 'Lekki Phase 1 Apt', tenantId: 'Sarah Jenkins', priority: 'High', status: 'In Progress', createdAt: 'Oct 05, 2025', unit: 'Apt 4B' },

@@ -7,22 +7,31 @@ import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
+import { useToast } from '../../../contexts/ToastContext';
+import { mockReports as MOCK_REPORTS } from '../../../data/agentData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import type { PerformanceReport } from '../../../types/agent';
 
 export default function Reports() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('All');
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
+
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
+
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
   
   const reportCategories = [
     'All', 'Sales Reports', 'Listings Reports', 'Leads Reports', 
     'Viewing Reports', 'Commission Reports', 'Activity Reports'
   ];
 
-  const mockReports = [
-    { id: 1, name: 'Q3 2026 Performance Summary', category: 'Sales Reports', date: 'Oct 1, 2026', status: 'Generated', updated: 'Today, 09:41 AM' },
-    { id: 2, name: 'September Leads Conversion', category: 'Leads Reports', date: 'Oct 1, 2026', status: 'Generated', updated: 'Today, 08:30 AM' },
-    { id: 3, name: 'Q2 2026 Commission Statement', category: 'Commission Reports', date: 'Jul 1, 2026', status: 'Archived', updated: 'Jul 1, 2026' },
-    { id: 4, name: 'Active Listings Overview', category: 'Listings Reports', date: 'Oct 5, 2026', status: 'Processing', updated: 'Just now' },
-    { id: 5, name: 'September Viewings Log', category: 'Viewing Reports', date: 'Oct 1, 2026', status: 'Generated', updated: 'Oct 1, 2026' },
-  ];
+  const mockReports = MOCK_REPORTS.filter(r => activeTab === 'All' || r.type === activeTab);
 
   return (
     <div className="space-y-8 pb-12">
@@ -33,10 +42,10 @@ export default function Reports() {
           <p className="text-sm text-ink/60">Analyze your business performance and export professional reports.</p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <GhostButton size="sm"><Printer className="h-4 w-4 mr-2"/> Print Report</GhostButton>
-          <GhostButton size="sm"><FileDown className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
-          <GhostButton size="sm"><Download className="h-4 w-4 mr-2"/> Export PDF</GhostButton>
-          <GoldButton size="sm"><Plus className="h-4 w-4 mr-2"/> Generate Report</GoldButton>
+          <GhostButton size="sm" onClick={() => handleAction('Print Report', 'print_report')}><Printer className="h-4 w-4 mr-2"/> Print Report</GhostButton>
+          <GhostButton size="sm" onClick={() => handleAction('Export CSV', 'export_csv')}><FileDown className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
+          <GhostButton size="sm" onClick={() => handleAction('Export PDF', 'export_pdf')}><Download className="h-4 w-4 mr-2"/> Export PDF</GhostButton>
+          <GoldButton size="sm" onClick={() => handleAction('Generate Report', 'generate_report')}><Plus className="h-4 w-4 mr-2"/> Generate Report</GoldButton>
         </div>
       </div>
 
@@ -164,26 +173,26 @@ export default function Reports() {
             columns={[
               {
                 header: "Report Name",
-                render: (report) => (
+                render: (report: PerformanceReport) => (
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-gold-400 shrink-0">
                       <FileText className="h-4 w-4" />
                     </div>
-                    <span className="font-semibold text-cream truncate max-w-[200px] sm:max-w-xs">{report.name}</span>
+                    <span className="font-semibold text-cream truncate max-w-[200px] sm:max-w-xs">{report.title}</span>
                   </div>
                 )
               },
               {
                 header: "Category",
-                render: (report) => <span className="text-ink/80 bg-white/5 px-2 py-1 rounded-md text-[11px] whitespace-nowrap">{report.category}</span>
+                render: (report: PerformanceReport) => <span className="text-ink/80 bg-white/5 px-2 py-1 rounded-md text-[11px] whitespace-nowrap">{report.type}</span>
               },
               {
                 header: "Date Generated",
-                render: (report) => <span className="text-ink/80 whitespace-nowrap"><CalendarIcon className="h-3 w-3 inline mr-1 opacity-50"/> {report.date}</span>
+                render: (report: PerformanceReport) => <span className="text-ink/80 whitespace-nowrap"><CalendarIcon className="h-3 w-3 inline mr-1 opacity-50"/> {report.date}</span>
               },
               {
                 header: "Status",
-                render: (report) => (
+                render: (report: PerformanceReport) => (
                   <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
                     report.status === 'Generated' ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' :
                     report.status === 'Processing' ? 'text-amber-400 border-amber-400/20 bg-amber-400/10' :
@@ -195,20 +204,20 @@ export default function Reports() {
               },
               {
                 header: "Last Updated",
-                render: (report) => <span className="text-ink/60 text-xs whitespace-nowrap"><Clock className="h-3 w-3 inline mr-1 opacity-50"/> {report.updated}</span>
+                render: (report: PerformanceReport) => <span className="text-ink/60 text-xs whitespace-nowrap"><Clock className="h-3 w-3 inline mr-1 opacity-50"/> {report.updated}</span>
               },
               {
                 header: <div className="text-right">Actions</div>,
                 className: "text-right",
-                render: () => (
+                render: (report: PerformanceReport) => (
                   <div className="flex items-center justify-end gap-2">
-                    <button className="p-1.5 text-ink/40 hover:text-gold-400 hover:bg-gold-400/10 rounded-md transition-colors" title="Download PDF">
+                    <button onClick={() => handleAction('Download PDF', 'download_pdf', report)} className="p-1.5 text-ink/40 hover:text-gold-400 hover:bg-gold-400/10 rounded-md transition-colors" title="Download PDF">
                       <Download className="h-4 w-4" />
                     </button>
-                    <button className="p-1.5 text-ink/40 hover:text-gold-400 hover:bg-gold-400/10 rounded-md transition-colors" title="View Details">
+                    <button onClick={() => handleAction('View Details', 'view_details', report)} className="p-1.5 text-ink/40 hover:text-gold-400 hover:bg-gold-400/10 rounded-md transition-colors" title="View Details">
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button className="p-1.5 text-ink/40 hover:text-cream hover:bg-white/5 rounded-md transition-colors">
+                    <button onClick={() => handleAction('More Options', 'more_options', report)} className="p-1.5 text-ink/40 hover:text-cream hover:bg-white/5 rounded-md transition-colors">
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </div>
@@ -229,6 +238,42 @@ export default function Reports() {
         )}
       </div>
 
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

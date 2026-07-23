@@ -7,12 +7,13 @@ import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { GhostButton } from '../../../components/ui/ui';
 import { StatusBadge } from './shared/StatusBadge';
 import { ManagementTeamDetailModal } from './modals/ManagementTeamDetailModal';
+import type { TeamMember } from '../../../types';
 
 export default function TeamManagement() {
-  const [selectedMember, setSelectedMember] = useState<Record<string, unknown> | null>(null);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const teamMembers = [
+  const teamMembers: TeamMember[] = [
     { id: 'TM-101', name: 'Sarah Jacobs', department: 'Finance', role: 'Director', status: 'Active', performance: 'A+' },
     { id: 'TM-102', name: 'Chidi Okafor', department: 'Procurement', role: 'Manager', status: 'On Leave', performance: 'B+' },
     { id: 'TM-103', name: 'Aisha Lawal', department: 'Property Management', role: 'Director', status: 'Active', performance: 'A' },
@@ -25,7 +26,7 @@ export default function TeamManagement() {
     { name: 'Musa Bello', reason: 'Zero security breaches in 12 months', award: 'Security Champion' },
   ];
 
-  const handleRowClick = (member: Record<string, unknown>) => {
+  const handleRowClick = (member: TeamMember) => {
     setSelectedMember(member);
     setIsModalOpen(true);
   };
@@ -142,42 +143,42 @@ export default function TeamManagement() {
 
             <DataTable
               data={teamMembers}
-              keyExtractor={(member) => String(member.id)}
+              keyExtractor={(member) => member.id}
               columns={[
                 {
                   header: "Name",
                   render: (member) => (
                     <div className="font-semibold text-cream flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-700 text-gold-400 text-xs font-bold border border-white/5">
-                        {String(member.name).charAt(0)}
+                        {member.name.charAt(0)}
                       </div>
-                      {String(member.name)}
+                      {member.name}
                     </div>
                   )
                 },
                 {
                   header: "Role",
-                  render: (member) => <span className="text-ink/60">{String(member.role)}</span>
+                  render: (member) => <span className="text-ink/60">{member.role}</span>
                 },
                 {
                   header: "Department",
                   render: (member) => (
                     <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-900/50 px-2.5 py-0.5 text-xs text-ink/60">
-                      {String(member.department)}
+                      {member.department}
                     </span>
                   )
                 },
                 {
                   header: "Performance",
                   render: (member) => (
-                    <span className={`font-bold ${String(member.performance).startsWith('A') ? 'text-emerald-400' : String(member.performance).startsWith('B') ? 'text-blue-400' : 'text-yellow-400'}`}>
-                      {String(member.performance)}
+                    <span className={`font-bold ${member.performance.startsWith('A') ? 'text-emerald-400' : member.performance.startsWith('B') ? 'text-blue-400' : 'text-yellow-400'}`}>
+                      {member.performance}
                     </span>
                   )
                 },
                 {
                   header: "Status",
-                  render: (member) => <StatusBadge status={String(member.status)} />
+                  render: (member) => <StatusBadge status={member.status} />
                 },
                 {
                   header: <div className="text-right">Actions</div>,

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import MyPropertyRequests from './components/MyPropertyRequests';
@@ -11,11 +12,16 @@ import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 
 export default function OwnerDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Overview';
+
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Overview': return <Overview onNavigate={setActiveTab} />;
+      case 'Overview': return <Overview onNavigate={handleTabChange} />;
       case 'My Property Requests': return <MyPropertyRequests />;
       case 'Verification Progress': return <VerificationProgress />;
       case 'Listing Journey': return <ListingJourney />;
@@ -24,12 +30,12 @@ export default function OwnerDashboardPage() {
       case 'Rental Income': return <RentalIncome />;
       case 'Analytics': return <Analytics />;
       case 'Settings': return <Settings />;
-      default: return <Overview onNavigate={setActiveTab} />;
+      default: return <Overview onNavigate={handleTabChange} />;
     }
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <DashboardLayout activeTab={activeTab} onTabChange={handleTabChange}>
       {renderContent()}
     </DashboardLayout>
   );

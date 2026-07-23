@@ -7,7 +7,7 @@ import { EnterpriseStatusBadge } from '../../../components/enterprise/Enterprise
 import { serviceCategories } from '../../../data/homeServicesData';
 import type { ServiceCategory } from '../../../types';
 import { CategoryFormModal } from './modals/CategoryFormModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function Categories() {

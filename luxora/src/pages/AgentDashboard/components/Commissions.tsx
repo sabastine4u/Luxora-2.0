@@ -1,33 +1,39 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { DollarSign, Download, TrendingUp, CheckCircle2, Calculator, ArrowUpRight, Activity, Target, AlertCircle, ShieldCheck, Wallet, Lightbulb } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { CommissionDetailModal } from './modals/CommissionDetailModal';
+import { useToast } from '../../../contexts/ToastContext';
+import { commissions as MOCK_COMMISSIONS } from '../../../data/agentData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 export default function Commissions() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedComm, setSelectedComm] = useState<any | null>(null);
+  const [selectedComm, setSelectedComm] = useState<Record<string, unknown> | null>(null);
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
 
-  const commissions = [
-    { id: 'CM-901', property: 'Skyline Penthouse', client: 'Aliko Dangote', amount: '₦12,500,000', status: 'Pending', date: 'Nov 15, 2026', type: 'Sales Commission', split: '70/30' },
-    { id: 'CM-902', property: 'Victoria Island Office', client: 'Folorunso Alakija', amount: '₦8,400,000', status: 'Processing', date: 'Oct 28, 2026', type: 'Sales Commission', split: '70/30' },
-    { id: 'CM-903', property: 'Lekki Phase 1 Villa', client: 'Tony Elumelu', amount: '₦4,500,000', status: 'Paid', date: 'Oct 5, 2026', type: 'Sales Commission', split: '70/30' },
-    { id: 'CM-904', property: 'Banana Island Plot', client: 'Mike Adenuga', amount: '₦1,200,000', status: 'Paid', date: 'Sep 12, 2026', type: 'Referral Fee', split: '100/0' },
-  ];
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
 
-  const filteredComms = commissions.filter(c => 
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
+
+  const filteredComms = MOCK_COMMISSIONS.filter(c => 
     c.property.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.client.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.client && c.client.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleViewComm = (comm: any) => {
+  const handleViewComm = (comm: Record<string, unknown>) => {
     setSelectedComm(comm);
   };
 
@@ -59,10 +65,10 @@ export default function Commissions() {
         subtitle="Forecast earnings, track savings goals, and manage your business finances."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => handleAction('Tax Estimator', 'tax_estimator')}>
               <Calculator className="h-4 w-4" /> Tax Estimator
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => handleAction('Export Report', 'export_report')}>
               <Download className="h-4 w-4" /> Export Report
             </GoldButton>
           </div>
@@ -186,50 +192,50 @@ export default function Commissions() {
             searchPlaceholder="Search by property or client..."
           />
 
-          <DataTable keyExtractor={(item: any, index: number) => item.id || String(index)}
+          <DataTable keyExtractor={(item: Record<string, unknown>, index: number) => (item.id as string) || String(index)}
             columns={[
               {
                 header: 'Property / Client',
-                render: (comm: any) => (
+                render: (comm: Record<string, unknown>) => (
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-gold-400/20 flex items-center justify-center text-gold-400">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className="font-semibold text-cream">{comm.property}</div>
-                      <div className="text-xs text-ink/60">{comm.client}</div>
+                      <div className="font-semibold text-cream">{comm.property as string}</div>
+                      <div className="text-xs text-ink/60">{comm.client as string}</div>
                     </div>
                   </div>
                 )
               },
               {
                 header: 'Commission Amount',
-                render: (comm: any) => (
-                  <div className="font-bold text-emerald-400 text-base">{comm.amount}</div>
+                render: (comm: Record<string, unknown>) => (
+                  <div className="font-bold text-emerald-400 text-base">{comm.amount as string}</div>
                 )
               },
               {
                 header: 'Type / Split',
-                render: (comm: any) => (
+                render: (comm: Record<string, unknown>) => (
                   <div>
-                    <div className="font-medium text-cream text-sm">{comm.type}</div>
-                    <div className="text-xs text-ink/60 mt-0.5">Split: {comm.split}</div>
+                    <div className="font-medium text-cream text-sm">{comm.type as string}</div>
+                    <div className="text-xs text-ink/60 mt-0.5">Split: {comm.split as string}</div>
                   </div>
                 )
               },
               {
                 header: 'Expected / Paid Date',
-                render: (comm: any) => (
-                  <div className="text-sm text-cream">{comm.date}</div>
+                render: (comm: Record<string, unknown>) => (
+                  <div className="text-sm text-cream">{comm.date as string}</div>
                 )
               },
               {
                 header: 'Status',
-                render: (comm: any) => <StatusBadge status={comm.status} />
+                render: (comm: Record<string, unknown>) => <EnterpriseStatusBadge status={comm.status as string} />
               },
               {
                 header: 'Actions',
-                render: (comm: any) => (
+                render: (comm: Record<string, unknown>) => (
                   <GhostButton 
                     onClick={() => handleViewComm(comm)}
                     className="h-8 px-3 text-xs"
@@ -302,6 +308,43 @@ export default function Commissions() {
         onClose={() => setSelectedComm(null)} 
         commission={selectedComm} 
       />
+
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

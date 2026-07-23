@@ -1,22 +1,18 @@
 import { useState } from 'react';
-import { ShieldAlert, MoreHorizontal, SearchX, UserCheck, Users, CheckCircle, Star, UserPlus, Activity } from 'lucide-react';
+import { MoreHorizontal, SearchX, Users, CheckCircle, Star, UserPlus, Activity } from 'lucide-react';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
-
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { UserDetailModal } from './UserDetailModal';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-
-const mockAgents = [
-  { id: 'AGT-001', name: 'Adaeze Okonkwo', agency: 'Meridian Luxury', deals: 42, joined: 'Jan 2024', status: 'Verified' },
-  { id: 'AGT-002', name: 'Chioma Obi', agency: 'Meridian Luxury', deals: 12, joined: 'Mar 2024', status: 'Verified' },
-  { id: 'AGT-003', name: 'Oluwaseun Adeyemi', agency: 'Independent', deals: 0, joined: 'Oct 2025', status: 'Pending KYC' },
-];
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { adminAgents } from '../../../data/adminData';
+import type { AdminAgent } from '../../../types/admin';
 
 export default function Agents() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<Record<string, unknown> | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminAgent | null>(null);
 
   return (
     <div className="space-y-6">
@@ -42,7 +38,7 @@ export default function Agents() {
           />
 
           <DataTable
-            data={mockAgents}
+            data={adminAgents}
             keyExtractor={(agent) => agent.id}
             columns={[
               {
@@ -67,17 +63,7 @@ export default function Agents() {
               },
               {
                 header: "KYC Status",
-                render: (agent) => (
-                  agent.status === 'Verified' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 uppercase">
-                      <UserCheck className="h-3 w-3" /> Verified
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-400/10 border border-blue-400/20 px-2.5 py-1 text-[10px] font-semibold text-blue-400 uppercase">
-                      <ShieldAlert className="h-3 w-3" /> Pending
-                    </span>
-                  )
-                )
+                render: (agent) => <EnterpriseStatusBadge status={agent.status} />
               },
               {
                 header: <div className="text-right">Actions</div>,
@@ -114,13 +100,38 @@ export default function Agents() {
         </div>
       </div>
 
-
-
-      <UserDetailModal
+      <EnterpriseDetailDrawer
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
-        user={selectedUser}
-      />
+        title="Agent Details"
+        subtitle={selectedUser?.name}
+        footerActions={
+          <button className="w-full rounded-xl bg-gold-400 py-3 text-sm font-bold text-navy-900 transition-colors hover:bg-gold-300">
+            Edit Agent
+          </button>
+        }
+      >
+        {selectedUser && (
+          <div className="space-y-6">
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Status</div>
+              <EnterpriseStatusBadge status={selectedUser.status} />
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Agency</div>
+              <div className="text-sm font-semibold text-cream">{selectedUser.agency}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Total Deals</div>
+              <div className="text-sm font-semibold text-gold-400">{selectedUser.deals}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Joined Date</div>
+              <div className="text-sm font-semibold text-cream">{selectedUser.joined}</div>
+            </div>
+          </div>
+        )}
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

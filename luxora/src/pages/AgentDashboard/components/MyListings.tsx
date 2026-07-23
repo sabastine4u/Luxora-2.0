@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Download, Home, Building2, Eye, Heart, TrendingUp, Filter, AlertCircle, Sparkles, CheckCircle2, Clock, Award, Share2, Megaphone, Target, Video } from 'lucide-react';
@@ -15,7 +14,7 @@ import { ROUTES } from '../../../constants/routes';
 
 export default function MyListings() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedListing, setSelectedListing] = useState<any | null>(null);
+  const [selectedListing, setSelectedListing] = useState<Record<string, unknown> | null>(null);
   const navigate = useNavigate();
 
   const listings = [
@@ -31,7 +30,7 @@ export default function MyListings() {
     l.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleViewListing = (listing: any) => {
+  const handleViewListing = (listing: Record<string, unknown>) => {
     setSelectedListing(listing);
   };
 
@@ -203,52 +202,52 @@ export default function MyListings() {
             <GhostButton className="hidden sm:flex items-center gap-2"><Filter className="h-4 w-4" /> Filter</GhostButton>
           </div>
 
-          <DataTable keyExtractor={(item: any, index: number) => item.id || String(index)}
+          <DataTable keyExtractor={(item: Record<string, unknown>, index: number) => (item.id as string) || String(index)}
             columns={[
               {
                 header: 'Property',
-                render: (listing: any) => (
+                render: (listing: Record<string, unknown>) => (
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-cream">
                       <Home className="h-5 w-5 text-emerald-400" />
                     </div>
                     <div>
-                      <div className="font-semibold text-cream">{listing.property}</div>
-                      <div className="text-xs text-ink/60">{listing.location}</div>
+                      <div className="font-semibold text-cream">{listing.property as string}</div>
+                      <div className="text-xs text-ink/60">{listing.location as string}</div>
                     </div>
                   </div>
                 )
               },
               {
                 header: 'Price',
-                render: (listing: any) => (
-                  <div className="font-bold text-emerald-400">{listing.price}</div>
+                render: (listing: Record<string, unknown>) => (
+                  <div className="font-bold text-emerald-400">{listing.price as string}</div>
                 )
               },
               {
                 header: 'Visibility',
-                render: (listing: any) => (
+                render: (listing: Record<string, unknown>) => (
                   <div>
                     <div className="flex items-center gap-1.5 mb-1 text-sm text-cream">
-                      <Eye className="h-3.5 w-3.5 text-blue-400" /> {listing.views}
+                      <Eye className="h-3.5 w-3.5 text-blue-400" /> {listing.views as number}
                     </div>
                     <div className="flex items-center gap-1.5 text-sm text-cream">
-                      <Heart className="h-3.5 w-3.5 text-rose-400" /> {listing.inquiries}
+                      <Heart className="h-3.5 w-3.5 text-rose-400" /> {listing.inquiries as number}
                     </div>
                   </div>
                 )
               },
               {
                 header: 'Quality',
-                render: (listing: any) => (
+                render: (listing: Record<string, unknown>) => (
                   <div className="w-24">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-ink/60">Score</span>
-                      <span className="text-cream">{listing.qualityScore}</span>
+                      <span className="text-cream">{listing.qualityScore as number}</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div 
-                        className={`h-full ${listing.qualityScore >= 90 ? 'bg-emerald-400' : listing.qualityScore >= 70 ? 'bg-gold-400' : 'bg-rose-400'}`}
+                        className={`h-full ${(listing.qualityScore as number) >= 90 ? 'bg-emerald-400' : (listing.qualityScore as number) >= 70 ? 'bg-gold-400' : 'bg-rose-400'}`}
                         style={{ width: `${listing.qualityScore}%` }}
                       />
                     </div>
@@ -257,16 +256,16 @@ export default function MyListings() {
               },
               {
                 header: 'Status / DOM',
-                render: (listing: any) => (
+                render: (listing: Record<string, unknown>) => (
                   <div>
-                    <StatusBadge status={listing.status} />
-                    <div className="text-xs text-ink/50 mt-1">{listing.daysOnMarket} DOM</div>
+                    <StatusBadge status={listing.status as string} />
+                    <div className="text-xs text-ink/50 mt-1">{listing.daysOnMarket as number} DOM</div>
                   </div>
                 )
               },
               {
                 header: 'Actions',
-                render: (listing: any) => (
+                render: (listing: Record<string, unknown>) => (
                   <GhostButton 
                     onClick={() => handleViewListing(listing)}
                     className="h-8 px-3 text-xs"

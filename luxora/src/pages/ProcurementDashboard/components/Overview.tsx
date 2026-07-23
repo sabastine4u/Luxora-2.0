@@ -1,6 +1,28 @@
 import { ShoppingCart, Users, Handshake, ShieldAlert, TrendingUp, Package, FileCheck, Banknote, Activity } from 'lucide-react';
+import { useState } from 'react';
+import { useSession } from '../../../contexts/SessionContext';
+import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
+import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
+import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Overview() {
+  const { user } = useSession();
+  const { showWorkflowToast } = useWorkflowToast();
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
   const kpis = [
     { label: 'Total Spend (YTD)', value: '₦1.2B', icon: Banknote, trend: '+12%', color: 'text-gold-400', bg: 'bg-gold-400/10' },
     { label: 'Open PRs', value: '14', icon: FileCheck, trend: '-2', color: 'text-blue-400', bg: 'bg-blue-400/10' },
@@ -18,38 +40,42 @@ export default function Overview() {
     { id: 3, action: 'Inventory Alert', details: 'Office Supplies running low at HQ', time: '1 day ago', icon: ShieldAlert, iconColor: 'text-rose-400' },
   ];
 
+  const handleViewReport = () => {
+    setConfirmationState({
+      isOpen: true,
+      title: 'View Spend Analytics',
+      description: 'Do you want to generate and view the full Spend Analytics report?',
+      confirmText: 'Generate Report',
+      onConfirm: () => showWorkflowToast('Generate Report')
+    });
+  };
+
   return (
-    <div className="space-y-8 max-w-7xl">
-      <div>
-        <h2 className="font-heading text-2xl font-bold text-cream">Procurement Overview</h2>
-        <p className="text-sm text-ink/60">Monitor purchasing, vendors, and internal inventory.</p>
-      </div>
+    <div className="space-y-6 max-w-7xl">
+      <DashboardHeader
+        name={`Good morning, ${user?.name?.split(' ')[0] || 'Manager'}.`}
+        subtitle="Monitor purchasing, vendors, and internal inventory operations."
+        actions={<div className="flex gap-3"></div>}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi, index) => {
-          const Icon = kpi.icon;
-          return (
-            <div key={index} className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/5">
-                <Icon className={`h-6 w-6 ${kpi.color}`} />
-              </div>
-              <div className="text-sm text-ink/60 mb-1">{kpi.label}</div>
-              <div className="flex items-end justify-between">
-                <div className="font-heading text-3xl font-bold text-cream">{kpi.value}</div>
-                <div className={`text-xs ${kpi.trend.startsWith('+') ? 'text-emerald-400' : kpi.trend.startsWith('-') ? 'text-rose-400' : 'text-ink/60'}`}>
-                  {kpi.trend} this month
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {kpis.map((kpi, index) => (
+          <KPICard
+            key={index}
+            title={kpi.label}
+            value={kpi.value}
+            trend={`${kpi.trend} this month`}
+            trendColor={kpi.trend.startsWith('+') ? 'text-emerald-400' : kpi.trend.startsWith('-') ? 'text-rose-400' : 'text-ink/60'}
+            icon={kpi.icon}
+          />
+        ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-navy-800/50 p-6">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="font-heading text-lg font-bold text-cream">Spend Analytics</h3>
-            <button className="text-sm text-gold-400 hover:text-gold-300">View Full Report</button>
+            <button onClick={handleViewReport} className="text-sm text-gold-400 hover:text-gold-300 transition-colors">View Full Report</button>
           </div>
           <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-white/10 bg-navy-900/50">
             <div className="text-center text-ink/40">
@@ -60,26 +86,26 @@ export default function Overview() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-          <h3 className="mb-6 font-heading text-lg font-bold text-cream">Recent Activity</h3>
-          <div className="space-y-6">
-            {recentActivity.map((activity) => {
-              const Icon = activity.icon;
-              return (
-                <div key={activity.id} className="flex gap-4">
-                  <div className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5 ${activity.iconColor}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-cream">{activity.action}</div>
-                    <div className="text-sm text-ink/60">{activity.details}</div>
-                    <div className="mt-1 text-xs text-ink/40">{activity.time}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ActivityTimeline
+            title="Recent Activity"
+            items={recentActivity.map(activity => ({
+              title: activity.action,
+              desc: activity.details,
+              time: activity.time,
+              icon: activity.icon,
+              color: activity.iconColor
+            }))}
+          />
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
+      />
     </div>
   );
 }

@@ -2,15 +2,32 @@ import { Mail, Phone, Calendar, Briefcase, Activity, TrendingUp, Award, BookOpen
 import { Modal } from '../../../../components/ui/Modal';
 import { GoldButton, GhostButton } from '../../../../components/ui/ui';
 import { StatusBadge } from '../shared/StatusBadge';
+import { useState } from 'react';
 import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { ConfirmationModal } from '../../../../components/ui/ConfirmationModal';
+import type { TeamMember } from '../../../../types';
 
 interface ManagementTeamDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  member: Record<string, unknown> | null;
+  member: TeamMember | null;
 }
 
 export function ManagementTeamDetailModal({ isOpen, onClose, member }: ManagementTeamDetailModalProps) {
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
   if (!member) return null;
 
   const performanceHistory = [
@@ -31,39 +48,51 @@ export function ManagementTeamDetailModal({ isOpen, onClose, member }: Managemen
     'Perfect Attendance 2024'
   ];
 
+  const handleAction = (title: string, description: string, confirmText: string = 'Confirm') => {
+    setConfirmationState({
+      isOpen: true,
+      title,
+      description,
+      confirmText,
+      onConfirm: () => {
+        // Mock action
+      }
+    });
+  };
+
   return (
     <Modal 
       isOpen={isOpen} 
       onClose={onClose} 
       title="Employee Profile & Insights"
       size="xl"
-      actionButton={<GoldButton>Manage Employee</GoldButton>}
+      actionButton={<GoldButton onClick={() => handleAction('Manage Employee', `Are you sure you want to manage ${member.name}?`, 'Manage')}>Manage Employee</GoldButton>}
     >
       <div className="space-y-8 pb-4">
         {/* Header Profile Section */}
         <div className="flex flex-col md:flex-row gap-6 items-start border-b border-white/5 pb-6">
             <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gold-gradient text-4xl font-bold text-navy-900 shrink-0">
-            {String(member.name).charAt(0)}
+            {member.name.charAt(0)}
           </div>
           <div className="flex-1 space-y-4">
             <div>
-              <h2 className="text-2xl font-bold text-cream">{String(member.name)}</h2>
-              <p className="text-ink/60 text-lg">{String(member.role)} • {String(member.department)}</p>
+              <h2 className="text-2xl font-bold text-cream">{member.name}</h2>
+              <p className="text-ink/60 text-lg">{member.role} • {member.department}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <StatusBadge status={String(member.status)} />
+              <StatusBadge status={member.status} />
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
-                Performance: {member.performance ? String(member.performance) : 'A+'}
+                Performance: {member.performance ? member.performance : 'A+'}
               </span>
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
                 Available
               </span>
             </div>
             <div className="flex gap-4 pt-2">
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('Contact Employee', `Initiate communication with ${member.name}?`, 'Contact')}>
                 <Mail className="h-4 w-4" /> Contact
               </GhostButton>
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('Schedule Check-in', `Schedule a check-in with ${member.name}?`, 'Schedule')}>
                 <Calendar className="h-4 w-4" /> Schedule Check-in
               </GhostButton>
             </div>
@@ -173,6 +202,14 @@ export function ManagementTeamDetailModal({ isOpen, onClose, member }: Managemen
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
+      />
     </Modal>
   );
 }

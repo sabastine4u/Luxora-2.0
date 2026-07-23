@@ -1,30 +1,12 @@
-import React, { useState } from 'react';
-import { 
-  Phone, Mail, MoreHorizontal, UserCheck, Clock, CheckCircle2, DollarSign, 
-  Filter, SlidersHorizontal, ArrowRight, UserCircle, MapPin, 
-  Calendar as CalendarIcon, Briefcase, FileText, X, ArrowUpRight
-} from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Phone, Clock, ArrowUpRight, FileText, UserCheck, DollarSign, Filter, SlidersHorizontal, ArrowRight, UserCircle, MapPin, MoreHorizontal, X, Briefcase, Calendar as CalendarIcon } from 'lucide-react';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { useToast } from '../../../contexts/ToastContext';
-
-// --- MOCK DATA ---
-const KPI_DATA = [
-  { label: 'Total Leads', value: '45', icon: UserCheck, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  { label: 'New Leads', value: '12', icon: SparklesIcon, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-  { label: 'Qualified Leads', value: '18', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-  { label: 'Viewings Scheduled', value: '8', icon: CalendarIcon, color: 'text-gold-400', bg: 'bg-gold-400/10' },
-  { label: 'Closed Deals', value: '5', icon: DollarSign, color: 'text-rose-400', bg: 'bg-rose-400/10' },
-];
-
-function SparklesIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-    </svg>
-  );
-}
+import { MOCK_LEADS, KPI_DATA_LEADS, ACTIVITY_TIMELINE } from '../../../data/agentData';
+import type { Lead } from '../../../types/agent';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 const PIPELINE_STAGES = [
   { id: 'new', label: 'New' },
@@ -36,70 +18,20 @@ const PIPELINE_STAGES = [
   { id: 'lost', label: 'Lost' },
 ];
 
-type Lead = {
-  id: string;
-  name: string;
-  avatar?: string;
-  budget: string;
-  property: string;
-  location: string;
-  phone: string;
-  email: string;
-  assignedDate: string;
-  priority: 'High' | 'Medium' | 'Low';
-  stage: string;
-  type: string;
-  financing: string;
-  notes: string;
-};
-
-const MOCK_LEADS: Lead[] = [
-  {
-    id: 'L-245', name: 'Bisi Williams', budget: '₦400M - ₦500M', property: 'Skyline Penthouse Residence',
-    location: 'Eko Atlantic', phone: '+234 800 111 2222', email: 'bisi@example.com', assignedDate: 'Today',
-    priority: 'High', stage: 'new', type: 'Buyer', financing: 'Pre-approved Mortgage',
-    notes: 'Looking for a penthouse with ocean views. Needs to move in within 3 months.'
-  },
-  {
-    id: 'L-244', name: 'Chidi Okafor', budget: '₦150M - ₦200M', property: 'Marina View Apartment',
-    location: 'Lekki Phase 1', phone: '+234 800 333 4444', email: 'chidi@example.com', assignedDate: 'Yesterday',
-    priority: 'Medium', stage: 'contacted', type: 'Buyer', financing: 'Cash Buyer',
-    notes: 'Interested in investment properties. High yield preferred.'
-  },
-  {
-    id: 'L-243', name: 'Amara Eze', budget: '₦800M+', property: 'Garden Court Villa',
-    location: 'Banana Island', phone: '+234 800 555 6666', email: 'amara@example.com', assignedDate: '2 Days Ago',
-    priority: 'High', stage: 'qualified', type: 'Buyer', financing: 'Pre-approved Mortgage',
-    notes: 'Family of 5, requires at least 6 bedrooms and a large garden.'
-  },
-  {
-    id: 'L-242', name: 'Tunde Bakare', budget: '₦300M', property: 'The Continental Duplex',
-    location: 'Maitama, Abuja', phone: '+234 800 777 8888', email: 'tunde@example.com', assignedDate: 'Oct 24',
-    priority: 'Medium', stage: 'viewing', type: 'Buyer', financing: 'Seeking Mortgage',
-    notes: 'Viewing scheduled for this Saturday at 2 PM.'
-  },
-  {
-    id: 'L-241', name: 'Ngozi Okonjo', budget: '₦250M', property: 'Victoria Island Condo',
-    location: 'Victoria Island', phone: '+234 800 999 0000', email: 'ngozi@example.com', assignedDate: 'Oct 20',
-    priority: 'High', stage: 'negotiation', type: 'Buyer', financing: 'Cash Buyer',
-    notes: 'Submitted an offer 5% below asking. Awaiting seller response.'
-  },
-];
-
-const ACTIVITY_TIMELINE = [
-  { title: 'Deal Closed', date: 'Oct 28', active: false },
-  { title: 'Offer Submitted', date: 'Oct 26', active: false },
-  { title: 'Viewing Completed', date: 'Oct 24', active: true },
-  { title: 'Viewing Scheduled', date: 'Oct 22', active: true },
-  { title: 'Buyer Contacted', date: 'Oct 21', active: true },
-  { title: 'Lead Assigned', date: 'Oct 21', active: true },
-];
-
-// --- COMPONENT ---
 export default function AssignedLeads() {
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
+
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
+
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -124,14 +56,14 @@ export default function AssignedLeads() {
           <p className="text-sm text-ink/60">Manage, qualify, and convert buyer leads into successful transactions.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton size="sm"><ArrowUpRight className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
-          <GoldButton size="sm">Add Lead</GoldButton>
+          <GhostButton size="sm" onClick={() => handleAction('Export CSV', 'export')}><ArrowUpRight className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
+          <GoldButton size="sm" onClick={() => handleAction('Add New Lead', 'add_lead')}>Add Lead</GoldButton>
         </div>
       </div>
 
       {/* SUMMARY CARDS */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {KPI_DATA.map((kpi, i) => (
+        {KPI_DATA_LEADS.map((kpi, i) => (
           <div key={i} className="rounded-2xl border border-white/10 bg-navy-800/50 p-4 transition-all hover:bg-navy-800/80 flex items-center gap-4">
             <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${kpi.bg} ${kpi.color}`}>
               <kpi.icon className="h-6 w-6" />
@@ -208,7 +140,7 @@ export default function AssignedLeads() {
                               <div className="text-[10px] text-ink/50 uppercase tracking-wider">{lead.type}</div>
                             </div>
                           </div>
-                          <button className="text-ink/40 hover:text-cream"><MoreHorizontal className="h-4 w-4" /></button>
+                          <button className="text-ink/40 hover:text-cream" onClick={(e) => { e.stopPropagation(); handleAction(`Lead Actions: ${lead.name}`, 'lead_actions', lead); }}><MoreHorizontal className="h-4 w-4" /></button>
                         </div>
                         
                         <div className="space-y-2 mb-4">
@@ -286,10 +218,10 @@ export default function AssignedLeads() {
 
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-3">
-                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Call Buyer', description: 'Initiating call...' })}><Phone className="h-4 w-4 mr-2" /> Call Buyer</GoldButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Email Buyer', description: 'Opening email interface...' })}><Mail className="h-4 w-4 mr-2" /> Email</GhostButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Schedule Viewing', description: 'Opening scheduling interface...' })}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Move Pipeline Stage', description: 'Updating lead stage...' })}><ArrowRight className="h-4 w-4 mr-2" /> Move Stage</GhostButton>
+                <GoldButton size="sm" onClick={() => handleAction('Call Buyer', 'call', selectedLead)}><Phone className="h-4 w-4 mr-2" /> Call Buyer</GoldButton>
+                <GhostButton size="sm" onClick={() => handleAction('Email Buyer', 'email', selectedLead)}><Mail className="h-4 w-4 mr-2" /> Email</GhostButton>
+                <GhostButton size="sm" onClick={() => handleAction('Schedule Viewing', 'schedule', selectedLead)}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
+                <GhostButton size="sm" onClick={() => handleAction('Move Pipeline Stage', 'stage_change', selectedLead)}><ArrowRight className="h-4 w-4 mr-2" /> Move Stage</GhostButton>
               </div>
 
               {/* Requirements & Budget */}
@@ -332,7 +264,7 @@ export default function AssignedLeads() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-white/5 pb-2">
                   <h4 className="font-heading text-sm font-bold text-cream uppercase tracking-wider text-ink/60">Notes</h4>
-                  <button className="text-gold-400 hover:text-gold-300 text-xs font-semibold flex items-center gap-1">
+                  <button className="text-gold-400 hover:text-gold-300 text-xs font-semibold flex items-center gap-1" onClick={() => handleAction('Add Note', 'add_note', selectedLead)}>
                     <FileText className="h-3 w-3" /> Add Note
                   </button>
                 </div>
@@ -361,6 +293,43 @@ export default function AssignedLeads() {
           </div>
         </>
       )}
+
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
 
     </div>
   );

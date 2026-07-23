@@ -4,7 +4,7 @@ import { useSession } from '../../../contexts/SessionContext';
 import { SettingsLayout } from '../../../components/dashboard/shared/layouts/SettingsLayout';
 import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { UploadModal } from './modals/UploadModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { Mail, Smartphone, Shield, KeyRound, Monitor, FileBarChart, Moon, Sun } from 'lucide-react';

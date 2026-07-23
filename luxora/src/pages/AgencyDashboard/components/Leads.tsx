@@ -4,25 +4,20 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { LeadDetailModal } from './modals/LeadDetailModal';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
+import { agencyLeads } from '../../../data/agencyData';
+import type { AgencyLead } from '../../../types/agency';
 
 export default function Leads() {
   const [searchQuery, setSearchQuery] = useState('');
   const [leadStatus, setLeadStatus] = useState<'All' | 'New' | 'Contacted' | 'Qualified' | 'Lost' | 'Converted'>('All');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<AgencyLead | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const leads = [
-    { id: 'LD-1042', name: 'Aliko Dangote', email: 'aliko@dangote.com', phone: '+234 800 111 2222', interest: 'Ikoyi Penthouse', budget: '₦800M - ₦1B', status: 'Qualified', agent: 'Sarah James', score: 95, source: 'Website', age: 2, lastContact: '2 hours ago' },
-    { id: 'LD-1041', name: 'Folorunso Alakija', email: 'f.alakija@faml.com', phone: '+234 800 333 4444', interest: 'Victoria Island Office', budget: '₦1.5B+', status: 'Contacted', agent: 'Sarah James', score: 88, source: 'Referral', age: 5, lastContact: 'Yesterday' },
-    { id: 'LD-1040', name: 'Mike Adenuga', email: 'm.adenuga@globacom.com', phone: '+234 800 555 6666', interest: 'Banana Island Plot', budget: '₦500M - ₦700M', status: 'New', agent: 'Unassigned', score: 75, source: 'Social Media', age: 0, lastContact: 'Never' },
-    { id: 'LD-1039', name: 'Tony Elumelu', email: 'tony@heirs.com', phone: '+234 800 777 8888', interest: 'Lekki Phase 1 Villa', budget: '₦300M - ₦500M', status: 'Converted', agent: 'Emeka Uzo', score: 100, source: 'Direct', age: 14, lastContact: '1 week ago' },
-    { id: 'LD-1038', name: 'Jim Ovia', email: 'jim@zenith.com', phone: '+234 800 999 0000', interest: 'Eko Atlantic Condo', budget: '₦200M - ₦400M', status: 'Lost', agent: 'Michael Eze', score: 40, source: 'Event', age: 30, lastContact: '3 weeks ago' },
-  ];
+  const leads = agencyLeads;
 
   const filteredLeads = leads.filter(l => {
     const matchesSearch = l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.interest.toLowerCase().includes(searchQuery.toLowerCase());
@@ -30,10 +25,9 @@ export default function Leads() {
     return matchesSearch && matchesStatus;
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleViewLead = (lead: any) => {
+  const handleViewLead = (lead: AgencyLead) => {
     setSelectedLead(lead);
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   return (
@@ -141,15 +135,8 @@ export default function Leads() {
                   )
                 },
                 {
-                  header: "Status & Score",
-                  render: (l) => (
-                    <div>
-                      <StatusBadge status={String(l.status)} />
-                      <div className="text-xs text-ink/60 mt-1 flex items-center gap-1">
-                        Score: <span className={l.score >= 80 ? 'text-emerald-400 font-bold' : l.score >= 50 ? 'text-yellow-400' : 'text-rose-400'}>{l.score}</span>
-                      </div>
-                    </div>
-                  )
+                  header: "Status",
+                  render: (l) => <EnterpriseStatusBadge status={String(l.status)} />
                 },
                 {
                   header: "Agent",
@@ -263,11 +250,33 @@ export default function Leads() {
 
       </div>
 
-      <LeadDetailModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        lead={selectedLead}
-      />
+      <EnterpriseDetailDrawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        title={selectedLead ? `Lead: ${selectedLead.name}` : 'Lead Details'}
+        footerActions={
+          <div className="flex gap-3 w-full">
+            <GhostButton className="flex-1">Message Lead</GhostButton>
+            <GoldButton className="flex-1">Assign to Agent</GoldButton>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-semibold text-cream mb-4">Lead Information</h4>
+            <div className="space-y-3 text-sm text-ink/80">
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Email</span><span className="font-medium text-cream">{selectedLead?.email}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Phone</span><span className="font-medium text-cream">{selectedLead?.phone}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Interest</span><span className="font-medium text-cream">{selectedLead?.interest}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Budget</span><span className="font-medium text-cream">{selectedLead?.budget}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Assigned Agent</span><span className="font-medium text-cream">{selectedLead?.agent}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Lead Score</span><span className="font-medium text-cream">{selectedLead?.score}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Source</span><span className="font-medium text-cream">{selectedLead?.source}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Last Contact</span><span className="font-medium text-cream">{selectedLead?.lastContact}</span></div>
+            </div>
+          </div>
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

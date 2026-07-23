@@ -3,11 +3,12 @@ import { Filter, Edit, Trash2, MapPin, Building2, CheckCircle2, AlertCircle, Bar
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { GhostButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { properties } from '../../../data/luxoraData';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { ListingDetailModal } from './modals/ListingDetailModal';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -15,9 +16,21 @@ export default function Listings() {
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedListing, setSelectedListing] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<Record<string, unknown> | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ isOpen: boolean; title: string; desc: string; action: () => void }>({ isOpen: false, title: '', desc: '', action: () => {} });
+
+  const handleAction = (title: string, desc: string) => {
+    setConfirmAction({
+      isOpen: true,
+      title,
+      desc,
+      action: () => {
+        showToast({ type: 'success', title: 'Action Completed', description: `${title} was successful.` });
+        setConfirmAction({ ...confirmAction, isOpen: false });
+      }
+    });
+  };
 
   // Local Mock Data using properties base
   const mockListings = React.useMemo(() => properties.map((p, i) => ({
@@ -52,10 +65,9 @@ export default function Listings() {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleViewListing = (listing: any) => {
+  const handleViewListing = (listing: Record<string, unknown>) => {
     setSelectedListing(listing);
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   return (
@@ -108,10 +120,10 @@ export default function Listings() {
                 <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
                   <span className="text-sm text-ink/60">{selectedIds.size} selected</span>
                   {/* Advanced Bulk Actions */}
-                  <GhostButton className="px-3 text-xs h-8" onClick={() => showToast({ type: 'info', title: 'Publish Listings', description: 'Publishing will be available during backend integration.' })}>Publish</GhostButton>
-                  <GhostButton className="px-3 text-xs h-8" onClick={() => showToast({ type: 'info', title: 'Feature Listings', description: 'Featuring will be available during backend integration.' })}>Feature</GhostButton>
-                  <GhostButton className="px-3 text-xs h-8" onClick={() => showToast({ type: 'info', title: 'Assign Agent', description: 'Agent assignment will be available during backend integration.' })}>Assign Agent</GhostButton>
-                  <GhostButton className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10" onClick={() => showToast({ type: 'info', title: 'Archive Listings', description: 'Archiving will be available during backend integration.' })}>Archive</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8" onClick={() => handleAction('Publish Listings', 'Are you sure you want to publish the selected listings?')}>Publish</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8" onClick={() => handleAction('Feature Listings', 'Are you sure you want to feature the selected listings?')}>Feature</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8" onClick={() => handleAction('Assign Agent', 'Are you sure you want to reassign the selected listings?')}>Assign Agent</GhostButton>
+                  <GhostButton className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10" onClick={() => handleAction('Archive Listings', 'Are you sure you want to archive the selected listings?')}>Archive</GhostButton>
                 </div>
               )}
               <GhostButton className="px-3 flex items-center gap-2"><Filter className="h-4 w-4" /> Filters</GhostButton>
@@ -183,7 +195,7 @@ export default function Listings() {
               },
               {
                 header: "Status",
-                render: (l) => <StatusBadge status={String(l.status)} />
+                render: (l) => <EnterpriseStatusBadge status={String(l.status)} />
               },
               {
                 header: <div className="text-right">Actions</div>,
@@ -197,10 +209,10 @@ export default function Listings() {
                     >
                       <BarChart3 className="h-4 w-4" />
                     </button>
-                    <button className="p-1.5 text-ink/60 hover:text-blue-400 rounded hover:bg-blue-400/10 transition-colors" title="Edit" onClick={() => showToast({ type: 'info', title: 'Edit Listing', description: 'Listing editing will be available during backend integration.' })}>
+                    <button className="p-1.5 text-ink/60 hover:text-blue-400 rounded hover:bg-blue-400/10 transition-colors" title="Edit" onClick={() => handleAction('Edit Listing', 'Are you sure you want to edit this listing?')}>
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button className="p-1.5 text-ink/60 hover:text-rose-400 rounded hover:bg-rose-400/10 transition-colors" title="Archive" onClick={() => showToast({ type: 'info', title: 'Archive Listing', description: 'Archiving will be available during backend integration.' })}>
+                    <button className="p-1.5 text-ink/60 hover:text-rose-400 rounded hover:bg-rose-400/10 transition-colors" title="Archive" onClick={() => handleAction('Archive Listing', 'Are you sure you want to archive this listing?')}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -211,10 +223,40 @@ export default function Listings() {
         </div>
       </div>
 
-      <ListingDetailModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        listing={selectedListing}
+      <EnterpriseDetailDrawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        title={selectedListing ? `Listing: ${selectedListing.title}` : 'Listing Details'}
+        footerActions={
+          <div className="flex gap-3 w-full">
+            <GhostButton className="flex-1" onClick={() => handleAction('Publish', 'Ready to publish this listing?')}>Publish</GhostButton>
+            <GoldButton className="flex-1" onClick={() => handleAction('Feature', 'Feature this listing?')}>Feature</GoldButton>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-semibold text-cream mb-4">Listing Details</h4>
+            <div className="space-y-3 text-sm text-ink/80">
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Title</span><span className="font-medium text-cream">{String(selectedListing?.title || '')}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Location</span><span className="font-medium text-cream">{String(selectedListing?.location || '')}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Price</span><span className="font-medium text-cream">{String(selectedListing?.price || '')}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Type</span><span className="font-medium text-cream">{String(selectedListing?.type || '')}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Assigned Agent</span><span className="font-medium text-cream">{String(selectedListing?.assignedAgent || '')}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Views</span><span className="font-medium text-cream">{String(selectedListing?.views || '')}</span></div>
+            </div>
+          </div>
+        </div>
+      </EnterpriseDetailDrawer>
+
+      <ConfirmationModal
+        isOpen={confirmAction.isOpen}
+        onClose={() => setConfirmAction({ ...confirmAction, isOpen: false })}
+        onConfirm={confirmAction.action}
+        title={confirmAction.title}
+        description={confirmAction.desc}
+        confirmText="Confirm"
+        cancelText="Cancel"
       />
     </div>
   );

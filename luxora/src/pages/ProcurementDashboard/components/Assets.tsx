@@ -1,11 +1,37 @@
 import { Wrench, Building2, Filter, Eye, History } from 'lucide-react';
+import { useState } from 'react';
 import { GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Assets() {
   const { showWorkflowToast } = useWorkflowToast();
+  
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
+  const handleAction = (action: string, tag?: string) => {
+    setConfirmationState({
+      isOpen: true,
+      title: action,
+      description: tag ? `Are you sure you want to ${action.toLowerCase()} for Asset ${tag}?` : `Are you sure you want to ${action.toLowerCase()}?`,
+      confirmText: action.split(' ')[0],
+      onConfirm: () => showWorkflowToast(action)
+    });
+  };
   const assets = [
     { tag: 'AST-LND-001', name: 'Land Rover Defender', category: 'Vehicles', location: 'Lagos HQ', assignedTo: 'Operations', status: 'Active' },
     { tag: 'AST-IT-105', name: 'Server Rack A2', category: 'IT Infrastructure', location: 'Abuja Data Center', assignedTo: 'IT Dept', status: 'Active' },
@@ -19,7 +45,7 @@ export default function Assets() {
           <h2 className="font-heading text-2xl font-bold text-cream">Fixed Assets Register</h2>
           <p className="text-sm text-ink/60">Manage company-owned vehicles, equipment, and large assets.</p>
         </div>
-        <GoldButton onClick={() => showWorkflowToast('Register Asset')}>Register Asset</GoldButton>
+        <GoldButton onClick={() => handleAction('Register Asset')}>Register Asset</GoldButton>
       </div>
 
       <DataTableToolbar
@@ -29,7 +55,7 @@ export default function Assets() {
         actions={
           <button 
             className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors"
-            onClick={() => showWorkflowToast('Category Filter')}
+            onClick={() => handleAction('Category Filter')}
           >
             <Filter className="h-4 w-4 mr-2" /> Category
           </button>
@@ -71,24 +97,32 @@ export default function Assets() {
           {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
-            render: () => (
+            render: (ast) => (
               <div className="flex justify-end gap-2">
                 <button 
                   className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Asset Details')}
+                  onClick={() => handleAction('Asset Details', ast.tag)}
                 ><Eye className="h-4 w-4" /></button>
                 <button 
                   className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Assignment History')}
+                  onClick={() => handleAction('Assignment History', ast.tag)}
                 ><History className="h-4 w-4" /></button>
                 <button 
                   className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Schedule Maintenance')}
+                  onClick={() => handleAction('Schedule Maintenance', ast.tag)}
                 ><Wrench className="h-4 w-4" /></button>
               </div>
             )
           }
         ]}
+      />
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
       />
     </div>
   );

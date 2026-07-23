@@ -1,11 +1,37 @@
 import { Wallet, ArrowUpRight, Filter, Eye, History, FileText } from 'lucide-react';
+import { useState } from 'react';
 import { GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Payments() {
   const { showWorkflowToast } = useWorkflowToast();
+  
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
+  const handleAction = (action: string, txnId?: string) => {
+    setConfirmationState({
+      isOpen: true,
+      title: action,
+      description: txnId ? `Are you sure you want to ${action.toLowerCase()} for Txn ${txnId}?` : `Are you sure you want to ${action.toLowerCase()}?`,
+      confirmText: action.split(' ')[0],
+      onConfirm: () => showWorkflowToast(action)
+    });
+  };
   const transactions = [
     { id: 'TXN-9091', vendor: 'Amazon Web Services', method: 'Bank Transfer', amount: '₦14,500,000', status: 'Completed', date: 'Oct 02, 2025' },
     { id: 'TXN-9090', vendor: 'Office World', method: 'Corporate Card', amount: '₦450,000', status: 'Completed', date: 'Sep 30, 2025' },
@@ -19,7 +45,7 @@ export default function Payments() {
           <h2 className="font-heading text-2xl font-bold text-cream">Payment History</h2>
           <p className="text-sm text-ink/60">Record of outgoing payments to vendors and suppliers.</p>
         </div>
-        <GoldButton className="flex items-center gap-2" onClick={() => showWorkflowToast('Initiate Payment')}>Initiate Payment</GoldButton>
+        <GoldButton className="flex items-center gap-2" onClick={() => handleAction('Initiate Payment')}>Initiate Payment</GoldButton>
       </div>
 
       <DataTableToolbar
@@ -29,7 +55,7 @@ export default function Payments() {
         actions={
           <button 
             className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors"
-            onClick={() => showWorkflowToast('Filter Payments')}
+            onClick={() => handleAction('Filter Payments')}
           >
             <Filter className="h-4 w-4 mr-2" /> Filter
           </button>
@@ -79,24 +105,32 @@ export default function Payments() {
           {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
-            render: () => (
+            render: (txn) => (
               <div className="flex justify-end gap-2">
                 <button 
                   className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Payment Details')}
+                  onClick={() => handleAction('Payment Details', txn.id)}
                 ><Eye className="h-4 w-4" /></button>
                 <button 
                   className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Vendor Payment History')}
+                  onClick={() => handleAction('Vendor Payment History', txn.id)}
                 ><History className="h-4 w-4" /></button>
                 <button 
                   className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Outstanding Balances')}
+                  onClick={() => handleAction('Outstanding Balances', txn.id)}
                 ><FileText className="h-4 w-4" /></button>
               </div>
             )
           }
         ]}
+      />
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
       />
     </div>
   );

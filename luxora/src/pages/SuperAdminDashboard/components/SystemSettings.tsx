@@ -3,8 +3,11 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { useState } from 'react';
 
 export default function SystemSettings() {
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'maintenance' | 'scan' | 'backup' | 'audit' | null}>({ isOpen: false, type: null });
 
   return (
     <div className="space-y-6 pb-12">
@@ -13,10 +16,10 @@ export default function SystemSettings() {
         subtitle="Platform stability monitor, infrastructure health, feature flags, and security status."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'maintenance' })}>
               <Clock className="h-4 w-4" /> Maintenance Schedule
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'scan' })}>
               <ShieldCheck className="h-4 w-4" /> Run Security Scan
             </GoldButton>
           </div>
@@ -152,6 +155,82 @@ export default function SystemSettings() {
           </div>
         </div>
       </div>
+
+      <div className="grid lg:grid-cols-2 gap-6 mt-6">
+        {/* Storage Configuration */}
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <h3 className="font-heading text-lg font-bold text-cream mb-6 flex items-center gap-2">
+            <Database className="h-5 w-5 text-blue-400" /> Storage & Backup Controls
+          </h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-4 bg-navy-900/50 border border-white/5 rounded-xl">
+               <div>
+                 <div className="font-semibold text-cream text-sm">Automated Database Backups</div>
+                 <div className="text-xs text-ink/60 mt-1">Runs daily at 02:00 UTC</div>
+               </div>
+               <GhostButton size="sm" onClick={() => setConfirmModal({ isOpen: true, type: 'backup' })}>Trigger Now</GhostButton>
+            </div>
+            <div className="flex justify-between items-center p-4 bg-navy-900/50 border border-white/5 rounded-xl">
+               <div>
+                 <div className="font-semibold text-cream text-sm">Media Storage (AWS S3)</div>
+                 <div className="text-xs text-ink/60 mt-1">Total Usage: 4.2TB / 10TB</div>
+               </div>
+               <span className="text-emerald-400 text-xs font-bold px-2 py-1 bg-emerald-400/10 rounded-full">Optimal</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Audit Logs */}
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-heading text-lg font-bold text-cream flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-emerald-400" /> Platform Audit Logs
+            </h3>
+            <GhostButton size="sm" onClick={() => setConfirmModal({ isOpen: true, type: 'audit' })}>Download CSV</GhostButton>
+          </div>
+          <div className="space-y-4 flex-1">
+            <div className="flex gap-4">
+              <div className="mt-1"><div className="w-2 h-2 rounded-full bg-blue-400"></div></div>
+              <div>
+                <div className="text-sm font-medium text-cream">API Key Rotated</div>
+                <div className="text-xs text-ink/60">Stripe production key was rotated by System via scheduled task.</div>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="mt-1"><div className="w-2 h-2 rounded-full bg-rose-400"></div></div>
+              <div>
+                <div className="text-sm font-medium text-cream">Failed Admin Login</div>
+                <div className="text-xs text-ink/60">IP 192.168.1.104 attempted login with invalid credentials.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
+        title={
+          confirmModal.type === 'maintenance' ? 'Schedule Maintenance' : 
+          confirmModal.type === 'scan' ? 'Run Security Scan' : 
+          confirmModal.type === 'backup' ? 'Trigger Manual Backup' : 
+          'Download Audit Logs'
+        }
+        message={
+          confirmModal.type === 'maintenance' ? 'Are you sure you want to schedule a global maintenance window? This will notify all logged-in users 15 minutes prior to shutdown.' : 
+          confirmModal.type === 'scan' ? 'Are you sure you want to execute a full security scan on the production cluster? This may cause minor degradation in API response times.' : 
+          confirmModal.type === 'backup' ? 'Trigger a manual database snapshot? This will capture the current state of the production cluster.' : 
+          'Download a full CSV export of the last 30 days of global platform audit logs?'
+        }
+        confirmText={
+          confirmModal.type === 'maintenance' ? 'Schedule' : 
+          confirmModal.type === 'scan' ? 'Start Scan' : 
+          confirmModal.type === 'backup' ? 'Start Backup' : 
+          'Download'
+        }
+        isDestructive={false}
+      />
     </div>
   );
 }

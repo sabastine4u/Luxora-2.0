@@ -1,73 +1,84 @@
+import { useState } from 'react';
 import { Download, TrendingUp, Eye, Heart, Calendar, FileText, Clock, MapPin, DollarSign, ArrowDown, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { useToast } from '../../../contexts/ToastContext';
+import ExportModal from './modals/ExportModal';
+
+// Mock Data
+const kpis = [
+  { label: 'Total Property Views', value: '14.2k', delta: '+12%', icon: Eye, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { label: 'Total Saves', value: '1,420', delta: '+8%', icon: Heart, color: 'text-rose-400', bg: 'bg-rose-400/10' },
+  { label: 'Viewing Requests', value: '84', delta: '+22%', icon: Calendar, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+  { label: 'Active Offers', value: '12', delta: '+2%', icon: FileText, color: 'text-gold-400', bg: 'bg-gold-400/10' },
+  { label: 'Conversion Rate', value: '3.2%', delta: '+0.4%', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  { label: 'Avg. Time on Market', value: '24 Days', delta: '-3 Days', icon: Clock, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+];
+
+const viewsData = [40, 55, 45, 70, 60, 85, 95, 80, 110, 100, 130, 145, 120, 160];
+
+const engagementData = [
+  { day: 'Mon', views: 80, saves: 20, shares: 10, requests: 5 },
+  { day: 'Tue', views: 95, saves: 25, shares: 15, requests: 8 },
+  { day: 'Wed', views: 110, saves: 30, shares: 12, requests: 10 },
+  { day: 'Thu', views: 90, saves: 22, shares: 8, requests: 4 },
+  { day: 'Fri', views: 130, saves: 40, shares: 20, requests: 12 },
+  { day: 'Sat', views: 160, saves: 50, shares: 25, requests: 15 },
+  { day: 'Sun', views: 145, saves: 45, shares: 18, requests: 11 },
+];
+
+const topProperties = [
+  { name: 'Skyline Penthouse Residence', views: '8.4k', saves: '942', offers: '7', requests: '42', conv: '5.2%' },
+  { name: 'Garden Court Villa', views: '4.2k', saves: '318', offers: '3', requests: '28', conv: '3.1%' },
+  { name: 'Banana Island Plot', views: '1.6k', saves: '160', offers: '2', requests: '14', conv: '2.8%' },
+];
+
+const marketPerformance = [
+  { label: 'Average Price', value: '₦450M', trend: '+5.2%', icon: DollarSign },
+  { label: 'Market Trend', value: 'Bullish', trend: 'High', icon: TrendingUp },
+  { label: 'Demand Level', value: 'Very High', trend: '+12%', icon: Search },
+  { label: 'Popular Property Type', value: '4 Bed Villas', trend: 'Stable', icon: Heart },
+  { label: 'Trending Locations', value: 'Ikoyi, VI', trend: 'Hot', icon: MapPin },
+];
+
+const revenueInsights = [
+  { label: 'Rental Revenue', value: '₦108.0M', color: 'text-emerald-400' },
+  { label: 'Sales Revenue', value: '₦850.0M', color: 'text-gold-400' },
+  { label: 'Expected Revenue', value: '₦45.5M', color: 'text-blue-400' },
+  { label: 'Lost Revenue', value: '₦12.0M', color: 'text-rose-400' },
+];
+
+const funnelStages = [
+  { stage: 'Views', value: '14,200', dropoff: '100%' },
+  { stage: 'Saves', value: '1,420', dropoff: '10%' },
+  { stage: 'Viewing Requests', value: '84', dropoff: '5.9%' },
+  { stage: 'Offers', value: '24', dropoff: '28.5%' },
+  { stage: 'Accepted Offers', value: '6', dropoff: '25%' },
+  { stage: 'Completed Sales', value: '2', dropoff: '33.3%' },
+];
+
+const listingHealth = [
+  { name: 'Skyline Penthouse Residence', vis: '98%', photo: 'High', desc: 'Detailed', seo: '95%', comp: '100%' },
+  { name: 'Garden Court Villa', vis: '85%', photo: 'Medium', desc: 'Brief', seo: '72%', comp: '80%' },
+  { name: 'Banana Island Plot', vis: '60%', photo: 'Low', desc: 'Missing info', seo: '45%', comp: '50%' },
+];
 
 export default function Analytics() {
   const { showToast } = useToast();
-  // Mock Data
+  const navigate = useNavigate();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const hasAnalytics = true; // Toggle for empty state
 
-  const kpis = [
-    { label: 'Total Property Views', value: '14.2k', delta: '+12%', icon: Eye, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: 'Total Saves', value: '1,420', delta: '+8%', icon: Heart, color: 'text-rose-400', bg: 'bg-rose-400/10' },
-    { label: 'Viewing Requests', value: '84', delta: '+22%', icon: Calendar, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'Active Offers', value: '12', delta: '+2%', icon: FileText, color: 'text-gold-400', bg: 'bg-gold-400/10' },
-    { label: 'Conversion Rate', value: '3.2%', delta: '+0.4%', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-    { label: 'Avg. Time on Market', value: '24 Days', delta: '-3 Days', icon: Clock, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-  ];
-
-  const viewsData = [40, 55, 45, 70, 60, 85, 95, 80, 110, 100, 130, 145, 120, 160];
   const maxViews = Math.max(...viewsData);
-
-  const engagementData = [
-    { day: 'Mon', views: 80, saves: 20, shares: 10, requests: 5 },
-    { day: 'Tue', views: 95, saves: 25, shares: 15, requests: 8 },
-    { day: 'Wed', views: 110, saves: 30, shares: 12, requests: 10 },
-    { day: 'Thu', views: 90, saves: 22, shares: 8, requests: 4 },
-    { day: 'Fri', views: 130, saves: 40, shares: 20, requests: 12 },
-    { day: 'Sat', views: 160, saves: 50, shares: 25, requests: 15 },
-    { day: 'Sun', views: 145, saves: 45, shares: 18, requests: 11 },
-  ];
   const maxEng = Math.max(...engagementData.map(d => d.views));
 
-  const topProperties = [
-    { name: 'Skyline Penthouse Residence', views: '8.4k', saves: '942', offers: '7', requests: '42', conv: '5.2%' },
-    { name: 'Garden Court Villa', views: '4.2k', saves: '318', offers: '3', requests: '28', conv: '3.1%' },
-    { name: 'Banana Island Plot', views: '1.6k', saves: '160', offers: '2', requests: '14', conv: '2.8%' },
-  ];
-
-  const marketPerformance = [
-    { label: 'Average Price', value: '₦450M', trend: '+5.2%', icon: DollarSign },
-    { label: 'Market Trend', value: 'Bullish', trend: 'High', icon: TrendingUp },
-    { label: 'Demand Level', value: 'Very High', trend: '+12%', icon: Search },
-    { label: 'Popular Property Type', value: '4 Bed Villas', trend: 'Stable', icon: Heart },
-    { label: 'Trending Locations', value: 'Ikoyi, VI', trend: 'Hot', icon: MapPin },
-  ];
-
-  const revenueInsights = [
-    { label: 'Rental Revenue', value: '₦108.0M', color: 'text-emerald-400' },
-    { label: 'Sales Revenue', value: '₦850.0M', color: 'text-gold-400' },
-    { label: 'Expected Revenue', value: '₦45.5M', color: 'text-blue-400' },
-    { label: 'Lost Revenue', value: '₦12.0M', color: 'text-rose-400' },
-  ];
-
-  const funnelStages = [
-    { stage: 'Views', value: '14,200', dropoff: '100%' },
-    { stage: 'Saves', value: '1,420', dropoff: '10%' },
-    { stage: 'Viewing Requests', value: '84', dropoff: '5.9%' },
-    { stage: 'Offers', value: '24', dropoff: '28.5%' },
-    { stage: 'Accepted Offers', value: '6', dropoff: '25%' },
-    { stage: 'Completed Sales', value: '2', dropoff: '33.3%' },
-  ];
-
-  const listingHealth = [
-    { name: 'Skyline Penthouse Residence', vis: '98%', photo: 'High', desc: 'Detailed', seo: '95%', comp: '100%' },
-    { name: 'Garden Court Villa', vis: '85%', photo: 'Medium', desc: 'Brief', seo: '72%', comp: '80%' },
-    { name: 'Banana Island Plot', vis: '60%', photo: 'Low', desc: 'Missing info', seo: '45%', comp: '50%' },
-  ];
+  const handleExport = (format: string) => {
+    showToast({ type: 'success', title: 'Export Started', description: `Your report is being exported as ${format.toUpperCase()}.` });
+    setIsExportModalOpen(false);
+  };
 
   if (!hasAnalytics) {
     return (
@@ -77,7 +88,7 @@ export default function Analytics() {
           title="No analytics available."
           description="You do not have any active properties generating data."
           actionLabel="View Listings"
-          onAction={() => showToast({ type: 'info', title: 'View Listings', description: 'Navigating to your listings...' })}
+          onAction={() => navigate('/owner-dashboard?tab=Listing+Journey')}
         />
       </div>
     );
@@ -92,8 +103,12 @@ export default function Analytics() {
           <p className="text-sm text-ink/60">Track the performance of your listings, engagement, and business growth.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton onClick={() => showToast({ type: 'info', title: 'Export Report', description: 'Export report features will be available during backend integration.' })}><FileText className="h-4 w-4 mr-2" /> Export Report</GhostButton>
-          <GoldButton onClick={() => showToast({ type: 'info', title: 'Download PDF', description: 'PDF downloads will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
+          <GhostButton onClick={() => setIsExportModalOpen(true)}>
+            <FileText className="h-4 w-4 mr-2" /> Export Report
+          </GhostButton>
+          <GoldButton onClick={() => setIsExportModalOpen(true)}>
+            <Download className="h-4 w-4 mr-2" /> Download PDF
+          </GoldButton>
         </div>
       </div>
 
@@ -127,7 +142,7 @@ export default function Analytics() {
           </div>
           <div className="flex h-48 items-end gap-1.5 border-b border-white/10 pb-2">
             {viewsData.map((h, i) => (
-              <div key={i} className="group relative flex flex-1 flex-col items-center gap-2 h-full justify-end">
+               <div key={i} className="group relative flex flex-1 flex-col items-center gap-2 h-full justify-end">
                 <div
                   className="w-full rounded-t-sm bg-gradient-to-t from-blue-600/40 to-blue-400 transition-all duration-300 group-hover:from-blue-500/60 group-hover:to-blue-300"
                   style={{ height: `${(h / maxViews) * 100}%` }}
@@ -159,8 +174,6 @@ export default function Analytics() {
             {engagementData.map((d, i) => (
               <div key={i} className="group relative flex flex-col items-center w-8 h-full justify-end">
                 <div className="w-full flex flex-col justify-end gap-0.5 h-full relative">
-                   {/* Stacked visually using flex-col, from top to bottom (views is largest base, saves next, etc) - wait, stacked means total height is sum. 
-                       For simplicity we'll just layer them or make them side-by-side. Let's do side-by-side flex */}
                    <div className="w-full h-full flex items-end gap-[1px]">
                      <div className="flex-1 bg-blue-400 rounded-t-sm" style={{ height: `${(d.views/maxEng)*100}%` }}/>
                      <div className="flex-1 bg-rose-400 rounded-t-sm" style={{ height: `${(d.saves/maxEng)*100}%` }}/>
@@ -330,6 +343,13 @@ export default function Analytics() {
 
         </div>
       </div>
+      
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        title="Export Analytics Report"
+      />
     </div>
   );
 }

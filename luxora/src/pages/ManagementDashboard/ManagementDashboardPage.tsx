@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { EnterpriseLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import TeamManagement from './components/TeamManagement';
@@ -9,7 +9,12 @@ import Messages from './components/Messages';
 import Settings from './components/Settings';
 
 export default function ManagementDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Overview';
+
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -25,7 +30,7 @@ export default function ManagementDashboardPage() {
   };
 
   return (
-    <EnterpriseLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <EnterpriseLayout activeTab={activeTab} onTabChange={handleTabChange}>
       {renderContent()}
     </EnterpriseLayout>
   );

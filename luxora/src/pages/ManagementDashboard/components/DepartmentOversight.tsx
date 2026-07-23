@@ -6,12 +6,13 @@ import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 
 import { StatusBadge } from './shared/StatusBadge';
 import { DepartmentDetailModal } from './modals/DepartmentDetailModal';
+import type { Department } from '../../../types';
 
 export default function DepartmentOversight() {
-  const [selectedDept, setSelectedDept] = useState<Record<string, unknown> | null>(null);
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const departments = [
+  const departments: Department[] = [
     { id: 'D-FIN', name: 'Finance & Administration', head: 'Sarah Jacobs', budgetStatus: 'Optimal', headcount: 18, riskLevel: 'Low', status: 'Active' },
     { id: 'D-PRO', name: 'Procurement', head: 'Chidi Okafor', budgetStatus: 'Warning', headcount: 22, riskLevel: 'Medium', status: 'Active' },
     { id: 'D-INT', name: 'Intelligence & Security', head: 'Musa Bello', budgetStatus: 'Optimal', headcount: 45, riskLevel: 'Low', status: 'Active' },
@@ -24,7 +25,7 @@ export default function DepartmentOversight() {
     { name: 'Vendor Policy Renewals', dept: 'Procurement', progress: 15, status: 'Behind' },
   ];
 
-  const handleRowClick = (dept: Record<string, unknown>) => {
+  const handleRowClick = (dept: Department) => {
     setSelectedDept(dept);
     setIsModalOpen(true);
   };
@@ -147,35 +148,35 @@ export default function DepartmentOversight() {
 
             <DataTable
               data={departments}
-              keyExtractor={(dept) => String(dept.id)}
+              keyExtractor={(dept) => dept.id}
               columns={[
                 {
                   header: "Department",
                   render: (dept) => (
                     <div className="font-semibold text-cream flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-ink/40" /> {String(dept.name)}
+                      <Briefcase className="h-4 w-4 text-ink/40" /> {dept.name}
                     </div>
                   )
                 },
                 {
                   header: "Head",
-                  render: (dept) => <span className="text-ink/60">{String(dept.head)}</span>
+                  render: (dept) => <span className="text-ink/60">{dept.head}</span>
                 },
                 {
                   header: "Headcount",
-                  render: (dept) => <span className="text-cream">{String(dept.headcount)}</span>
+                  render: (dept) => <span className="text-cream">{dept.headcount}</span>
                 },
                 {
                   header: "Budget Status",
                   render: (dept) => (
-                    <span className={`text-xs font-bold ${String(dept.budgetStatus) === 'Optimal' ? 'text-emerald-400' : String(dept.budgetStatus) === 'Warning' ? 'text-yellow-400' : 'text-rose-400'}`}>
-                      {String(dept.budgetStatus)}
+                    <span className={`text-xs font-bold ${dept.budgetStatus === 'Optimal' ? 'text-emerald-400' : dept.budgetStatus === 'Warning' ? 'text-yellow-400' : 'text-rose-400'}`}>
+                      {dept.budgetStatus}
                     </span>
                   )
                 },
                 {
                   header: "Overall Status",
-                  render: (dept) => <StatusBadge status={String(dept.status)} />
+                  render: (dept) => <StatusBadge status={dept.status} />
                 },
                 {
                   header: <div className="text-right">Actions</div>,

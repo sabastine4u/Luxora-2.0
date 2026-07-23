@@ -1,11 +1,18 @@
+import { useState } from 'react';
 import { Home, ShieldCheck, FileCheck, Wallet, TrendingUp, Eye, Heart, MessageSquare, Plus, CheckCircle2, ChevronRight, Calendar, Zap, FileText } from 'lucide-react';
 import { useSession } from '../../../contexts/SessionContext';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../../contexts/ToastContext';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { GoldButton, GhostButton, VerifyBadge } from '../../../components/ui/ui';
+import PropertySubmissionModal from './modals/PropertySubmissionModal';
 
 export default function Overview({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const { user } = useSession();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
 
   // 1. Welcome Header
   const hour = new Date().getHours();
@@ -38,7 +45,7 @@ export default function Overview({ onNavigate }: { onNavigate?: (tab: string) =>
         
         {/* Quick Actions (part of header) */}
         <div className="flex gap-3 flex-wrap">
-          <GoldButton size="sm" onClick={() => onNavigate?.('My Property Requests')}><Plus className="h-4 w-4 mr-2"/> Submit Property</GoldButton>
+          <GoldButton size="sm" onClick={() => setIsSubmissionModalOpen(true)}><Plus className="h-4 w-4 mr-2"/> Submit Property</GoldButton>
           <GhostButton size="sm" onClick={() => onNavigate?.('Messages')}><MessageSquare className="h-4 w-4 mr-2"/> Messages</GhostButton>
         </div>
       </div>
@@ -231,6 +238,16 @@ export default function Overview({ onNavigate }: { onNavigate?: (tab: string) =>
         </div>
 
       </div>
+
+      <PropertySubmissionModal
+        isOpen={isSubmissionModalOpen}
+        onClose={() => setIsSubmissionModalOpen(false)}
+        onSubmit={() => {
+          setIsSubmissionModalOpen(false);
+          showToast({ type: 'success', title: 'Property Submitted', description: 'Your property has been submitted for review.' });
+          navigate('/owner-dashboard?tab=Listing+Journey');
+        }}
+      />
     </div>
   );
 }

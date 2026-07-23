@@ -1,10 +1,36 @@
 import { Download, FileBarChart, Filter, Eye, User, CreditCard } from 'lucide-react';
+import { useState } from 'react';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Invoices() {
   const { showWorkflowToast } = useWorkflowToast();
+  
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
+  const handleAction = (action: string, invId?: string) => {
+    setConfirmationState({
+      isOpen: true,
+      title: action,
+      description: invId ? `Are you sure you want to ${action.toLowerCase()} for Invoice ${invId}?` : `Are you sure you want to ${action.toLowerCase()}?`,
+      confirmText: action.split(' ')[0],
+      onConfirm: () => showWorkflowToast(action)
+    });
+  };
   const invoices = [
     { id: 'INV-2025-099', vendor: 'Amazon Web Services', amount: '₦14,500,000', date: 'Oct 05, 2025', due: 'Oct 15, 2025', status: 'Unpaid' },
     { id: 'INV-2025-098', vendor: 'Global Tech Supplies', amount: '₦8,500,000', date: 'Sep 28, 2025', due: 'Oct 12, 2025', status: 'Processing' },
@@ -25,7 +51,7 @@ export default function Invoices() {
         onSearchChange={() => {}}
         searchPlaceholder="Search invoices..."
         actions={
-          <button className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors" onClick={() => showWorkflowToast('Filter Status')}>
+          <button className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors" onClick={() => handleAction('Filter Status')}>
             <Filter className="h-4 w-4 mr-2" /> Status
           </button>
         }
@@ -70,28 +96,36 @@ export default function Invoices() {
           {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
-            render: () => (
+            render: (inv) => (
               <div className="flex justify-end gap-2">
                 <button 
                   className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors" 
-                  onClick={() => showWorkflowToast('Invoice Details')}
+                  onClick={() => handleAction('Invoice Details', inv.id)}
                 ><Eye className="h-4 w-4" /></button>
                 <button 
                   className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors" 
-                  onClick={() => showWorkflowToast('Vendor Info')}
+                  onClick={() => handleAction('Vendor Info', inv.id)}
                 ><User className="h-4 w-4" /></button>
                 <button 
                   className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors" 
-                  onClick={() => showWorkflowToast('Payment Status')}
+                  onClick={() => handleAction('Payment Status', inv.id)}
                 ><CreditCard className="h-4 w-4" /></button>
                 <button 
                   className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors" 
-                  onClick={() => showWorkflowToast('Download Invoice')}
+                  onClick={() => handleAction('Download Invoice', inv.id)}
                 ><Download className="h-4 w-4" /></button>
               </div>
             )
           }
         ]}
+      />
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
       />
     </div>
   );

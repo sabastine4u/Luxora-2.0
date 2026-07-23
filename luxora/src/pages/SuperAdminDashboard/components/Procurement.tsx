@@ -6,9 +6,11 @@ import { ActivityTimeline } from '../../../components/dashboard/shared/timelines
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export default function Procurement() {
   const [activeCategory, setActiveCategory] = useState('All');
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'renewals' | 'new_vendor' | 'action' | null}>({ isOpen: false, type: null });
 
   const recommendations = [
     { text: 'AWS reserved instances renewal due in 45 days. Renewing now saves 18% annually.', icon: Lightbulb, color: 'text-gold-400' },
@@ -35,10 +37,10 @@ export default function Procurement() {
         subtitle="Strategic oversight of vendor performance, budgets, and enterprise supply chain."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'renewals' })}>
               <RefreshCw className="h-4 w-4" /> Renewals
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'new_vendor' })}>
               <ShoppingCart className="h-4 w-4" /> New Vendor
             </GoldButton>
           </div>
@@ -59,7 +61,7 @@ export default function Procurement() {
           </p>
           <div className="space-y-3 relative z-10">
             {recommendations.map((item, idx) => (
-              <div key={idx} className="flex gap-3 bg-white/[0.02] border border-white/5 p-4 rounded-xl cursor-pointer hover:bg-white/[0.05] transition-colors">
+              <div key={idx} className="flex gap-3 bg-white/[0.02] border border-white/5 p-4 rounded-xl cursor-pointer hover:bg-white/[0.05] transition-colors" onClick={() => setConfirmModal({ isOpen: true, type: 'action' })}>
                 <div className="pt-0.5"><item.icon className={`h-5 w-5 ${item.color}`} /></div>
                 <div className="text-sm text-cream/90 leading-relaxed">{item.text}</div>
               </div>
@@ -158,6 +160,28 @@ export default function Procurement() {
           <ActivityTimeline title="Contract Renewal Tracker" items={renewals} />
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
+        title={
+          confirmModal.type === 'renewals' ? 'Process Renewals' : 
+          confirmModal.type === 'new_vendor' ? 'Onboard New Vendor' : 
+          'Execute Strategic Action'
+        }
+        message={
+          confirmModal.type === 'renewals' ? 'Initialize batch processing for all upcoming vendor renewals?' : 
+          confirmModal.type === 'new_vendor' ? 'Start the onboarding workflow for a new enterprise vendor?' : 
+          'Execute this AI-recommended strategic action? This will notify the procurement team to begin implementation.'
+        }
+        confirmText={
+          confirmModal.type === 'renewals' ? 'Process' : 
+          confirmModal.type === 'new_vendor' ? 'Onboard' : 
+          'Execute Action'
+        }
+        isDestructive={false}
+      />
     </div>
   );
 }

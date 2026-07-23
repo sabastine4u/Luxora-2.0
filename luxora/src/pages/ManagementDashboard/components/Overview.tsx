@@ -1,9 +1,28 @@
 import { Activity, Users, CheckCircle2, Megaphone, Target, FileText, Calendar, Building2, TrendingUp, AlertTriangle, Clock, Zap, MessageSquare, Briefcase, ListTodo, ShieldAlert } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
+import { useState } from 'react';
+import { useSession } from '../../../contexts/SessionContext';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import type { PendingApproval } from '../../../types';
 
 export default function Overview() {
+  const { user } = useSession();
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
   const organizationHealth = [
     { label: 'Operational Efficiency', percentage: 94, color: 'bg-emerald-400' },
     { label: 'Resource Utilization', percentage: 88, color: 'bg-blue-400' },
@@ -11,42 +30,66 @@ export default function Overview() {
     { label: 'Risk Mitigation', percentage: 85, color: 'bg-yellow-400' }
   ];
 
-  const pendingApprovals = [
-    { id: 1, title: 'Q4 Budget Expansion', requestedBy: 'Sarah Jacobs (Finance)', type: 'Budget', priority: 'High', date: 'Today' },
-    { id: 2, title: 'Enterprise Software License', requestedBy: 'Chidi Okafor (Procurement)', type: 'Procurement', priority: 'Medium', date: 'Yesterday' },
-    { id: 3, title: 'New Hire Requisition: Security', requestedBy: 'Musa Bello (Intelligence)', type: 'HR', priority: 'High', date: 'Oct 05' },
+  const pendingApprovals: PendingApproval[] = [
+    { id: 1, title: 'Annual Leave Request', requestedBy: 'Sarah Jacobs (Finance)', type: 'HR', priority: 'Low', date: 'Today' },
+    { id: 2, title: 'Department Training Budget', requestedBy: 'Chidi Okafor (Procurement)', type: 'Budget', priority: 'Medium', date: 'Yesterday' },
+    { id: 3, title: 'New Software License Allocation', requestedBy: 'Musa Bello (Intelligence)', type: 'IT', priority: 'High', date: 'Oct 05' },
   ];
 
   const milestones = [
-    { id: 1, title: 'Platform V2 Launch', date: 'Nov 01, 2025', status: 'On Track', progress: 85 },
-    { id: 2, title: 'Annual Financial Audit', date: 'Dec 15, 2025', status: 'Pending', progress: 10 },
-    { id: 3, title: 'New Headquarters Relocation', date: 'Jan 10, 2026', status: 'Planning', progress: 30 },
+    { id: 1, title: 'Q4 Department OKRs', date: 'Nov 01, 2025', status: 'On Track', progress: 85 },
+    { id: 2, title: 'Annual Performance Reviews', date: 'Dec 15, 2025', status: 'Pending', progress: 10 },
+    { id: 3, title: 'Staff Training Program', date: 'Jan 10, 2026', status: 'Planning', progress: 30 },
   ];
 
   const decisionsTimeline = [
-    { title: 'Vendor Policy Updated', time: 'Yesterday, 02:00 PM', desc: 'Approved by Executive Board', icon: CheckCircle2, color: 'text-emerald-400' },
-    { title: 'Security Protocol Level 2 Initiated', time: 'Oct 04, 2025', desc: 'Implemented across all departments', icon: AlertTriangle, color: 'text-yellow-400' },
-    { title: 'Q3 Earnings Review Completed', time: 'Oct 01, 2025', desc: 'Performance metrics aligned', icon: FileText, color: 'text-blue-400' },
+    { title: 'Shift Schedule Updated', time: 'Yesterday, 02:00 PM', desc: 'Approved by Department Head', icon: CheckCircle2, color: 'text-emerald-400' },
+    { title: 'Training Program Initiated', time: 'Oct 04, 2025', desc: 'Implemented across all teams', icon: AlertTriangle, color: 'text-yellow-400' },
+    { title: 'Q3 Budget Allocated', time: 'Oct 01, 2025', desc: 'Resource distribution completed', icon: FileText, color: 'text-blue-400' },
   ];
 
   const upcomingCalendar = [
-    { title: 'Board of Directors Meeting', time: 'Today, 10:00 AM', type: 'Executive', attendees: 12 },
-    { title: 'Procurement Strategy Sync', time: 'Today, 02:30 PM', type: 'Departmental', attendees: 5 },
-    { title: 'Q3 Financials Review', time: 'Tomorrow, 09:00 AM', type: 'Finance', attendees: 8 },
+    { title: 'Department Heads Meeting', time: 'Today, 10:00 AM', type: 'Management', attendees: 12 },
+    { title: 'Operations Stand-up', time: 'Today, 02:30 PM', type: 'Departmental', attendees: 5 },
+    { title: 'Performance Review Session', time: 'Tomorrow, 09:00 AM', type: 'HR', attendees: 8 },
   ];
+
+  const handleApprove = (approval: PendingApproval) => {
+    setConfirmationState({
+      isOpen: true,
+      title: 'Approve Request',
+      description: `Are you sure you want to approve "${approval.title}" requested by ${approval.requestedBy}?`,
+      confirmText: 'Approve',
+      onConfirm: () => {
+        // Mock backend approval
+      }
+    });
+  };
+
+  const handleReview = (approval: PendingApproval) => {
+    setConfirmationState({
+      isOpen: true,
+      title: 'Submit for Review',
+      description: `Do you want to submit "${approval.title}" for further review?`,
+      confirmText: 'Submit',
+      onConfirm: () => {
+        // Mock backend review submission
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
       <DashboardHeader
-        name="Enterprise Overview"
-        subtitle="Executive command center for organizational health, approvals, and strategic milestones."
+        name="Management Overview"
+        subtitle="Operational command center for department leadership, team performance, approvals, and organizational execution."
         actions={
           <div className="flex gap-3">
           </div>
         }
       />
 
-      {/* Executive Daily Briefing */}
+      {/* Manager Daily Briefing */}
       <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <Zap className="w-48 h-48 text-gold-400" />
@@ -55,22 +98,22 @@ export default function Overview() {
           <MessageSquare className="h-8 w-8" />
         </div>
         <div className="flex-1 relative z-10">
-          <h2 className="text-xl font-bold text-cream mb-2">Good morning, Executive.</h2>
+          <h2 className="text-xl font-bold text-cream mb-2">Good morning, {user?.name?.split(' ')[0] || 'Manager'}.</h2>
           <p className="text-ink/80 text-sm leading-relaxed max-w-3xl">
-            Organization health is optimal at 91%. There are <span className="font-bold text-cream">3 pending approvals</span> requiring your attention today. The Q3 Earnings Review has been completed successfully, and Finance is preparing the final documentation. The Board of Directors meeting is scheduled to begin in 2 hours.
+            Department operations are performing at 94% efficiency today. There are <span className="font-bold text-cream">3 pending approvals</span> requiring your attention. Q3 department reports have been consolidated for review, and team performance remains on target across all active departments.
           </p>
         </div>
       </div>
 
-      {/* Organization Performance Snapshot (KPIs) */}
+      {/* Department Performance Snapshot (KPIs) */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Overall Org Health"
-          value="91/100"
+          title="Overall Dept Health"
+          value="94/100"
           trend="+2 points MoM"
           trendColor="text-emerald-400"
           icon={Activity}
-          footer={<div className="text-xs text-ink/60">Cross-department composite</div>}
+          footer={<div className="text-xs text-ink/60">Cross-team composite</div>}
         />
         <KPICard
           title="Total Workforce"
@@ -86,15 +129,15 @@ export default function Overview() {
           trend="3 high priority"
           trendColor="text-rose-400"
           icon={Clock}
-          footer={<div className="text-xs text-ink/60">Requires executive review</div>}
+          footer={<div className="text-xs text-ink/60">Requires manager review</div>}
         />
         <KPICard
-          title="Strategic Goals"
+          title="Department Goals"
           value="85%"
           trend="On track for Q4"
           trendColor="text-emerald-400"
           icon={Target}
-          footer={<div className="text-xs text-ink/60">Enterprise milestone progress</div>}
+          footer={<div className="text-xs text-ink/60">Operational milestone progress</div>}
         />
       </div>
 
@@ -103,9 +146,9 @@ export default function Overview() {
         <div className="lg:col-span-2 space-y-6">
           
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Organization Health */}
+            {/* Department Health */}
             <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
-              <h3 className="font-heading text-lg font-semibold text-cream mb-4">Organization Health</h3>
+              <h3 className="font-heading text-lg font-semibold text-cream mb-4">Department Health</h3>
               <div className="space-y-4 flex-1">
                 {organizationHealth.map((metric, index) => (
                   <div key={index} className="space-y-2">
@@ -159,10 +202,10 @@ export default function Overview() {
             </div>
           </div>
 
-          {/* Executive Decision Queue */}
+          {/* Pending Department Approvals */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-heading text-lg font-semibold text-cream">Executive Decision Queue</h3>
+              <h3 className="font-heading text-lg font-semibold text-cream">Pending Department Approvals</h3>
             </div>
             <div className="space-y-3">
               {pendingApprovals.map((approval) => (
@@ -184,10 +227,17 @@ export default function Overview() {
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      <button className="h-8 w-8 rounded bg-emerald-400/10 text-emerald-400 flex items-center justify-center hover:bg-emerald-400/20 transition-colors" title="Approve">
+                      <button 
+                        onClick={() => handleApprove(approval)}
+                        className="h-8 w-8 rounded bg-emerald-400/10 text-emerald-400 flex items-center justify-center hover:bg-emerald-400/20 transition-colors" 
+                        title="Approve"
+                      >
                         <CheckCircle2 className="h-4 w-4" />
                       </button>
-                      <button className="h-8 px-3 rounded bg-navy-800 text-xs font-medium text-cream hover:bg-navy-700 transition-colors">
+                      <button 
+                        onClick={() => handleReview(approval)}
+                        className="h-8 px-3 rounded bg-navy-800 text-xs font-medium text-cream hover:bg-navy-700 transition-colors"
+                      >
                         Review
                       </button>
                     </div>
@@ -198,9 +248,9 @@ export default function Overview() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Weekly Department Scoreboard / Highlights */}
+            {/* Weekly Department Highlights */}
             <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
-              <h3 className="font-heading text-lg font-semibold text-cream mb-4">Weekly Organization Highlights</h3>
+              <h3 className="font-heading text-lg font-semibold text-cream mb-4">Weekly Department Highlights</h3>
               <div className="grid grid-cols-2 gap-4 flex-1">
                 {['Finance', 'Procurement', 'Intelligence', 'Property'].map((dept, idx) => (
                   <div key={idx} className="p-4 rounded-xl border border-white/5 bg-navy-900/50 text-center flex flex-col justify-center">
@@ -214,9 +264,9 @@ export default function Overview() {
               </div>
             </div>
 
-            {/* Strategic Goal Progress */}
+            {/* Department Goal Progress */}
             <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
-              <h3 className="font-heading text-lg font-semibold text-cream mb-4">Strategic Goal Progress</h3>
+              <h3 className="font-heading text-lg font-semibold text-cream mb-4">Department Goal Progress</h3>
               <div className="space-y-4 flex-1">
                 {milestones.map((milestone) => (
                   <div key={milestone.id} className="p-4 rounded-xl border border-white/5 bg-navy-900/50 hover:bg-white/5 transition-colors cursor-pointer">
@@ -269,11 +319,11 @@ export default function Overview() {
             </div>
           </div>
 
-          {/* Upcoming Executive Calendar */}
+          {/* Management Calendar */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading text-lg font-semibold text-cream flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-gold-400" /> Executive Calendar
+                <Calendar className="h-5 w-5 text-gold-400" /> Management Calendar
               </h3>
             </div>
             <div className="space-y-3">
@@ -289,16 +339,24 @@ export default function Overview() {
             </div>
           </div>
 
-          {/* Recent Executive Decisions */}
+          {/* Recent Management Actions */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <ActivityTimeline
-              title="Recent Executive Decisions"
+              title="Recent Management Actions"
               items={decisionsTimeline}
             />
           </div>
 
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
+      />
     </div>
   );
 }

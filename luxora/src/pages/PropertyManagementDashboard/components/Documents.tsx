@@ -5,7 +5,7 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { useToast } from '../../../contexts/ToastContext';
 import { UploadModal } from './modals/UploadModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 
 

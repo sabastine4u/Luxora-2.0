@@ -9,7 +9,7 @@ import { serviceRequests } from '../../../data/homeServicesData';
 import type { ServiceRequest } from '../../../types';
 import { ServiceRequestModal } from './modals/ServiceRequestModal';
 import { ProviderAssignmentModal } from './modals/ProviderAssignmentModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function ServiceRequests() {

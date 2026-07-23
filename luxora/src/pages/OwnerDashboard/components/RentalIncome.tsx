@@ -1,86 +1,28 @@
-import { Wallet, ArrowUpRight, Clock, Receipt, CheckCircle2, AlertCircle, XCircle, FileText, Download, Eye, MessageSquare, TrendingUp, Home } from 'lucide-react';
+import { useState } from 'react';
+import { Wallet, ArrowUpRight, FileText, Download, Eye, MessageSquare, TrendingUp, Home } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { useToast } from '../../../contexts/ToastContext';
-
-type PaymentStatus = 'Paid' | 'Pending' | 'Late' | 'Overdue' | 'Partial';
-
-interface PropertyPerformance {
-  id: string;
-  property: string;
-  tenant: string;
-  rent: number;
-  status: PaymentStatus;
-  nextDueDate: string;
-  occupancy: string;
-}
-
-interface PaymentHistory {
-  id: string;
-  date: string;
-  tenant: string;
-  property: string;
-  amount: number;
-  method: string;
-  status: PaymentStatus;
-}
-
-interface UpcomingPayment {
-  id: string;
-  tenant: string;
-  property: string;
-  dueDate: string;
-  amount: number;
-}
-
-// Mock Data
-const mockPerformance: PropertyPerformance[] = [
-  { id: '1', property: 'Garden Court Villa', tenant: 'Chidi Okafor', rent: 4700000, status: 'Paid', nextDueDate: 'Nov 01, 2025', occupancy: '100%' },
-  { id: '2', property: 'Marina View Apartment', tenant: 'Bisi Williams', rent: 1300000, status: 'Pending', nextDueDate: 'Oct 05, 2025', occupancy: '100%' },
-  { id: '3', property: 'Banana Island Plot', tenant: 'N/A', rent: 0, status: 'Overdue', nextDueDate: 'N/A', occupancy: '0% (Vacant)' }
-];
-
-const mockHistory: PaymentHistory[] = [
-  { id: 'PH-001', date: 'Oct 01, 2025', tenant: 'Chidi Okafor', property: 'Garden Court Villa', amount: 4700000, method: 'Bank Transfer', status: 'Paid' },
-  { id: 'PH-002', date: 'Sep 28, 2025', tenant: 'Bisi Williams', property: 'Marina View Apartment', amount: 650000, method: 'Card', status: 'Partial' },
-  { id: 'PH-003', date: 'Sep 01, 2025', tenant: 'Chidi Okafor', property: 'Garden Court Villa', amount: 4700000, method: 'Bank Transfer', status: 'Paid' },
-  { id: 'PH-004', date: 'Aug 15, 2025', tenant: 'Nnamdi Eze', property: 'Victoria Island Duplex', amount: 2500000, method: 'Cash', status: 'Late' }
-];
-
-const mockUpcoming: UpcomingPayment[] = [
-  { id: 'UP-001', tenant: 'Bisi Williams', property: 'Marina View Apartment', dueDate: 'Oct 05, 2025', amount: 1300000 },
-  { id: 'UP-002', tenant: 'Chidi Okafor', property: 'Garden Court Villa', dueDate: 'Nov 01, 2025', amount: 4700000 }
-];
-
-const chartData = [
-  { month: 'Jan', income: 8.5 },
-  { month: 'Feb', income: 8.5 },
-  { month: 'Mar', income: 9.0 },
-  { month: 'Apr', income: 9.0 },
-  { month: 'May', income: 10.5 },
-  { month: 'Jun', income: 10.5 },
-  { month: 'Jul', income: 12.0 },
-  { month: 'Aug', income: 12.0 },
-  { month: 'Sep', income: 14.5 },
-  { month: 'Oct', income: 14.5 },
-  { month: 'Nov', income: 0 },
-  { month: 'Dec', income: 0 },
-];
+import { mockPerformance, mockHistory, mockUpcoming, mockChartData } from '../../../data/ownerData';
+import type { UpcomingPayment, PaymentHistory } from '../../../types/owner';
+import ExportModal from './modals/ExportModal';
 
 export default function RentalIncome() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const formatMoney = (val: number) => `₦${(val / 1000000).toFixed(1)}M`;
 
-  const getStatusConfig = (status: PaymentStatus) => {
-    switch (status) {
-      case 'Paid': return { bg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', icon: CheckCircle2 };
-      case 'Pending': return { bg: 'bg-blue-500/10 border-blue-500/20 text-blue-400', icon: Clock };
-      case 'Late': return { bg: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400', icon: AlertCircle };
-      case 'Overdue': return { bg: 'bg-rose-500/10 border-rose-500/20 text-rose-400', icon: XCircle };
-      case 'Partial': return { bg: 'bg-purple-500/10 border-purple-500/20 text-purple-400', icon: Receipt };
-    }
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<UpcomingPayment | PaymentHistory | null>(null);
+
+  const handleExport = (format: string) => {
+    showToast({ type: 'success', title: 'Export Started', description: `Your rental statement is being exported as ${format.toUpperCase()}.` });
+    setIsExportModalOpen(false);
   };
 
   if (mockPerformance.length === 0) {
@@ -91,7 +33,7 @@ export default function RentalIncome() {
           title="No rental income available."
           description="You do not have any rented properties generating income yet."
           actionLabel="View Listings"
-          onAction={() => showToast({ type: 'info', title: 'View Listings', description: 'Listing navigation will be available during backend integration.' })}
+          onAction={() => navigate('/owner-dashboard?tab=Listing+Journey')}
         />
       </div>
     );
@@ -106,8 +48,12 @@ export default function RentalIncome() {
           <p className="text-sm text-ink/60">Monitor rental performance, income, occupancy, and payment history.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton onClick={() => showToast({ type: 'info', title: 'Export Statement', description: 'Export features will be available during backend integration.' })}><FileText className="h-4 w-4 mr-2" /> Export Statement</GhostButton>
-          <GoldButton onClick={() => showToast({ type: 'info', title: 'Download PDF', description: 'PDF downloads will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Download PDF</GoldButton>
+          <GhostButton onClick={() => setIsExportModalOpen(true)}>
+            <FileText className="h-4 w-4 mr-2" /> Export Statement
+          </GhostButton>
+          <GoldButton onClick={() => setIsExportModalOpen(true)}>
+            <Download className="h-4 w-4 mr-2" /> Download Report
+          </GoldButton>
         </div>
       </div>
 
@@ -117,7 +63,7 @@ export default function RentalIncome() {
           { label: 'Monthly Income', value: '₦14.5M', icon: Wallet, color: 'text-cream', bg: 'bg-white/5' },
           { label: 'Total Rental (YTD)', value: '₦108.0M', icon: ArrowUpRight, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
           { label: 'Occupancy Rate', value: '85%', icon: Home, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-          { label: 'Outstanding Rent', value: '₦2.5M', icon: AlertCircle, color: 'text-rose-400', bg: 'bg-rose-400/10' },
+          { label: 'Outstanding Rent', value: '₦2.5M', icon: TrendingUp, color: 'text-rose-400', bg: 'bg-rose-400/10' },
           { label: 'Net Income', value: '₦98.2M', icon: TrendingUp, color: 'text-gold-400', bg: 'bg-gold-400/10' },
         ].map((kpi, idx) => (
           <KPICard 
@@ -137,7 +83,6 @@ export default function RentalIncome() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        
         {/* Left Col: Chart & Property Perf */}
         <div className="xl:col-span-2 space-y-8">
           
@@ -145,8 +90,8 @@ export default function RentalIncome() {
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <h3 className="font-heading text-lg font-bold text-cream mb-6">Monthly Rental Income (Last 12 Months)</h3>
             <div className="h-[250px] flex items-end gap-2 border-b border-white/10 pb-2">
-              {chartData.map((d, i) => {
-                const heightPercent = (d.income / 15) * 100; // max income is 14.5, so 15 is a good ceiling
+              {mockChartData.map((d, i) => {
+                const heightPercent = (d.income / 15) * 100;
                 return (
                   <div key={i} className="group relative flex w-full flex-col justify-end items-center h-full">
                     <div 
@@ -161,7 +106,7 @@ export default function RentalIncome() {
               })}
             </div>
             <div className="flex justify-between mt-3 text-xs text-ink/50">
-              {chartData.map((d, i) => <div key={i} className="w-full text-center">{d.month}</div>)}
+              {mockChartData.map((d, i) => <div key={i} className="w-full text-center">{d.month}</div>)}
             </div>
           </div>
 
@@ -200,14 +145,9 @@ export default function RentalIncome() {
                   {
                     header: <div className="text-right">Status</div>,
                     className: "text-right",
-                    render: (perf) => {
-                      const cfg = getStatusConfig(perf.status);
-                      return (
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cfg.bg}`}>
-                          {perf.status}
-                        </span>
-                      );
-                    }
+                    render: (perf) => (
+                      <EnterpriseStatusBadge status={perf.status} />
+                    )
                   }
                 ]}
               />
@@ -215,32 +155,27 @@ export default function RentalIncome() {
 
             {/* Mobile Cards */}
             <div className="md:hidden divide-y divide-white/5">
-              {mockPerformance.map(perf => {
-                const cfg = getStatusConfig(perf.status);
-                return (
-                  <div key={perf.id} className="p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-semibold text-cream">{perf.property}</div>
-                        <div className="text-xs text-ink/50 mt-1">Tenant: {perf.tenant}</div>
-                      </div>
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${cfg.bg}`}>
-                        {perf.status}
-                      </span>
+              {mockPerformance.map(perf => (
+                <div key={perf.id} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold text-cream">{perf.property}</div>
+                      <div className="text-xs text-ink/50 mt-1">Tenant: {perf.tenant}</div>
                     </div>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <div className="text-xs text-ink/50 mb-1">Monthly Rent</div>
-                        <div className="font-bold text-gold-400">{perf.rent > 0 ? formatMoney(perf.rent) : '₦0'}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-ink/50 mb-1">Next Due</div>
-                        <div className="text-sm text-cream">{perf.nextDueDate}</div>
-                      </div>
+                    <EnterpriseStatusBadge status={perf.status} />
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <div className="text-xs text-ink/50 mb-1">Monthly Rent</div>
+                      <div className="font-bold text-gold-400">{perf.rent > 0 ? formatMoney(perf.rent) : '₦0'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-ink/50 mb-1">Next Due</div>
+                      <div className="text-sm text-cream">{perf.nextDueDate}</div>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -278,40 +213,37 @@ export default function RentalIncome() {
                   {
                     header: <div className="text-right">Status</div>,
                     className: "text-right",
-                    render: (hist) => {
-                      const cfg = getStatusConfig(hist.status);
-                      return (
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cfg.bg}`}>
-                          {hist.status}
-                        </span>
-                      );
-                    }
+                    render: (hist) => (
+                      <EnterpriseStatusBadge status={hist.status} />
+                    )
+                  },
+                  {
+                    header: <div className="text-right">Action</div>,
+                    className: "text-right",
+                    render: (hist) => (
+                      <GhostButton size="sm" onClick={() => setSelectedPayment(hist)}>View</GhostButton>
+                    )
                   }
                 ]}
               />
             </div>
 
             <div className="md:hidden divide-y divide-white/5">
-              {mockHistory.map(hist => {
-                const cfg = getStatusConfig(hist.status);
-                return (
-                  <div key={hist.id} className="p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-semibold text-cream">{hist.tenant}</div>
-                        <div className="text-xs text-ink/50 mt-1">{hist.date} &bull; {hist.method}</div>
-                      </div>
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${cfg.bg}`}>
-                        {hist.status}
-                      </span>
+              {mockHistory.map(hist => (
+                <div key={hist.id} className="p-4 space-y-3 cursor-pointer" onClick={() => setSelectedPayment(hist)}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold text-cream">{hist.tenant}</div>
+                      <div className="text-xs text-ink/50 mt-1">{hist.date} &bull; {hist.method}</div>
                     </div>
-                    <div className="flex justify-between items-end">
-                      <div className="text-xs text-ink/50 truncate max-w-[150px]">{hist.property}</div>
-                      <div className="font-bold text-emerald-400 text-lg">+{formatMoney(hist.amount)}</div>
-                    </div>
+                    <EnterpriseStatusBadge status={hist.status} />
                   </div>
-                );
-              })}
+                  <div className="flex justify-between items-end">
+                    <div className="text-xs text-ink/50 truncate max-w-[150px]">{hist.property}</div>
+                    <div className="font-bold text-emerald-400 text-lg">+{formatMoney(hist.amount)}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -376,8 +308,8 @@ export default function RentalIncome() {
                   <div className="flex justify-between items-center pt-3 border-t border-white/5">
                     <div className="font-bold text-cream">{formatMoney(up.amount)}</div>
                     <div className="flex gap-2">
-                      <GhostButton size="sm" className="px-2" onClick={() => showToast({ type: 'info', title: 'View Details', description: 'Payment details will be available during backend integration.' })}><Eye className="h-4 w-4" /></GhostButton>
-                      <GhostButton size="sm" className="px-2" onClick={() => showToast({ type: 'info', title: 'Contact Tenant', description: 'Messaging will be available during backend integration.' })}><MessageSquare className="h-4 w-4" /></GhostButton>
+                      <GhostButton size="sm" className="px-2" onClick={() => setSelectedPayment(up)}><Eye className="h-4 w-4" /></GhostButton>
+                      <GhostButton size="sm" className="px-2" onClick={() => navigate('/owner-dashboard?tab=Messages')}><MessageSquare className="h-4 w-4" /></GhostButton>
                     </div>
                   </div>
                 </div>
@@ -387,6 +319,61 @@ export default function RentalIncome() {
           
         </div>
       </div>
+
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        title="Export Statement"
+      />
+
+      <EnterpriseDetailDrawer
+        isOpen={!!selectedPayment}
+        onClose={() => setSelectedPayment(null)}
+        title="Payment Details"
+        footerActions={
+          <>
+            <GhostButton className="flex-1 justify-center" onClick={() => navigate('/owner-dashboard?tab=Messages')}>
+              <MessageSquare className="h-4 w-4 mr-2" /> Contact Tenant
+            </GhostButton>
+            <GoldButton className="flex-1 justify-center" onClick={() => showToast({ type: 'success', title: 'Payment Receipt', description: 'Receipt has been generated and sent.' })}>
+              Download Receipt
+            </GoldButton>
+          </>
+        }
+      >
+        {selectedPayment && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-4 items-center justify-between p-4 rounded-xl bg-navy-900 border border-white/5">
+              <div>
+                <div className="font-semibold text-cream text-lg">{selectedPayment.tenant}</div>
+                <div className="text-xs text-ink/60">{selectedPayment.property}</div>
+              </div>
+              {'status' in selectedPayment && (
+                <EnterpriseStatusBadge status={(selectedPayment as PaymentHistory).status} />
+              )}
+            </div>
+
+            <div className="p-4 rounded-xl bg-navy-900 border border-white/5">
+              <div className="text-[10px] text-ink/50 uppercase font-semibold mb-1">Amount</div>
+              <div className="font-bold text-gold-400 text-2xl mb-1">{formatMoney(selectedPayment.amount)}</div>
+              
+              <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-[10px] text-ink/50 uppercase font-semibold mb-1">Date</div>
+                  <div className="text-sm text-cream font-medium">{'date' in selectedPayment ? (selectedPayment as PaymentHistory).date : (selectedPayment as UpcomingPayment).dueDate}</div>
+                </div>
+                {'method' in selectedPayment && (
+                  <div>
+                    <div className="text-[10px] text-ink/50 uppercase font-semibold mb-1">Method</div>
+                    <div className="text-sm text-cream font-medium">{(selectedPayment as PaymentHistory).method}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

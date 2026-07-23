@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout';
+import Overview from './components/Overview';
 import BusinessHealth from './components/BusinessHealth';
 import Revenue from './components/Revenue';
 import Management from './components/Management';
@@ -15,12 +16,20 @@ import SystemSettings from './components/SystemSettings';
 import AgencyRankings from './components/AgencyRankings';
 import Charts from './components/Charts';
 import Analytics from './components/Analytics';
+import Messages from './components/Messages';
+import Settings from './components/Settings';
 
 export default function SuperAdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Business Health');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Overview';
+
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Overview': return <Overview />;
       case 'Business Health': return <BusinessHealth />;
       case 'Revenue': return <Revenue />;
       case 'Management': return <Management />;
@@ -36,12 +45,14 @@ export default function SuperAdminDashboardPage() {
       case 'Agency Rankings': return <AgencyRankings />;
       case 'Charts': return <Charts />;
       case 'Analytics': return <Analytics />;
-      default: return <BusinessHealth />;
+      case 'Messages': return <Messages />;
+      case 'User Settings': return <Settings />;
+      default: return <Overview />;
     }
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <DashboardLayout activeTab={activeTab} onTabChange={handleTabChange}>
       {renderContent()}
     </DashboardLayout>
   );

@@ -4,9 +4,11 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export default function Finance() {
   const [activeView, setActiveView] = useState('Operating');
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'gl' | 'pack' | 'transfer' | null}>({ isOpen: false, type: null });
 
   const cashFlow = [
     { label: 'Operating Capital', value: 65, color: 'bg-emerald-400' },
@@ -21,10 +23,10 @@ export default function Finance() {
         subtitle="Executive oversight of treasury, cash flow, corporate risk, and outstanding transactions."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'gl' })}>
               <Activity className="h-4 w-4" /> View GL
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'pack' })}>
               <Download className="h-4 w-4" /> Financial Pack
             </GoldButton>
           </div>
@@ -155,6 +157,28 @@ export default function Finance() {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
+        title={
+          confirmModal.type === 'gl' ? 'Access General Ledger' : 
+          confirmModal.type === 'pack' ? 'Generate Financial Pack' : 
+          'Initiate Wire Transfer'
+        }
+        message={
+          confirmModal.type === 'gl' ? 'Accessing the raw General Ledger requires a cryptographic signature. Proceed?' : 
+          confirmModal.type === 'pack' ? 'Compile the current EOM financial pack? This will include all P&L statements and balance sheets.' : 
+          'Initiate an enterprise wire transfer? This requires dual authorization from the CFO.'
+        }
+        confirmText={
+          confirmModal.type === 'gl' ? 'Sign & Access' : 
+          confirmModal.type === 'pack' ? 'Compile Pack' : 
+          'Initialize Transfer'
+        }
+        isDestructive={false}
+      />
     </div>
   );
 }

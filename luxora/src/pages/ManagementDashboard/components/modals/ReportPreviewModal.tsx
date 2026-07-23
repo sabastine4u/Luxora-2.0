@@ -2,15 +2,32 @@ import { FileText, Download, Share2, Printer, Clock, FileCheck, Search } from 'l
 import { Modal } from '../../../../components/ui/Modal';
 import { GoldButton, GhostButton } from '../../../../components/ui/ui';
 import { StatusBadge } from '../shared/StatusBadge';
+import { useState } from 'react';
 import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { ConfirmationModal } from '../../../../components/ui/ConfirmationModal';
+import type { ManagementReport } from '../../../../types';
 
 interface ReportPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  report: Record<string, unknown> | null;
+  report: ManagementReport | null;
 }
 
 export function ReportPreviewModal({ isOpen, onClose, report }: ReportPreviewModalProps) {
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
   if (!report) return null;
 
   const versionHistory = [
@@ -19,6 +36,18 @@ export function ReportPreviewModal({ isOpen, onClose, report }: ReportPreviewMod
     { title: 'Version 1.0 (Draft)', time: 'Oct 01, 2025', desc: 'Initial automated generation', icon: FileText, color: 'text-blue-400' },
   ];
 
+  const handleAction = (title: string, description: string, confirmText: string = 'Confirm') => {
+    setConfirmationState({
+      isOpen: true,
+      title,
+      description,
+      confirmText,
+      onConfirm: () => {
+        // Mock action
+      }
+    });
+  };
+
   return (
     <Modal 
       isOpen={isOpen} 
@@ -26,7 +55,7 @@ export function ReportPreviewModal({ isOpen, onClose, report }: ReportPreviewMod
       title="Report Details & Executive Summary"
       size="xl"
       actionButton={
-        <GoldButton className="flex items-center gap-2">
+        <GoldButton className="flex items-center gap-2" onClick={() => handleAction('Download Report', `Are you sure you want to download "${report.name}" as PDF?`, 'Download')}>
           <Download className="h-4 w-4" /> Download PDF
         </GoldButton>
       }
@@ -39,23 +68,23 @@ export function ReportPreviewModal({ isOpen, onClose, report }: ReportPreviewMod
           </div>
           <div className="flex-1 space-y-4">
             <div>
-              <h2 className="text-2xl font-bold text-cream">{String(report.name)}</h2>
-              <p className="text-ink/60 text-lg">Report ID: <span className="font-mono text-cream">{String(report.id)}</span></p>
+              <h2 className="text-2xl font-bold text-cream">{report.name}</h2>
+              <p className="text-ink/60 text-lg">Report ID: <span className="font-mono text-cream">{report.id}</span></p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <StatusBadge status={String(report.status)} />
+              <StatusBadge status={report.status} />
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
-                Type: {String(report.type)}
+                Type: {report.type}
               </span>
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
-                Generated: {String(report.date)}
+                Generated: {report.date}
               </span>
             </div>
             <div className="flex gap-4 pt-2">
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('Share Report', `Are you sure you want to share "${report.name}" with stakeholders?`, 'Share')}>
                 <Share2 className="h-4 w-4" /> Share
               </GhostButton>
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('Print Report', `Prepare "${report.name}" for printing?`, 'Print')}>
                 <Printer className="h-4 w-4" /> Print
               </GhostButton>
             </div>
@@ -77,7 +106,7 @@ export function ReportPreviewModal({ isOpen, onClose, report }: ReportPreviewMod
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-ink/60">Primary Author</span>
-                  <span className="text-cream font-medium">{String(report.author)}</span>
+                  <span className="text-cream font-medium">{report.author}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-ink/60">Data Sources</span>
@@ -135,6 +164,14 @@ export function ReportPreviewModal({ isOpen, onClose, report }: ReportPreviewMod
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
+      />
     </Modal>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import MyListings from './components/MyListings';
@@ -13,7 +13,12 @@ import Reports from './components/Reports';
 import Settings from './components/Settings';
 
 export default function AgentDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Overview';
+
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -33,7 +38,7 @@ export default function AgentDashboardPage() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <DashboardLayout activeTab={activeTab} onTabChange={handleTabChange}>
       {renderContent()}
     </DashboardLayout>
   );

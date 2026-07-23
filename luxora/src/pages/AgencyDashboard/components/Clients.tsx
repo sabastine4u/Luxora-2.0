@@ -4,25 +4,20 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { ClientDetailModal } from './modals/ClientDetailModal';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
+import { agencyClients } from '../../../data/agencyData';
+import type { AgencyClient } from '../../../types/agency';
 
 export default function Clients() {
   const [searchQuery, setSearchQuery] = useState('');
   const [clientType, setClientType] = useState<'All' | 'Buyer' | 'Owner'>('All');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<AgencyClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const clients = [
-    { id: 'CLI-001', name: 'Aliko Dangote', email: 'aliko@dangote.com', phone: '+234 800 111 2222', type: 'Buyer', status: 'Active', transactions: 3, agent: 'Sarah James', lastComm: '2 days ago' },
-    { id: 'CLI-002', name: 'Folorunso Alakija', email: 'f.alakija@faml.com', phone: '+234 800 333 4444', type: 'Owner', status: 'Active', transactions: 5, agent: 'Sarah James', lastComm: '1 week ago' },
-    { id: 'CLI-003', name: 'Tony Elumelu', email: 'tony@heirs.com', phone: '+234 800 777 8888', type: 'Buyer', status: 'Inactive', transactions: 1, agent: 'Emeka Uzo', lastComm: '1 month ago' },
-    { id: 'CLI-004', name: 'Jim Ovia', email: 'jim@zenith.com', phone: '+234 800 999 0000', type: 'Owner', status: 'Active', transactions: 2, agent: 'Michael Eze', lastComm: '3 days ago' },
-    { id: 'CLI-005', name: 'Femi Otedola', email: 'femi@forte.com', phone: '+234 800 222 3333', type: 'Buyer', status: 'Active', transactions: 4, agent: 'Sarah James', lastComm: 'Yesterday' },
-  ];
+  const clients = agencyClients;
 
   const filteredClients = clients.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -30,10 +25,9 @@ export default function Clients() {
     return matchesSearch && matchesType;
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleViewClient = (client: any) => {
+  const handleViewClient = (client: AgencyClient) => {
     setSelectedClient(client);
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   return (
@@ -158,7 +152,7 @@ export default function Clients() {
                 },
                 {
                   header: "Status",
-                  render: (c) => <StatusBadge status={String(c.status)} />
+                  render: (c) => <EnterpriseStatusBadge status={String(c.status)} />
                 },
                 {
                   header: <div className="text-right">Actions</div>,
@@ -252,11 +246,31 @@ export default function Clients() {
 
       </div>
 
-      <ClientDetailModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        client={selectedClient}
-      />
+      <EnterpriseDetailDrawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        title={selectedClient ? `Client: ${selectedClient.name}` : 'Client Details'}
+        footerActions={
+          <div className="flex gap-3 w-full">
+            <GhostButton className="flex-1">Message Client</GhostButton>
+            <GoldButton className="flex-1">Reassign Agent</GoldButton>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-semibold text-cream mb-4">Client Information</h4>
+            <div className="space-y-3 text-sm text-ink/80">
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Email</span><span className="font-medium text-cream">{selectedClient?.email}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Phone</span><span className="font-medium text-cream">{selectedClient?.phone}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Type</span><span className="font-medium text-cream">{selectedClient?.type}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Assigned Agent</span><span className="font-medium text-cream">{selectedClient?.agent}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Total Transactions</span><span className="font-medium text-cream">{selectedClient?.transactions}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Last Communication</span><span className="font-medium text-cream">{selectedClient?.lastComm}</span></div>
+            </div>
+          </div>
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

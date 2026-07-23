@@ -1,22 +1,18 @@
 import { useState } from 'react';
-import { ShieldAlert, UserCheck, MoreHorizontal, SearchX, Users, CheckCircle, Clock, UserPlus, Activity } from 'lucide-react';
+import { MoreHorizontal, SearchX, Users, CheckCircle, Clock, UserPlus, Activity } from 'lucide-react';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { UserDetailModal } from './UserDetailModal';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-
-const mockOwners = [
-  { id: 'OWN-901', name: 'Aliko Dangote', email: 'aliko@example.com', properties: 12, joined: 'Jan 2024', status: 'Active' },
-  { id: 'OWN-902', name: 'Tony Elumelu', email: 'tony@example.com', properties: 8, joined: 'Mar 2024', status: 'Active' },
-  { id: 'OWN-903', name: 'Folorunso Alakija', email: 'f.alakija@example.com', properties: 5, joined: 'Jun 2024', status: 'Suspended' },
-  { id: 'OWN-904', name: 'Femi Otedola', email: 'femi@example.com', properties: 3, joined: 'Aug 2024', status: 'Active' },
-];
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { adminOwners } from '../../../data/adminData';
+import type { AdminOwner } from '../../../types/admin';
 
 export default function Owners() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<Record<string, unknown> | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminOwner | null>(null);
 
   return (
     <div className="space-y-6">
@@ -42,7 +38,7 @@ export default function Owners() {
           />
 
           <DataTable
-            data={mockOwners}
+            data={adminOwners}
             keyExtractor={(owner) => owner.id}
             columns={[
               {
@@ -68,17 +64,7 @@ export default function Owners() {
               },
               {
                 header: "Status",
-                render: (owner) => (
-                  owner.status === 'Active' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 uppercase">
-                      <UserCheck className="h-3 w-3" /> Active
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-400/10 border border-rose-400/20 px-2.5 py-1 text-[10px] font-semibold text-rose-400 uppercase">
-                      <ShieldAlert className="h-3 w-3" /> Suspended
-                    </span>
-                  )
-                )
+                render: (owner) => <EnterpriseStatusBadge status={owner.status} />
               },
               {
                 header: <div className="text-right">Actions</div>,
@@ -117,11 +103,38 @@ export default function Owners() {
       
 
 
-      <UserDetailModal
+      <EnterpriseDetailDrawer
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
-        user={selectedUser}
-      />
+        title="Owner Details"
+        subtitle={selectedUser?.name}
+        footerActions={
+          <button className="w-full rounded-xl bg-gold-400 py-3 text-sm font-bold text-navy-900 transition-colors hover:bg-gold-300">
+            Edit Owner
+          </button>
+        }
+      >
+        {selectedUser && (
+          <div className="space-y-6">
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Status</div>
+              <EnterpriseStatusBadge status={selectedUser.status} />
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Email</div>
+              <div className="text-sm font-semibold text-cream">{selectedUser.email}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Total Properties</div>
+              <div className="text-sm font-semibold text-gold-400">{selectedUser.properties}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Joined Date</div>
+              <div className="text-sm font-semibold text-cream">{selectedUser.joined}</div>
+            </div>
+          </div>
+        )}
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

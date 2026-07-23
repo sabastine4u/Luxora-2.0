@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { Users, UserPlus, Phone, Search, Download, Clock, TrendingUp, AlertCircle, Target, MessageSquare, Zap, Activity, CheckCircle2, Calendar } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
@@ -13,7 +12,8 @@ import { LeadDetailModal } from './modals/LeadDetailModal';
 
 export default function Leads() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLead, setSelectedLead] = useState<any | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Record<string, unknown> | null>(null);
+
 
   const leads = [
     { id: 'LD-4001', name: 'Dr. Tunde Bakare', property: 'Skyline Penthouse', source: 'Website', status: 'Hot', date: 'Today, 09:30 AM', score: 95 },
@@ -28,7 +28,7 @@ export default function Leads() {
     l.property.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleViewLead = (lead: any) => {
+  const handleViewLead = (lead: Record<string, unknown>) => {
     setSelectedLead(lead);
   };
 
@@ -196,42 +196,42 @@ export default function Leads() {
             searchPlaceholder="Search leads by name or property..."
           />
 
-          <DataTable keyExtractor={(item: any, index: number) => item.id || String(index)}
+          <DataTable keyExtractor={(item: Record<string, unknown>, index: number) => (item.id as string) || String(index)}
             columns={[
               {
                 header: 'Lead Name',
-                render: (lead: any) => (
-                  <div className="font-semibold text-cream">{lead.name}</div>
+                render: (lead: Record<string, unknown>) => (
+                  <div className="font-semibold text-cream">{lead.name as string}</div>
                 )
               },
               {
                 header: 'Interested In',
-                render: (lead: any) => (
+                render: (lead: Record<string, unknown>) => (
                   <div className="text-sm text-ink/80 flex items-center gap-1.5">
-                    <Search className="h-3 w-3 text-gold-400" /> {lead.property}
+                    <Search className="h-3 w-3 text-gold-400" /> {lead.property as string}
                   </div>
                 )
               },
               {
                 header: 'Source / Date',
-                render: (lead: any) => (
+                render: (lead: Record<string, unknown>) => (
                   <div>
-                    <div className="text-sm text-cream">{lead.source}</div>
-                    <div className="text-[10px] text-ink/50 mt-0.5">{lead.date}</div>
+                    <div className="text-sm text-cream">{lead.source as string}</div>
+                    <div className="text-[10px] text-ink/50 mt-0.5">{lead.date as string}</div>
                   </div>
                 )
               },
               {
                 header: 'Lead Score',
-                render: (lead: any) => (
+                render: (lead: Record<string, unknown>) => (
                   <div className="w-24">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-ink/60">Score</span>
-                      <span className="text-cream">{lead.score}</span>
+                      <span className="text-cream">{lead.score as number}</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div 
-                        className={`h-full ${lead.score >= 80 ? 'bg-emerald-400' : lead.score >= 50 ? 'bg-gold-400' : 'bg-rose-400'}`}
+                        className={`h-full ${(lead.score as number) >= 80 ? 'bg-emerald-400' : (lead.score as number) >= 50 ? 'bg-gold-400' : 'bg-rose-400'}`}
                         style={{ width: `${lead.score}%` }}
                       />
                     </div>
@@ -240,11 +240,11 @@ export default function Leads() {
               },
               {
                 header: 'Status',
-                render: (lead: any) => <StatusBadge status={lead.status} />
+                render: (lead: Record<string, unknown>) => <StatusBadge status={lead.status as string} />
               },
               {
                 header: 'Actions',
-                render: (lead: any) => (
+                render: (lead: Record<string, unknown>) => (
                   <GhostButton 
                     onClick={() => handleViewLead(lead)}
                     className="h-8 px-3 text-xs"

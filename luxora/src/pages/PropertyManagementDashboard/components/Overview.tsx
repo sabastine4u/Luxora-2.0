@@ -5,7 +5,7 @@ import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { useToast } from '../../../contexts/ToastContext';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export default function Overview() {
   const { showToast } = useToast();

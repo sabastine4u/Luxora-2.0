@@ -8,7 +8,7 @@ import { EnterpriseDetailDrawer } from '../../../components/enterprise/Enterpris
 import { serviceProviders } from '../../../data/homeServicesData';
 import type { ServiceProvider } from '../../../types';
 import { ProviderFormModal } from './modals/ProviderFormModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function Providers() {

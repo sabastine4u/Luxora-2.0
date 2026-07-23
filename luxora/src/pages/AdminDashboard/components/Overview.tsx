@@ -4,8 +4,10 @@ import { ActivityTimeline } from '../../../components/dashboard/shared/timelines
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { AlertTriangle, FileText, UserCheck, CheckCircle, Activity, ShieldAlert, ChevronRight, Bell, Calendar as CalendarIcon, Key, Zap, TrendingUp } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
+import { useSession } from '../../../contexts/SessionContext';
 
 export default function Overview() {
+  const { user } = useSession();
   const mockReports = [
     { title: 'Listing Dispute', desc: 'Skyline Penthouse', time: '1 hour ago', color: 'text-rose-400', icon: ShieldAlert },
     { title: 'Agent Conduct', desc: 'Reported by Anonymous', time: '1 day ago', color: 'text-yellow-400', icon: AlertTriangle },
@@ -47,12 +49,11 @@ export default function Overview() {
   return (
     <div className="space-y-8 pb-12">
       <DashboardHeader 
-        name="Admin Overview"
+        name={`Welcome back, ${user?.name?.split(' ')[0] || 'Administrator'}`}
         subtitle="Manage users, listings, and platform health."
         actions={
           <>
-            <button className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-cream hover:bg-white/10">Add Administrator</button>
-            <button className="rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-navy-900 hover:bg-gold-300">Platform Settings</button>
+            <button onClick={() => window.location.href = '?tab=Settings'} className="rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-navy-900 hover:bg-gold-300">Platform Settings</button>
           </>
         }
       />

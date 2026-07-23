@@ -1,140 +1,29 @@
 import { useState, useMemo } from 'react';
 import { Route, CheckCircle2, Clock, XCircle, AlertTriangle, MessageSquare, Upload, Eye, Download, ArrowRight, User, Building2, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
-import { properties } from '../../../data/luxoraData';
+import { useNavigate } from 'react-router-dom';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { useToast } from '../../../contexts/ToastContext';
-import { publishEvent } from '../../../modules/enterprise/events/publishEvent';
-import { ENTERPRISE_EVENTS } from '../../../modules/enterprise/events/registry';
+import { mockJourneys } from '../../../data/ownerData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import UploadDocumentModal from './modals/UploadDocumentModal';
+import ExportModal from './modals/ExportModal';
 
-type StageStatus = 'Completed' | 'Current' | 'Pending' | 'Delayed' | 'Rejected';
-
-interface JourneyStage {
-  name: string;
-  description: string;
-  status: StageStatus;
-  date?: string;
-  officer?: string;
-  notes?: string;
-  estCompletion?: string;
-}
-
-interface ActivityEvent {
-  title: string;
-  date: string;
-  type: 'success' | 'info' | 'warning';
-}
-
-interface ListingJourneyData {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-  image: string;
-  status: string;
-  agent: { name: string; avatar: string };
-  progressPercent: number;
-  daysSinceSubmission: number;
-  estDaysRemaining: number;
-  expectedGoLive: string;
-  alerts: { type: 'warning' | 'error'; message: string }[];
-  stages: JourneyStage[];
-  activityFeed: ActivityEvent[];
-}
-
-// 15 Stages exactly as requested
-const STAGE_NAMES = [
-  'Property Submitted', 'Documents Uploaded', 'Documents Verified', 'Inspection Scheduled',
-  'Inspection Completed', 'Compliance Review', 'Photography', 'Content Creation',
-  'SEO Optimization', 'Published', 'Receiving Leads', 'Viewing Requests',
-  'Offers Received', 'Negotiation', 'Sold / Rented'
-];
-
-const mockJourneys: ListingJourneyData[] = [
-  {
-    id: 'LJ-101',
-    name: 'The Sapphire Residences',
-    address: 'Eko Atlantic City, Lagos',
-    type: 'Penthouse',
-    image: properties[0].image,
-    status: 'Content Creation',
-    agent: { name: 'Sarah Ken', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop' },
-    progressPercent: 50,
-    daysSinceSubmission: 8,
-    estDaysRemaining: 4,
-    expectedGoLive: 'Oct 20, 2025',
-    alerts: [
-      { type: 'warning', message: 'Missing Owner Action: Please approve the drafted property description.' }
-    ],
-    activityFeed: [
-      { title: 'Photography Completed', date: 'Oct 15, 2025', type: 'success' },
-      { title: 'Officer Assigned', date: 'Oct 14, 2025', type: 'info' },
-      { title: 'Inspection Confirmed', date: 'Oct 13, 2025', type: 'success' },
-      { title: 'Documents Uploaded', date: 'Oct 12, 2025', type: 'info' }
-    ],
-    stages: STAGE_NAMES.map((name, idx) => {
-      let status: StageStatus = 'Pending';
-      let date = undefined;
-      let officer = undefined;
-      let notes = undefined;
-      let estCompletion = undefined;
-
-      if (idx < 7) {
-        status = 'Completed';
-        date = 'Oct 14, 2025';
-        officer = 'Sarah Ken';
-      } else if (idx === 7) {
-        status = 'Current';
-        officer = 'Marketing Team';
-        estCompletion = 'Oct 17, 2025';
-        notes = 'Drafting luxury descriptions.';
-      }
-
-      return { name, description: `Process for ${name.toLowerCase()}.`, status, date, officer, notes, estCompletion };
-    })
-  },
-  {
-    id: 'LJ-102',
-    name: 'Oceanview Villa #4',
-    address: 'Lekki Phase 1, Lagos',
-    type: 'Villa',
-    image: properties[1].image,
-    status: 'Published',
-    agent: { name: 'James Okoro', avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop' },
-    progressPercent: 66, // Published is stage 10/15
-    daysSinceSubmission: 15,
-    estDaysRemaining: 0,
-    expectedGoLive: 'Live Now',
-    alerts: [],
-    activityFeed: [
-      { title: 'Offer Received', date: 'Oct 16, 2025', type: 'success' },
-      { title: 'Listing Live', date: 'Oct 15, 2025', type: 'success' },
-      { title: 'SEO Published', date: 'Oct 14, 2025', type: 'info' }
-    ],
-    stages: STAGE_NAMES.map((name, idx) => {
-      let status: StageStatus = 'Pending';
-      if (idx < 10) status = 'Completed';
-      else if (idx === 10) status = 'Current'; // Receiving Leads
-
-      return { 
-        name, 
-        description: `Process for ${name.toLowerCase()}.`, 
-        status, 
-        date: status === 'Completed' ? 'Oct 15, 2025' : undefined,
-        officer: 'James Okoro'
-      };
-    })
-  }
-];
+export type StageStatus = 'Completed' | 'Current' | 'Pending' | 'Delayed' | 'Rejected';
 
 export default function ListingJourney() {
   const { showToast } = useToast();
-  const [selectedId, setSelectedId] = useState(mockJourneys[0].id);
+  const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState(mockJourneys.length > 0 ? mockJourneys[0].id : '');
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const journey = useMemo(() => mockJourneys.find(j => j.id === selectedId) || mockJourneys[0], [selectedId]);
 
-  if (mockJourneys.length === 0) {
+  if (mockJourneys.length === 0 || !journey) {
     return (
       <div className="space-y-6">
         <EmptyState
@@ -142,7 +31,7 @@ export default function ListingJourney() {
           title="No listing journey available."
           description="Submit a property to start tracking its journey."
           actionLabel="Submit Property"
-          onAction={() => showToast({ type: 'info', title: 'Submit Property', description: 'Property Submission will be available during backend integration.' })}
+          onAction={() => navigate('/owner-dashboard?tab=Listing+Journey')}
         />
       </div>
     );
@@ -168,6 +57,16 @@ export default function ListingJourney() {
       case 'Rejected': return 'border-rose-400 bg-rose-400/20';
       default: return 'border-white/10 bg-navy-900';
     }
+  };
+
+  const handleUpload = () => {
+    showToast({ type: 'success', title: 'Document Uploaded', description: 'Document has been successfully submitted.' });
+    setIsUploadModalOpen(false);
+  };
+
+  const handleExport = (format: string) => {
+    showToast({ type: 'success', title: 'Timeline Downloaded', description: `Your timeline is being downloaded as ${format.toUpperCase()}.` });
+    setIsExportModalOpen(false);
   };
 
   return (
@@ -225,21 +124,18 @@ export default function ListingJourney() {
 
             {/* Quick Actions */}
             <div className="sm:col-span-2 mt-auto flex flex-wrap gap-2">
-              <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Contact Agent', description: 'Contact form will be available during backend integration.' })}><MessageSquare className="h-4 w-4 mr-2" /> Contact Agent</GoldButton>
-              <GhostButton size="sm" onClick={() => {
-                console.log('[Backend Simulation] Uploading documents...');
-                setTimeout(() => {
-                  publishEvent(ENTERPRISE_EVENTS.AGENT_DOCUMENTS_UPLOADED, {
-                    propertyId: journey.id,
-                    timestamp: new Date().toISOString()
-                  });
-                  showToast({ type: 'success', title: 'Documents Uploaded', description: 'Your documents have been successfully uploaded.' });
-                }, 500);
-              }}>
+              <GoldButton size="sm" onClick={() => navigate('/owner-dashboard?tab=Messages')}>
+                <MessageSquare className="h-4 w-4 mr-2" /> Contact Agent
+              </GoldButton>
+              <GhostButton size="sm" onClick={() => setIsUploadModalOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" /> Upload Missing Docs
               </GhostButton>
-              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Listing', description: 'Listing preview will be available during backend integration.' })}><Eye className="h-4 w-4 mr-2" /> View Listing</GhostButton>
-              <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Download Timeline', description: 'Timeline downloads will be available during backend integration.' })}><Download className="h-4 w-4 mr-2" /> Download Timeline</GhostButton>
+              <GhostButton size="sm" onClick={() => navigate(`/properties/${journey.id}`)}>
+                <Eye className="h-4 w-4 mr-2" /> View Listing
+              </GhostButton>
+              <GhostButton size="sm" onClick={() => setIsExportModalOpen(true)}>
+                <Download className="h-4 w-4 mr-2" /> Download Timeline
+              </GhostButton>
             </div>
           </div>
         </div>
@@ -326,8 +222,8 @@ export default function ListingJourney() {
 
                   return (
                     <div key={idx} className={`relative flex gap-6 transition-opacity ${isPending ? 'opacity-50' : 'opacity-100'}`}>
-                      <div className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 ${getStatusBg(stage.status)}`}>
-                        {getStatusIcon(stage.status)}
+                      <div className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 ${getStatusBg(stage.status as StageStatus)}`}>
+                        {getStatusIcon(stage.status as StageStatus)}
                       </div>
                       <div className="flex-1 pt-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
@@ -390,12 +286,58 @@ export default function ListingJourney() {
                   </div>
                 </div>
               ))}
-              <GhostButton className="w-full text-xs py-2 mt-4" onClick={() => showToast({ type: 'info', title: 'Full History', description: 'Full history will be available during backend integration.' })}>View Full History</GhostButton>
+              <GhostButton className="w-full text-xs py-2 mt-4" onClick={() => setIsHistoryDrawerOpen(true)}>View Full History</GhostButton>
             </div>
           </div>
         </div>
 
       </div>
+      
+      <UploadDocumentModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)} 
+        onUpload={handleUpload} 
+      />
+      
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        title="Download Timeline"
+      />
+
+      <EnterpriseDetailDrawer
+        isOpen={isHistoryDrawerOpen}
+        onClose={() => setIsHistoryDrawerOpen(false)}
+        title="Full Journey History"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-semibold text-cream">Complete Activity Feed</h4>
+            <GhostButton size="sm" onClick={() => setIsExportModalOpen(true)}>
+              <Download className="h-4 w-4 mr-2" /> Export
+            </GhostButton>
+          </div>
+          <div className="space-y-4">
+            {journey.activityFeed.map((event, idx) => (
+              <div key={idx} className="flex gap-4 items-start p-4 rounded-xl bg-navy-900/50 border border-white/5">
+                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 ${
+                  event.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
+                  event.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-blue-500/20 text-blue-400'
+                }`}>
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-cream mb-1">{event.title}</div>
+                  <div className="text-xs text-ink/70 mb-2">Recorded by system</div>
+                  <div className="text-[10px] uppercase tracking-wider text-ink/50">{event.date}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

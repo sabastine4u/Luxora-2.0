@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Building2, MoreHorizontal, CheckCircle, XCircle, Eye, Clock, AlertTriangle } from 'lucide-react';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { ApprovalConfirmationModal } from './ApprovalConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { RejectionReasonModal } from './RejectionReasonModal';
 import { ListingDetailModal } from './ListingDetailModal';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
@@ -14,11 +14,9 @@ import { ActivityTimeline } from '../../../components/dashboard/shared/timelines
 import { ROUTES } from '../../../constants/routes';
 import { useNavigate } from 'react-router-dom';
 
-const mockListings = [
-  { id: 'LST-801', title: 'Skyline Penthouse', owner: 'Aliko Dangote', location: 'Ikoyi, Lagos', price: '₦450M', status: 'Pending Review', priority: 'High' },
-  { id: 'LST-802', title: 'Banana Island Mansion', owner: 'Tony Elumelu', location: 'Banana Island', price: '₦1.2B', status: 'Approved', priority: 'Normal' },
-  { id: 'LST-803', title: 'Lekki Phase 1 Duplex', owner: 'Femi Otedola', location: 'Lekki, Lagos', price: '₦200M', status: 'Rejected', priority: 'Normal' },
-];
+import { adminListings } from '../../../data/adminData';
+import type { AdminListing } from '../../../types/admin';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 
 export default function Listings() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +24,7 @@ export default function Listings() {
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<string | null>(null);
-  const [previewListing, setPreviewListing] = useState<Record<string, unknown> | null>(null);
+  const [previewListing, setPreviewListing] = useState<AdminListing | null>(null);
   const navigate = useNavigate();
 
   const toggleSelection = (id: string) => {
@@ -40,21 +38,13 @@ export default function Listings() {
   };
 
   const toggleAll = () => {
-    if (selectedRows.size === mockListings.length) {
+    if (selectedRows.size === adminListings.length) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(mockListings.map(l => l.id)));
+      setSelectedRows(new Set(adminListings.map(l => l.id)));
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Approved': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-      case 'Rejected': return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
-      case 'Pending Review': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
-      default: return 'text-ink/60 bg-white/5 border-white/10';
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -144,7 +134,7 @@ export default function Listings() {
       />
 
       <DataTable
-        data={mockListings}
+        data={adminListings}
         keyExtractor={(item) => item.id}
         columns={[
           {
@@ -152,7 +142,7 @@ export default function Listings() {
               <input 
                 type="checkbox" 
                 className="rounded border-white/20 bg-navy-900/50 text-gold-400 focus:ring-gold-400/50"
-                checked={selectedRows.size === mockListings.length && mockListings.length > 0}
+                checked={selectedRows.size === adminListings.length && adminListings.length > 0}
                 onChange={toggleAll}
               />
             ),
@@ -194,9 +184,9 @@ export default function Listings() {
             header: "Status",
             render: (item) => (
               <div className="flex flex-col gap-1">
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase w-fit ${getStatusColor(item.status)}`}>
-                  {item.status}
-                </span>
+                <div className="w-fit">
+                  <EnterpriseStatusBadge status={item.status} />
+                </div>
                 {item.priority === 'High' && (
                   <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase w-fit text-rose-400 bg-rose-400/10 border-rose-400/20">
                     High Priority
@@ -246,14 +236,13 @@ export default function Listings() {
         ]}
       />
 
-      <ApprovalConfirmationModal
+      <ConfirmationModal
         isOpen={approvalModalOpen}
         onClose={() => {
           setApprovalModalOpen(false);
           setActionTarget(null);
         }}
         onConfirm={() => {
-          // Mock approve
           setApprovalModalOpen(false);
           if (actionTarget === 'bulk') setSelectedRows(new Set());
           setActionTarget(null);
@@ -281,7 +270,7 @@ export default function Listings() {
       <ListingDetailModal 
         isOpen={!!previewListing} 
         onClose={() => setPreviewListing(null)} 
-        listing={previewListing} 
+        listing={previewListing as Record<string, unknown> | null} 
       />
     </div>
   );

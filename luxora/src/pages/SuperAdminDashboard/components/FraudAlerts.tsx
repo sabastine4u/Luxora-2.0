@@ -4,9 +4,11 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export default function FraudAlerts() {
   const [activeTab, setActiveTab] = useState('All');
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'audit' | 'policy' | 'review' | null}>({ isOpen: false, type: null });
 
   const investigations = [
     { id: 'INV-402', title: 'Suspicious Agency Registration', status: 'Under Review', assignee: 'Compliance Team A' },
@@ -21,10 +23,10 @@ export default function FraudAlerts() {
         subtitle="Global oversight of regulatory compliance, fraud detection, and internal audits."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'audit' })}>
               <FileCheck className="h-4 w-4" /> Audit Center
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'policy' })}>
               <ShieldAlert className="h-4 w-4" /> Manage Policies
             </GoldButton>
           </div>
@@ -143,7 +145,9 @@ export default function FraudAlerts() {
                   header: <div className="text-right">Actions</div>,
                   className: "text-right",
                   render: () => (
-                    <GhostButton className="text-xs h-8 px-3">Investigate</GhostButton>
+                    <button className="text-blue-400 hover:bg-blue-400/10 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" onClick={() => setConfirmModal({ isOpen: true, type: 'review' })}>
+                      Review Dossier
+                    </button>
                   )
                 }
               ]}
@@ -172,6 +176,28 @@ export default function FraudAlerts() {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
+        title={
+          confirmModal.type === 'audit' ? 'Open Audit Center' : 
+          confirmModal.type === 'policy' ? 'Manage Global Policies' : 
+          'Review Investigation Dossier'
+        }
+        message={
+          confirmModal.type === 'audit' ? 'Navigate to the secure Audit Center? This action is logged.' : 
+          confirmModal.type === 'policy' ? 'Access the global compliance policy engine? Changes require dual authorization.' : 
+          'Open the complete evidence dossier for this investigation?'
+        }
+        confirmText={
+          confirmModal.type === 'audit' ? 'Access Audit Center' : 
+          confirmModal.type === 'policy' ? 'Manage Policies' : 
+          'Open Dossier'
+        }
+        isDestructive={false}
+      />
     </div>
   );
 }

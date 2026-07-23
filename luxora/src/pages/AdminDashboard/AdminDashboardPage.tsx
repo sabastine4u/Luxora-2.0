@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import Listings from './components/Listings';
@@ -11,9 +11,15 @@ import Complaints from './components/Complaints';
 import Reports from './components/Reports';
 import Finance from './components/Finance';
 import Settings from './components/Settings';
+import Messages from './components/Messages';
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Overview';
+
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -28,12 +34,13 @@ export default function AdminDashboardPage() {
       case 'Reports': return <Reports />;
       case 'Finance': return <Finance />;
       case 'Settings': return <Settings />;
+      case 'Messages': return <Messages />;
       default: return <Overview />;
     }
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <DashboardLayout activeTab={activeTab} onTabChange={handleTabChange}>
       {renderContent()}
     </DashboardLayout>
   );

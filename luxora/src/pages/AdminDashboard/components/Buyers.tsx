@@ -1,22 +1,19 @@
 import { useState } from 'react';
-import { MoreHorizontal, SearchX, UserCheck, Clock, Users, XCircle, UserPlus, Activity } from 'lucide-react';
+import { MoreHorizontal, SearchX, Users, XCircle, UserPlus, Activity, UserCheck } from 'lucide-react';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { UserDetailModal } from './UserDetailModal';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-
-const mockBuyers = [
-  { id: 'BUY-401', name: 'Ngozi Eze', email: 'ngozi@example.com', saved: 24, joined: 'Oct 2025', lastActive: '2 hours ago', status: 'Active' },
-  { id: 'BUY-402', name: 'Emeka Ike', email: 'emeka@example.com', saved: 12, joined: 'Sep 2025', lastActive: '1 day ago', status: 'Active' },
-  { id: 'BUY-403', name: 'Aisha Bello', email: 'aisha@example.com', saved: 4, joined: 'Aug 2025', lastActive: '2 weeks ago', status: 'Inactive' },
-];
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { adminBuyers } from '../../../data/adminData';
+import type { AdminBuyer } from '../../../types/admin';
 
 export default function Buyers() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<Record<string, unknown> | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminBuyer | null>(null);
 
   return (
     <div className="space-y-6">
@@ -42,7 +39,7 @@ export default function Buyers() {
           />
 
           <DataTable
-            data={mockBuyers}
+            data={adminBuyers}
             keyExtractor={(buyer) => buyer.id}
             columns={[
               {
@@ -73,17 +70,7 @@ export default function Buyers() {
               },
               {
                 header: "Status",
-                render: (buyer) => (
-                  buyer.status === 'Active' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 uppercase">
-                      <UserCheck className="h-3 w-3" /> Active
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 text-[10px] font-semibold text-yellow-400 uppercase">
-                      <Clock className="h-3 w-3" /> Inactive
-                    </span>
-                  )
-                )
+                render: (buyer) => <EnterpriseStatusBadge status={buyer.status} />
               },
               {
                 header: <div className="text-right">Actions</div>,
@@ -122,11 +109,42 @@ export default function Buyers() {
       
 
 
-      <UserDetailModal
+      <EnterpriseDetailDrawer
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
-        user={selectedUser}
-      />
+        title="Buyer Details"
+        subtitle={selectedUser?.name}
+        footerActions={
+          <button className="w-full rounded-xl bg-gold-400 py-3 text-sm font-bold text-navy-900 transition-colors hover:bg-gold-300">
+            Edit Buyer
+          </button>
+        }
+      >
+        {selectedUser && (
+          <div className="space-y-6">
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Status</div>
+              <EnterpriseStatusBadge status={selectedUser.status} />
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Email</div>
+              <div className="text-sm font-semibold text-cream">{selectedUser.email}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Saved Properties</div>
+              <div className="text-sm font-semibold text-gold-400">{selectedUser.saved}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Last Active</div>
+              <div className="text-sm font-semibold text-cream">{selectedUser.lastActive}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Joined Date</div>
+              <div className="text-sm font-semibold text-cream">{selectedUser.joined}</div>
+            </div>
+          </div>
+        )}
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

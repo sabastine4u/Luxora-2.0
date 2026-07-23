@@ -8,7 +8,10 @@ import { ActivityTimeline } from '../../../components/dashboard/shared/timelines
 import { GhostButton } from '../../../components/ui/ui';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 
+import { useSession } from '../../../contexts/SessionContext';
+
 export default function Overview({ onNavigate }: { onNavigate?: (tab: string) => void }) {
+  const { user } = useSession();
   const upcomingMeetings = [
     { title: 'Client Meeting - Aliko Dangote', time: '10:00 AM', desc: 'Discussing Banana Island Plot', icon: Users, color: 'text-blue-400' },
     { title: 'Property Inspection', time: '1:00 PM', desc: 'The Continental Duplex with Inspector', icon: Building2, color: 'text-emerald-400' },
@@ -24,7 +27,7 @@ export default function Overview({ onNavigate }: { onNavigate?: (tab: string) =>
   return (
     <div className="space-y-6">
       <DashboardHeader
-        name="Agency Overview"
+        name={`Welcome back, ${user?.name || 'Marcus Sterling'}`}
         subtitle="Executive dashboard, daily briefing, and agency performance."
         actions={
           <div className="flex gap-3">

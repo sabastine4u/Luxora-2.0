@@ -1,10 +1,36 @@
 import { MessageSquare, Plus, Clock } from 'lucide-react';
+import { useState } from 'react';
 import { GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function RFQs() {
   const { showWorkflowToast } = useWorkflowToast();
+  
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
+  const handleAction = (action: string, rfqId?: string) => {
+    setConfirmationState({
+      isOpen: true,
+      title: action,
+      description: rfqId ? `Are you sure you want to ${action.toLowerCase()} for RFQ ${rfqId}?` : `Are you sure you want to ${action.toLowerCase()}?`,
+      confirmText: action.split(' ')[0],
+      onConfirm: () => showWorkflowToast(action)
+    });
+  };
   const rfqs = [
     { id: 'RFQ-24-001', title: 'Office Furniture (Abuja)', deadline: 'Oct 20, 2025', quotes: 3, status: 'Open' },
     { id: 'RFQ-24-002', title: 'Cloud Hosting Services', deadline: 'Oct 15, 2025', quotes: 5, status: 'Evaluating' },
@@ -18,7 +44,7 @@ export default function RFQs() {
           <h2 className="font-heading text-2xl font-bold text-cream">Request for Quotes (RFQs)</h2>
           <p className="text-sm text-ink/60">Manage bidding processes and evaluate supplier quotes.</p>
         </div>
-        <GoldButton className="flex items-center gap-2" onClick={() => showWorkflowToast('Create RFQ')}><Plus className="h-4 w-4" /> Create RFQ</GoldButton>
+        <GoldButton className="flex items-center gap-2" onClick={() => handleAction('Create RFQ')}><Plus className="h-4 w-4" /> Create RFQ</GoldButton>
       </div>
 
       <DataTable
@@ -56,14 +82,22 @@ export default function RFQs() {
           {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
-            render: () => (
+            render: (rfq) => (
               <button 
                 className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors"
-                onClick={() => showWorkflowToast('View RFQ Details')}
+                onClick={() => handleAction('View RFQ Details', rfq.id)}
               >View Details</button>
             )
           }
         ]}
+      />
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
       />
     </div>
   );

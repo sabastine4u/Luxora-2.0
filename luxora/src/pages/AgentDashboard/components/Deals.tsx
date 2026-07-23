@@ -1,33 +1,39 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { Briefcase, Plus, TrendingUp, CheckCircle2, Download, AlertTriangle, Target, CheckSquare, FileText, FileCheck, BrainCircuit, ShieldAlert, Sparkles } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { DealDetailModal } from './modals/DealDetailModal';
+import { useToast } from '../../../contexts/ToastContext';
+import { deals as MOCK_DEALS } from '../../../data/agentData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 export default function Deals() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDeal, setSelectedDeal] = useState<any | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<Record<string, unknown> | null>(null);
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
 
-  const deals = [
-    { id: 'DL-5001', property: 'Skyline Penthouse', client: 'Aliko Dangote', value: '₦850,000,000', expectedClose: 'Nov 15, 2026', stage: 'Negotiation', status: 'Active', probability: 80, readiness: 75 },
-    { id: 'DL-5002', property: 'Victoria Island Office', client: 'Folorunso Alakija', value: '₦1,200,000,000', expectedClose: 'Dec 1, 2026', stage: 'Under Contract', status: 'Pending', probability: 95, readiness: 98 },
-    { id: 'DL-5003', property: 'Lekki Phase 1 Villa', client: 'Tony Elumelu', value: '₦450,000,000', expectedClose: 'Oct 5, 2026', stage: 'Closed Won', status: 'Closed', probability: 100, readiness: 100 },
-    { id: 'DL-5004', property: 'Banana Island Plot', client: 'Mike Adenuga', value: '₦600,000,000', expectedClose: 'Oct 12, 2026', stage: 'Proposal', status: 'Active', probability: 40, readiness: 30 },
-  ];
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
 
-  const filteredDeals = deals.filter(d => 
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
+
+  const filteredDeals = MOCK_DEALS.filter(d => 
     d.property.toLowerCase().includes(searchQuery.toLowerCase()) || 
     d.client.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleViewDeal = (deal: any) => {
+  const handleViewDeal = (deal: Record<string, unknown>) => {
     setSelectedDeal(deal);
   };
 
@@ -70,10 +76,10 @@ export default function Deals() {
         subtitle="Manage deal progress, monitor risks, and streamline closing procedures."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => handleAction('Export Pipeline', 'export_pipeline')}>
               <Download className="h-4 w-4" /> Export Pipeline
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => handleAction('New Deal', 'new_deal')}>
               <Plus className="h-4 w-4" /> New Deal
             </GoldButton>
           </div>
@@ -187,39 +193,39 @@ export default function Deals() {
             searchPlaceholder="Search deals..."
           />
 
-          <DataTable keyExtractor={(item: any, index: number) => item.id || String(index)}
+          <DataTable keyExtractor={(item: Record<string, unknown>, index: number) => (item.id as string) || String(index)}
             columns={[
               {
                 header: 'Property / Client',
-                render: (deal: any) => (
+                render: (deal: Record<string, unknown>) => (
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-cream">
                       <Briefcase className="h-5 w-5 text-gold-400" />
                     </div>
                     <div>
-                      <div className="font-semibold text-cream">{deal.property}</div>
-                      <div className="text-xs text-ink/60">{deal.client}</div>
+                      <div className="font-semibold text-cream">{deal.property as string}</div>
+                      <div className="text-xs text-ink/60">{deal.client as string}</div>
                     </div>
                   </div>
                 )
               },
               {
                 header: 'Value',
-                render: (deal: any) => (
-                  <div className="font-bold text-cream">{deal.value}</div>
+                render: (deal: Record<string, unknown>) => (
+                  <div className="font-bold text-cream">{deal.value as string}</div>
                 )
               },
               {
                 header: 'Readiness Score',
-                render: (deal: any) => (
+                render: (deal: Record<string, unknown>) => (
                   <div className="w-24">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-ink/60">Ready</span>
-                      <span className="text-cream">{deal.readiness}%</span>
+                      <span className="text-cream">{deal.readiness as number}%</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div 
-                        className={`h-full ${deal.readiness >= 90 ? 'bg-emerald-400' : deal.readiness >= 50 ? 'bg-gold-400' : 'bg-rose-400'}`}
+                        className={`h-full ${(deal.readiness as number) >= 90 ? 'bg-emerald-400' : (deal.readiness as number) >= 50 ? 'bg-gold-400' : 'bg-rose-400'}`}
                         style={{ width: `${deal.readiness}%` }}
                       />
                     </div>
@@ -228,19 +234,19 @@ export default function Deals() {
               },
               {
                 header: 'Stage',
-                render: (deal: any) => (
+                render: (deal: Record<string, unknown>) => (
                   <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-white/5 text-ink/80 border border-white/10">
-                    {deal.stage}
+                    {deal.stage as string}
                   </span>
                 )
               },
               {
                 header: 'Status',
-                render: (deal: any) => <StatusBadge status={deal.status} />
+                render: (deal: Record<string, unknown>) => <EnterpriseStatusBadge status={deal.status as string} />
               },
               {
                 header: 'Actions',
-                render: (deal: any) => (
+                render: (deal: Record<string, unknown>) => (
                   <GhostButton 
                     onClick={() => handleViewDeal(deal)}
                     className="h-8 px-3 text-xs"
@@ -325,6 +331,43 @@ export default function Deals() {
         onClose={() => setSelectedDeal(null)} 
         deal={selectedDeal} 
       />
+
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

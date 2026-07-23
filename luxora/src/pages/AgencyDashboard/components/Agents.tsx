@@ -5,25 +5,19 @@ import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
-import { AgencyAgentDetailModal } from './modals/AgencyAgentDetailModal';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
+import { agencyAgents } from '../../../data/agencyData';
+import type { AgencyAgent } from '../../../types/agency';
 
 export default function Agents() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedAgent, setSelectedAgent] = useState<{
-    name: string; email: string; phone: string; status: string; verified: boolean; assigned: number; score: number; department: string; id: string;
-    level: string; joinDate: string; activeLeads: number; clientSat: number;
-  } | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgencyAgent | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const agents = [
-    { id: 'AGT-001', name: 'Sarah James', email: 'sarah@meridian.com', phone: '+234 800 123 4567', status: 'Active', verified: true, assigned: 12, score: 95, department: 'Residential', level: 'Senior Broker', joinDate: '2022', activeLeads: 24, clientSat: 4.9 },
-    { id: 'AGT-002', name: 'Emeka Uzo', email: 'emeka@meridian.com', phone: '+234 800 234 5678', status: 'Active', verified: true, assigned: 8, score: 88, department: 'Commercial', level: 'Broker', joinDate: '2023', activeLeads: 15, clientSat: 4.7 },
-    { id: 'AGT-003', name: 'Daniel O.', email: 'daniel@meridian.com', phone: '+234 800 345 6789', status: 'Pending', verified: false, assigned: 0, score: 0, department: 'Residential', level: 'Junior Broker', joinDate: '2025', activeLeads: 2, clientSat: 0 },
-    { id: 'AGT-004', name: 'Michael Eze', email: 'michael@meridian.com', phone: '+234 800 456 7890', status: 'On Leave', verified: true, assigned: 2, score: 92, department: 'Luxury', level: 'Partner', joinDate: '2021', activeLeads: 5, clientSat: 5.0 },
-  ];
+  const agents = agencyAgents;
 
   const filteredAgents = agents.filter(a => 
     a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,12 +39,9 @@ export default function Agents() {
     }
   };
 
-  const handleViewAgent = (agent: {
-    name: string; email: string; phone: string; status: string; verified: boolean; assigned: number; score: number; department: string; id: string;
-    level: string; joinDate: string; activeLeads: number; clientSat: number;
-  }) => {
+  const handleViewAgent = (agent: AgencyAgent) => {
     setSelectedAgent(agent);
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   return (
@@ -244,7 +235,7 @@ export default function Agents() {
                   },
                   {
                     header: "Status",
-                    render: (a) => <StatusBadge status={String(a.status)} />
+                    render: (a) => <EnterpriseStatusBadge status={String(a.status)} />
                   },
                   {
                     header: <div className="text-right">Actions</div>,
@@ -323,11 +314,33 @@ export default function Agents() {
         </div>
       </div>
 
-      <AgencyAgentDetailModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        agent={selectedAgent}
-      />
+      <EnterpriseDetailDrawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        title={selectedAgent ? `Agent: ${selectedAgent.name}` : 'Agent Details'}
+        footerActions={
+          <div className="flex gap-3 w-full">
+            <GhostButton className="flex-1">Message Agent</GhostButton>
+            <GoldButton className="flex-1">Assign Leads</GoldButton>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-semibold text-cream mb-4">Agent Profile</h4>
+            <div className="space-y-3 text-sm text-ink/80">
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Email</span><span className="font-medium text-cream">{selectedAgent?.email}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Phone</span><span className="font-medium text-cream">{selectedAgent?.phone}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Department</span><span className="font-medium text-cream">{selectedAgent?.department}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Level</span><span className="font-medium text-cream">{selectedAgent?.level}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Assigned Deals</span><span className="font-medium text-cream">{selectedAgent?.assigned}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Performance Score</span><span className="font-medium text-cream">{selectedAgent?.score}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Client Satisfaction</span><span className="font-medium text-cream">{selectedAgent?.clientSat}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Join Date</span><span className="font-medium text-cream">{selectedAgent?.joinDate}</span></div>
+            </div>
+          </div>
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

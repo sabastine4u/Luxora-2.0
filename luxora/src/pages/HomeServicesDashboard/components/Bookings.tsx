@@ -6,7 +6,7 @@ import { EnterpriseStatusBadge } from '../../../components/enterprise/Enterprise
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { bookings } from '../../../data/homeServicesData';
 import type { Booking } from '../../../types';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useToast } from '../../../contexts/ToastContext';
 
 export default function Bookings() {

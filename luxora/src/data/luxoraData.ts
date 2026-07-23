@@ -3015,20 +3015,23 @@ export const agencyNav: NavItem[] = [
 
 export const adminNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
+  { label: 'Messages', icon: 'MessageSquare', badge: '5' },
   { label: 'Listings', icon: 'Building2' },
   { label: 'Verification Queue', icon: 'ShieldCheck', badge: '14' },
   { label: 'Owners', icon: 'UserCircle' },
   { label: 'Buyers', icon: 'Heart' },
   { label: 'Agents', icon: 'Users' },
   { label: 'Agencies', icon: 'Building2' },
-  { label: 'Complaints', icon: 'MessageSquare', badge: '5' },
+  { label: 'Complaints', icon: 'AlertTriangle', badge: '3' },
   { label: 'Reports', icon: 'FileBarChart' },
   { label: 'Finance', icon: 'Landmark' },
   { label: 'Settings', icon: 'Settings' },
 ];
 
 export const superAdminNav: NavItem[] = [
+  { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Business Health', icon: 'Activity' },
+  { label: 'Messages', icon: 'MessageSquare' },
   { label: 'Revenue', icon: 'Banknote' },
   { label: 'Management', icon: 'Briefcase' },
   { label: 'Procurement', icon: 'ShoppingCart' },
@@ -3043,6 +3046,7 @@ export const superAdminNav: NavItem[] = [
   { label: 'Agency Rankings', icon: 'Crown' },
   { label: 'Charts', icon: 'PieChart' },
   { label: 'Analytics', icon: 'TrendingUp' },
+  { label: 'User Settings', icon: 'Settings2' },
 ];
 
 export const managementNav: NavItem[] = [

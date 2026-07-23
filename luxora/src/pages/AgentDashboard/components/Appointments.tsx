@@ -1,32 +1,37 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, MapPin, User, Video, AlertCircle, TrendingUp, Navigation, CalendarDays, PieChart, ListTodo, Route, CalendarClock } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { AppointmentDetailModal } from './modals/AppointmentDetailModal';
+import { useToast } from '../../../contexts/ToastContext';
+import { appointments as MOCK_APPOINTMENTS } from '../../../data/agentData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 export default function Appointments() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAppt, setSelectedAppt] = useState<any | null>(null);
+  const [selectedAppt, setSelectedAppt] = useState<Record<string, unknown> | null>(null);
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
 
-  const appointments = [
-    { id: 'APT-001', client: 'Tony Elumelu', title: 'Viewing: Lekki Phase 1 Villa', date: 'Today, 2:00 PM', type: 'Viewing', location: 'In-Person', status: 'Scheduled', priority: 'High' },
-    { id: 'APT-002', client: 'Sarah Smith', title: 'Initial Consultation', date: 'Tomorrow, 10:00 AM', type: 'Consultation', location: 'Virtual', status: 'Pending', priority: 'Normal' },
-    { id: 'APT-003', client: 'Aliko Dangote', title: 'Contract Signing', date: 'Next Wed, 1:00 PM', type: 'Meeting', location: 'In-Person', status: 'Scheduled', priority: 'High' },
-    { id: 'APT-004', client: 'Folorunso Alakija', title: 'Portfolio Review', date: 'Yesterday', type: 'Review', location: 'Virtual', status: 'Completed', priority: 'High' },
-    { id: 'APT-005', client: 'Mike Adenuga', title: 'Property Tour: Banana Island', date: 'Last Monday', type: 'Viewing', location: 'In-Person', status: 'Cancelled', priority: 'High' },
-  ];
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
 
-  const filteredAppts = appointments.filter(a => 
-    a.client.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
+
+  const filteredAppts = MOCK_APPOINTMENTS.filter(a => 
+    a.clientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
     a.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleViewAppt = (appt: any) => {
+  const handleViewAppt = (appt: Record<string, unknown>) => {
     setSelectedAppt(appt);
   };
 
@@ -54,10 +59,10 @@ export default function Appointments() {
         subtitle="Optimize your daily route, prepare for meetings, and maximize schedule efficiency."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => handleAction('Sync Calendar', 'sync_calendar')}>
               <CalendarDays className="h-4 w-4" /> Sync Calendar
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => handleAction('New Event', 'new_event')}>
               <CalendarIcon className="h-4 w-4" /> New Event
             </GoldButton>
           </div>
@@ -196,63 +201,64 @@ export default function Appointments() {
             searchPlaceholder="Search by client or title..."
           />
 
-          <DataTable keyExtractor={(item: any, index: number) => item.id || String(index)}
+          <DataTable keyExtractor={(item: Record<string, unknown>, index: number) => (item.id as string) || String(index)}
             columns={[
               {
                 header: 'Time / Date',
-                render: (appt: any) => (
+                render: (appt: Record<string, unknown>) => (
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-gold-400/20 flex items-center justify-center text-gold-400">
                       <Clock className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className="font-semibold text-cream">{appt.date}</div>
+                      <div className="font-semibold text-cream">{appt.date as string}</div>
+                      {appt.time !== 'N/A' && <div className="text-xs text-ink/60">{appt.time as string}</div>}
                     </div>
                   </div>
                 )
               },
               {
                 header: 'Client & Details',
-                render: (appt: any) => (
+                render: (appt: Record<string, unknown>) => (
                   <div>
                     <div className="font-medium text-cream flex items-center gap-1.5 mb-1">
-                      <User className="h-3.5 w-3.5 text-gold-400" /> {appt.client}
+                      <User className="h-3.5 w-3.5 text-gold-400" /> {appt.clientName as string}
                     </div>
-                    <div className="text-xs text-ink/60">{appt.title}</div>
+                    <div className="text-xs text-ink/60">{appt.title as string}</div>
                   </div>
                 )
               },
               {
                 header: 'Type / Location',
-                render: (appt: any) => (
+                render: (appt: Record<string, unknown>) => (
                   <div>
                     <div className="flex items-center gap-1.5 mb-1 text-sm text-cream">
                       {appt.location === 'Virtual' ? <Video className="h-3.5 w-3.5 text-blue-400" /> : <MapPin className="h-3.5 w-3.5 text-emerald-400" />}
-                      {appt.location}
+                      {appt.location as string}
                     </div>
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-white/5 text-ink/60 border border-white/10 uppercase tracking-wider">
-                      {appt.type}
+                      {appt.type as string}
                     </span>
                   </div>
                 )
               },
               {
                 header: 'Priority',
-                render: (appt: any) => (
+                render: (appt: Record<string, unknown>) => (
                   <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
                     appt.priority === 'High' ? 'bg-orange-400/10 text-orange-400 border border-orange-400/20' : 'bg-white/5 text-ink/60 border border-white/10'
                   }`}>
-                    {appt.priority}
+                    {appt.priority as string}
                   </span>
                 )
               },
               {
                 header: 'Status',
-                render: (appt: any) => <StatusBadge status={appt.status} />
+                render: (appt: Record<string, unknown>) => <EnterpriseStatusBadge status={appt.status as string} />
               },
               {
                 header: 'Actions',
-                render: (appt: any) => (
+                render: (appt: Record<string, unknown>) => (
                   <GhostButton 
                     onClick={() => handleViewAppt(appt)}
                     className="h-8 px-3 text-xs"
@@ -295,7 +301,7 @@ export default function Appointments() {
                 </div>
               ))}
             </div>
-            <GoldButton className="w-full text-xs py-2 mt-4">Generate Agendas</GoldButton>
+            <GoldButton className="w-full text-xs py-2 mt-4" onClick={() => handleAction('Generate Agendas', 'generate_agendas')}>Generate Agendas</GoldButton>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
@@ -325,6 +331,43 @@ export default function Appointments() {
         onClose={() => setSelectedAppt(null)} 
         appointment={selectedAppt} 
       />
+
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

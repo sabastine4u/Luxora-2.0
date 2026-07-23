@@ -4,10 +4,13 @@ import { useSession } from '../../../contexts/SessionContext';
 import { SettingsLayout } from '../../../components/dashboard/shared/layouts/SettingsLayout';
 import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { useState } from 'react';
 
 export default function Settings() {
   const { user } = useSession();
   const isSuperAdmin = user?.role === 'Super Admin';
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'global' | 'password' | null}>({ isOpen: false, type: null });
 
   return (
     <SettingsLayout
@@ -78,7 +81,7 @@ export default function Settings() {
 
           {isSuperAdmin && (
             <div className="pt-4">
-              <GoldButton>Apply Global Changes</GoldButton>
+              <GoldButton onClick={() => setConfirmModal({ isOpen: true, type: 'global' })}>Apply Global Changes</GoldButton>
             </div>
           )}
         </SettingsSection>
@@ -103,12 +106,25 @@ export default function Settings() {
                 <p className="text-sm font-semibold text-cream">Admin Password</p>
                 <p className="text-xs text-ink/50">Required every 30 days</p>
               </div>
-              <GhostButton size="sm">Update</GhostButton>
+              <GhostButton size="sm" onClick={() => setConfirmModal({ isOpen: true, type: 'password' })}>Update</GhostButton>
             </div>
           </SettingsSection>
         </div>
 
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
+        title={confirmModal.type === 'global' ? 'Apply Global Settings' : 'Update Password'}
+        message={confirmModal.type === 'global' 
+          ? 'Are you sure you want to apply these system-wide changes? This will affect all active platform calculations.'
+          : 'Are you sure you want to request a password reset link to your registered email?'
+        }
+        confirmText={confirmModal.type === 'global' ? 'Apply Changes' : 'Send Link'}
+        isDestructive={false}
+      />
     </SettingsLayout>
   );
 }

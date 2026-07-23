@@ -32,7 +32,7 @@ interface Message {
 }
 
 interface MessagingUIProps {
-  userRole: 'Buyer' | 'Owner' | 'Agent' | 'Agency' | 'Admin' | 'Manager' | 'Procurement' | 'Finance' | 'Analyst' | 'Property Manager';
+  userRole: 'Buyer' | 'Owner' | 'Agent' | 'Agency' | 'Admin' | 'Manager' | 'Procurement' | 'Finance' | 'Analyst' | 'Property Manager' | 'Super Admin';
 }
 
 export function MessagingUI({ userRole }: MessagingUIProps) {

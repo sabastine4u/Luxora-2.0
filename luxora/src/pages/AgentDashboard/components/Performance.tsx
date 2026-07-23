@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { 
   TrendingUp, CheckCircle2, Wallet, Users, 
   Target, Award, Download, FileText,
@@ -7,8 +8,23 @@ import {
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { useToast } from '../../../contexts/ToastContext';
+import { topPerformingProperties } from '../../../data/agentData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 export default function Performance() {
+  const { showToast } = useToast();
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
+
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
+
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
+
   return (
     <div className="space-y-8 pb-12">
       {/* HEADER & EXPORT */}
@@ -18,8 +34,8 @@ export default function Performance() {
           <p className="text-sm text-ink/60">Monitor your sales performance, commissions, goals and productivity.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton size="sm"><FileText className="h-4 w-4 mr-2"/> Export Performance Report</GhostButton>
-          <GoldButton size="sm"><Download className="h-4 w-4 mr-2"/> Download PDF</GoldButton>
+          <GhostButton size="sm" onClick={() => handleAction('Export Performance Report', 'export_performance_report')}><FileText className="h-4 w-4 mr-2"/> Export Performance Report</GhostButton>
+          <GoldButton size="sm" onClick={() => handleAction('Download PDF', 'download_pdf')}><Download className="h-4 w-4 mr-2"/> Download PDF</GoldButton>
         </div>
       </div>
 
@@ -282,11 +298,7 @@ export default function Performance() {
       <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 overflow-hidden">
         <h3 className="font-heading text-lg font-bold text-cream mb-6 flex items-center gap-2"><Building2 className="h-5 w-5 text-gold-400"/> Top Performing Listings</h3>
         <DataTable
-          data={[
-            { name: 'Skyline Penthouse', views: '12.4k', favs: 842, offers: 4, status: 'Sold', rev: '₦185M' },
-            { name: 'Aurora Studio', views: '8.2k', favs: 512, offers: 2, status: 'Active', rev: '-' },
-            { name: 'Garden Court Villa', views: '15.1k', favs: 1024, offers: 6, status: 'Pending', rev: '₦680M' },
-          ]}
+          data={topPerformingProperties}
           keyExtractor={(prop) => prop.name}
           columns={[
             {
@@ -325,6 +337,42 @@ export default function Performance() {
         />
       </div>
 
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

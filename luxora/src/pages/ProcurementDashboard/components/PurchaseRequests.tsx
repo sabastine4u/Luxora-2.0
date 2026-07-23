@@ -1,12 +1,36 @@
 import { FileCheck, CheckCircle, XCircle, Filter, Forward, UserPlus } from 'lucide-react';
+import { useState } from 'react';
 import { GhostButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function PurchaseRequests() {
   const { showWorkflowToast } = useWorkflowToast();
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
+  const handleAction = (action: string, prId: string) => {
+    setConfirmationState({
+      isOpen: true,
+      title: action,
+      description: `Are you sure you want to ${action.toLowerCase()} PR ${prId}?`,
+      confirmText: action.split(' ')[0],
+      onConfirm: () => showWorkflowToast(action)
+    });
+  };
   const requests = [
     { id: 'PR-1023', department: 'IT Operations', item: 'MacBook Pro M3 (x3)', amount: '₦5,400,000', status: 'Pending Approval', date: 'Oct 02, 2025' },
     { id: 'PR-1024', department: 'Marketing', item: 'Event Booth Setup', amount: '₦1,200,000', status: 'Approved', date: 'Oct 01, 2025' },
@@ -70,27 +94,35 @@ export default function PurchaseRequests() {
                 <div className="flex justify-end gap-2">
                   <button 
                     className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
-                    onClick={() => showWorkflowToast('Approve Request')}
+                    onClick={() => handleAction('Approve Request', pr.id)}
                   ><CheckCircle className="h-4 w-4" /></button>
                   <button 
                     className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors"
-                    onClick={() => showWorkflowToast('Reject Request')}
+                    onClick={() => handleAction('Reject Request', pr.id)}
                   ><XCircle className="h-4 w-4" /></button>
                   <button 
                     className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
-                    onClick={() => showWorkflowToast('Forward Request')}
+                    onClick={() => handleAction('Forward Request', pr.id)}
                   ><Forward className="h-4 w-4" /></button>
                   <button 
                     className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"
-                    onClick={() => showWorkflowToast('Assign Request')}
+                    onClick={() => handleAction('Assign Request', pr.id)}
                   ><UserPlus className="h-4 w-4" /></button>
                 </div>
               ) : (
-                <button className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors" onClick={() => showWorkflowToast('View PR Details')}>View</button>
+                <button className="text-gold-400 hover:text-gold-300 font-medium text-xs transition-colors" onClick={() => handleAction('View PR Details', pr.id)}>View</button>
               )
             )
           }
         ]}
+      />
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
       />
     </div>
   );

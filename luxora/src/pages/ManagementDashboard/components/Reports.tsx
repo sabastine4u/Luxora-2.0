@@ -8,12 +8,27 @@ import { GhostButton } from '../../../components/ui/ui';
 import { StatusBadge } from './shared/StatusBadge';
 import { ReportPreviewModal } from './modals/ReportPreviewModal';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import type { ManagementReport } from '../../../types';
 
 export default function Reports() {
-  const [selectedReport, setSelectedReport] = useState<Record<string, unknown> | null>(null);
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+  const [selectedReport, setSelectedReport] = useState<ManagementReport | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const reportsList = [
+  const reportsList: ManagementReport[] = [
     { id: 'REP-001', name: 'Q3 Enterprise Financials', type: 'Financial', author: 'Sarah Jacobs', date: 'Oct 05, 2025', status: 'Generated' },
     { id: 'REP-002', name: 'Global Security Audit', type: 'Intelligence', author: 'Musa Bello', date: 'Oct 04, 2025', status: 'Review' },
     { id: 'REP-003', name: 'Vendor Compliance 2025', type: 'Procurement', author: 'Chidi Okafor', date: 'Oct 01, 2025', status: 'Generated' },
@@ -27,9 +42,22 @@ export default function Reports() {
     { title: 'Quarterly Audit Log', time: 'Last day of Quarter', desc: 'Sent to Compliance', icon: ShieldAlert, color: 'text-gold-400' },
   ];
 
-  const handleRowClick = (report: Record<string, unknown>) => {
+  const handleRowClick = (report: ManagementReport) => {
     setSelectedReport(report);
     setIsModalOpen(true);
+  };
+
+  const handleDownload = (e: React.MouseEvent, report: ManagementReport) => {
+    e.stopPropagation();
+    setConfirmationState({
+      isOpen: true,
+      title: 'Download Report',
+      description: `Are you sure you want to download "${report.name}"?`,
+      confirmText: 'Download',
+      onConfirm: () => {
+        // Mock download
+      }
+    });
   };
 
   return (
@@ -144,17 +172,17 @@ export default function Reports() {
 
             <DataTable
               data={reportsList}
-              keyExtractor={(report) => String(report.id)}
+              keyExtractor={(report) => report.id}
               columns={[
                 {
                   header: "Report ID",
-                  render: (report) => <span className="font-mono text-sm text-ink/60">{String(report.id)}</span>
+                  render: (report) => <span className="font-mono text-sm text-ink/60">{report.id}</span>
                 },
                 {
                   header: "Name",
                   render: (report) => (
                     <div className="font-semibold text-cream flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-gold-400" /> {String(report.name)}
+                      <FileText className="h-4 w-4 text-gold-400" /> {report.name}
                     </div>
                   )
                 },
@@ -162,17 +190,17 @@ export default function Reports() {
                   header: "Type",
                   render: (report) => (
                     <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-900/50 px-2.5 py-0.5 text-xs text-ink/60">
-                      {String(report.type)}
+                      {report.type}
                     </span>
                   )
                 },
                 {
                   header: "Author",
-                  render: (report) => <span className="text-ink/60">{String(report.author)}</span>
+                  render: (report) => <span className="text-ink/60">{report.author}</span>
                 },
                 {
                   header: "Status",
-                  render: (report) => <StatusBadge status={String(report.status)} />
+                  render: (report) => <StatusBadge status={report.status} />
                 },
                 {
                   header: <div className="text-right">Actions</div>,
@@ -186,7 +214,11 @@ export default function Reports() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="text-ink/60 hover:text-cream text-sm font-medium flex items-center gap-1" title="Download">
+                      <button 
+                        onClick={(e) => handleDownload(e, report)}
+                        className="text-ink/60 hover:text-cream text-sm font-medium flex items-center gap-1" 
+                        title="Download"
+                      >
                         <Download className="h-4 w-4" />
                       </button>
                     </div>
@@ -236,6 +268,14 @@ export default function Reports() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         report={selectedReport}
+      />
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
       />
     </div>
   );

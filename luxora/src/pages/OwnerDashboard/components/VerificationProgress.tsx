@@ -1,107 +1,19 @@
 import { useState, useMemo } from 'react';
 import { ShieldCheck, CheckCircle2, Clock, AlertTriangle, Upload, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
-import { properties } from '../../../data/luxoraData';
+import { useNavigate } from 'react-router-dom';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { useToast } from '../../../contexts/ToastContext';
-
-// Types
-type StageStatus = 'completed' | 'current' | 'pending' | 'rejected';
-type DocStatus = 'verified' | 'pending' | 'rejected';
-
-interface VerificationProperty {
-  id: string;
-  name: string;
-  image: string;
-  submissionDate: string;
-  officer: { name: string; avatar: string; email: string };
-  status: string;
-  progressPercent: number;
-  estimatedRemaining: string;
-  expectedPublication: string;
-  stages: { name: string; status: StageStatus; dateCompleted?: string; officerName?: string; notes?: string }[];
-  documents: { name: string; status: DocStatus; type: string }[];
-  history: { title: string; date: string; description: string }[];
-}
-
-const mockVerifications: VerificationProperty[] = [
-  {
-    id: 'PR-101',
-    name: 'The Sapphire Residences',
-    image: properties[0].image,
-    submissionDate: '2025-10-12',
-    officer: { name: 'David Adebayo', avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop', email: 'david@luxora.com' },
-    status: 'Document Review',
-    progressPercent: 35,
-    estimatedRemaining: '5-7 Business Days',
-    expectedPublication: 'Nov 02, 2025',
-    stages: [
-      { name: 'Submitted', status: 'completed', dateCompleted: 'Oct 12, 2025', officerName: 'System', notes: 'Initial request received.' },
-      { name: 'Documents Received', status: 'completed', dateCompleted: 'Oct 13, 2025', officerName: 'System', notes: 'All initial files uploaded.' },
-      { name: 'Document Review', status: 'current', officerName: 'David Adebayo', notes: 'Reviewing title deed and tax clearance.' },
-      { name: 'Inspection Scheduled', status: 'pending' },
-      { name: 'Inspection Completed', status: 'pending' },
-      { name: 'Compliance Review', status: 'pending' },
-      { name: 'Approved', status: 'pending' },
-      { name: 'Published', status: 'pending' }
-    ],
-    documents: [
-      { name: 'Title Deed', status: 'pending', type: 'PDF' },
-      { name: 'Government ID', status: 'verified', type: 'Image' },
-      { name: 'Property Photos', status: 'verified', type: 'Images' },
-      { name: 'Survey Plan', status: 'verified', type: 'PDF' },
-      { name: 'Tax Clearance', status: 'rejected', type: 'PDF' },
-      { name: 'Utility Bill', status: 'verified', type: 'PDF' },
-      { name: 'Inspection Form', status: 'pending', type: 'Form' }
-    ],
-    history: [
-      { title: 'Officer Assigned', date: 'Oct 14, 2025', description: 'David Adebayo assigned to review.' },
-      { title: 'Documents Uploaded', date: 'Oct 13, 2025', description: '6 documents uploaded by owner.' },
-      { title: 'Property Submitted', date: 'Oct 12, 2025', description: 'Verification request initiated.' }
-    ]
-  },
-  {
-    id: 'PR-102',
-    name: 'Oceanview Villa #4',
-    image: properties[1].image,
-    submissionDate: '2025-09-28',
-    officer: { name: 'Sarah Ken', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop', email: 'sarah@luxora.com' },
-    status: 'Published',
-    progressPercent: 100,
-    estimatedRemaining: 'None',
-    expectedPublication: 'Oct 05, 2025',
-    stages: [
-      { name: 'Submitted', status: 'completed', dateCompleted: 'Sep 28, 2025' },
-      { name: 'Documents Received', status: 'completed', dateCompleted: 'Sep 28, 2025' },
-      { name: 'Document Review', status: 'completed', dateCompleted: 'Sep 29, 2025' },
-      { name: 'Inspection Scheduled', status: 'completed', dateCompleted: 'Sep 30, 2025' },
-      { name: 'Inspection Completed', status: 'completed', dateCompleted: 'Oct 02, 2025' },
-      { name: 'Compliance Review', status: 'completed', dateCompleted: 'Oct 04, 2025' },
-      { name: 'Approved', status: 'completed', dateCompleted: 'Oct 04, 2025' },
-      { name: 'Published', status: 'completed', dateCompleted: 'Oct 05, 2025' }
-    ],
-    documents: [
-      { name: 'Title Deed', status: 'verified', type: 'PDF' },
-      { name: 'Government ID', status: 'verified', type: 'Image' },
-      { name: 'Property Photos', status: 'verified', type: 'Images' },
-      { name: 'Survey Plan', status: 'verified', type: 'PDF' },
-      { name: 'Tax Clearance', status: 'verified', type: 'PDF' },
-      { name: 'Utility Bill', status: 'verified', type: 'PDF' },
-      { name: 'Inspection Form', status: 'verified', type: 'Form' }
-    ],
-    history: [
-      { title: 'Published', date: 'Oct 05, 2025', description: 'Property is live.' },
-      { title: 'Approval Granted', date: 'Oct 04, 2025', description: 'Final compliance passed.' },
-      { title: 'Inspection Completed', date: 'Oct 02, 2025', description: 'Physical inspection passed.' },
-      { title: 'Property Submitted', date: 'Sep 28, 2025', description: 'Request initiated.' }
-    ]
-  }
-];
+import { mockVerifications } from '../../../data/ownerData';
+import UploadDocumentModal from './modals/UploadDocumentModal';
 
 export default function VerificationProgress() {
   const { showToast } = useToast();
-  const [selectedId, setSelectedId] = useState(mockVerifications[0].id);
+  const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState(mockVerifications.length > 0 ? mockVerifications[0].id : '');
   const [isMobileAccordionOpen, setIsMobileAccordionOpen] = useState(false);
+  
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const selectedProp = useMemo(() => mockVerifications.find(p => p.id === selectedId) || mockVerifications[0], [selectedId]);
 
@@ -112,9 +24,12 @@ export default function VerificationProgress() {
     rejected: 0
   };
 
-  const hasMissingDocs = selectedProp.documents.some(d => d.status === 'rejected');
+  const handleUpload = () => {
+    showToast({ type: 'success', title: 'Document Uploaded', description: 'Document has been successfully submitted for review.' });
+    setIsUploadModalOpen(false);
+  };
 
-  if (mockVerifications.length === 0) {
+  if (mockVerifications.length === 0 || !selectedProp) {
     return (
       <div className="space-y-6">
         <EmptyState
@@ -122,11 +37,13 @@ export default function VerificationProgress() {
           title="No verification process found."
           description="Submit a property to begin the verification and publishing process."
           actionLabel="Submit Property"
-          onAction={() => showToast({ type: 'info', title: 'Submit Property', description: 'Property submission will be available during backend integration.' })}
+          onAction={() => navigate('/owner-dashboard?tab=My+Property+Requests&action=submit')}
         />
       </div>
     );
   }
+
+  const hasMissingDocs = selectedProp.documents.some(d => d.status === 'rejected');
 
   return (
     <div className="space-y-8 pb-12">
@@ -232,8 +149,8 @@ export default function VerificationProgress() {
                 </div>
               </div>
               <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
-                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Upload Document', description: 'Document upload will be available during backend integration.' })}><Upload className="h-4 w-4 mr-2" /> Upload Document</GoldButton>
-                <GhostButton size="sm" className="border-rose-400/20 text-rose-400 hover:bg-rose-500/10" onClick={() => showToast({ type: 'info', title: 'Contact Officer', description: 'Officer messaging will be available during backend integration.' })}>Contact Officer</GhostButton>
+                <GoldButton size="sm" onClick={() => setIsUploadModalOpen(true)}><Upload className="h-4 w-4 mr-2" /> Upload Document</GoldButton>
+                <GhostButton size="sm" className="border-rose-400/20 text-rose-400 hover:bg-rose-500/10" onClick={() => navigate('/owner-dashboard?tab=Messages')}>Contact Officer</GhostButton>
               </div>
             </div>
           )}
@@ -247,7 +164,7 @@ export default function VerificationProgress() {
                 {selectedProp.stages.map((stage, idx) => {
                   const isCompleted = stage.status === 'completed';
                   const isCurrent = stage.status === 'current';
-                  const isRejected = stage.status === 'rejected';
+                  const isRejected = (stage.status as string) === 'rejected';
                   
                   return (
                     <div key={idx} className="relative flex gap-6">
@@ -310,6 +227,10 @@ export default function VerificationProgress() {
                 </div>
               ))}
             </div>
+            
+            <GhostButton className="w-full mt-6" onClick={() => setIsUploadModalOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" /> Upload Document
+            </GhostButton>
           </div>
 
           {/* Verification History (Timeline) */}
@@ -340,6 +261,12 @@ export default function VerificationProgress() {
 
         </div>
       </div>
+      
+      <UploadDocumentModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)} 
+        onUpload={handleUpload} 
+      />
     </div>
   );
 }

@@ -1,9 +1,35 @@
 import { PieChart, Download, Eye } from 'lucide-react';
+import { useState } from 'react';
 import { GoldButton } from '../../../components/ui/ui';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Budget() {
   const { showWorkflowToast } = useWorkflowToast();
+  
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
+  const handleAction = (action: string, context?: string) => {
+    setConfirmationState({
+      isOpen: true,
+      title: action,
+      description: context ? `Are you sure you want to ${action.toLowerCase()} for ${context}?` : `Are you sure you want to ${action.toLowerCase()}?`,
+      confirmText: action.split(' ')[0],
+      onConfirm: () => showWorkflowToast(action)
+    });
+  };
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -15,13 +41,13 @@ export default function Budget() {
         <div className="flex gap-2">
           <select 
             className="rounded-xl border border-white/10 bg-navy-900/80 py-2 px-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none appearance-none cursor-pointer"
-            onChange={(e) => showWorkflowToast(`Filter: ${e.target.value}`)}
+            onChange={(e) => handleAction(`Filter Budget`, e.target.value)}
           >
             <option>Q4 2025</option>
             <option>Q3 2025</option>
             <option>FY 2025</option>
           </select>
-          <GoldButton onClick={() => showWorkflowToast('Download Budget Report')}>
+          <GoldButton onClick={() => handleAction('Download Budget Report')}>
             <Download className="h-4 w-4 mr-2 inline-block" /> Report
           </GoldButton>
         </div>
@@ -53,7 +79,7 @@ export default function Budget() {
                 <span className="text-cream font-medium">IT & Infrastructure</span>
                 <div className="flex items-center gap-4">
                   <span className="text-ink/60">₦45.0M / ₦60.0M <span className="text-emerald-400 ml-2">(75%)</span></span>
-                  <button onClick={() => showWorkflowToast('Department Budget Details')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
+                  <button onClick={() => handleAction('View Budget Details', 'IT & Infrastructure')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
                 </div>
               </div>
               <div className="h-3 bg-navy-900 rounded-full overflow-hidden">
@@ -66,7 +92,7 @@ export default function Budget() {
                 <span className="text-cream font-medium">Marketing & Events</span>
                 <div className="flex items-center gap-4">
                   <span className="text-ink/60">₦28.5M / ₦30.0M <span className="text-rose-400 ml-2">(95%)</span></span>
-                  <button onClick={() => showWorkflowToast('Department Budget Details')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
+                  <button onClick={() => handleAction('View Budget Details', 'Marketing & Events')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
                 </div>
               </div>
               <div className="h-3 bg-navy-900 rounded-full overflow-hidden flex">
@@ -79,7 +105,7 @@ export default function Budget() {
                 <span className="text-cream font-medium">Facilities & Maintenance</span>
                 <div className="flex items-center gap-4">
                   <span className="text-ink/60">₦11.0M / ₦40.0M <span className="text-emerald-400 ml-2">(27.5%)</span></span>
-                  <button onClick={() => showWorkflowToast('Department Budget Details')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
+                  <button onClick={() => handleAction('View Budget Details', 'Facilities & Maintenance')} className="text-gold-400 hover:text-gold-300 p-1"><Eye className="h-4 w-4" /></button>
                 </div>
               </div>
               <div className="h-3 bg-navy-900 rounded-full overflow-hidden flex">
@@ -88,6 +114,14 @@ export default function Budget() {
             </div>
          </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
+      />
     </div>
   );
 }

@@ -4,33 +4,22 @@ import { SegmentedProgressBar } from '../../../components/dashboard/shared/widge
 import { GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { ApprovalConfirmationModal } from './ApprovalConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { RejectionReasonModal } from './RejectionReasonModal';
 import { VerificationDetailModal } from './VerificationDetailModal';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-
-const mockQueue = [
-  { id: 'VQ-104', type: 'Property', title: 'Skyline Penthouse', submitter: 'Bisi Williams (Owner)', date: '2 hours ago', status: 'Pending Review' },
-  { id: 'VQ-103', type: 'Agent KYC', title: 'Identity Verification', submitter: 'Chidi Okafor (Agent)', date: '5 hours ago', status: 'Pending Review' },
-  { id: 'VQ-102', type: 'Agency', title: 'Business Registration', submitter: 'Meridian Luxury', date: '1 day ago', status: 'Requires Info' },
-  { id: 'VQ-101', type: 'Property', title: 'Banana Island Plot', submitter: 'Anonymous', date: '2 days ago', status: 'Pending Review' },
-];
+import { adminVerifications } from '../../../data/adminData';
+import type { AdminVerification } from '../../../types/admin';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 
 export default function VerificationQueue() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [previewItem, setPreviewItem] = useState<Record<string, unknown> | null>(null);
+  const [previewItem, setPreviewItem] = useState<AdminVerification | null>(null);
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'Property': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-      case 'Agent KYC': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
-      case 'Agency': return 'text-purple-400 bg-purple-400/10 border-purple-400/20';
-      default: return 'text-ink/60 bg-white/5 border-white/10';
-    }
-  };
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [actionTarget, setActionTarget] = useState<string | null>(null);
 
   return (
     <div className="space-y-6">
@@ -83,7 +72,7 @@ export default function VerificationQueue() {
       </div>
 
       <DataTable
-        data={mockQueue}
+        data={adminVerifications}
         keyExtractor={(item) => item.id}
         columns={[
           {
@@ -93,9 +82,9 @@ export default function VerificationQueue() {
           {
             header: "Type",
             render: (item) => (
-              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${getTypeColor(item.type)}`}>
-                {item.type}
-              </span>
+              <div className="w-fit">
+                <EnterpriseStatusBadge status={item.status} />
+              </div>
             )
           },
           {
@@ -138,23 +127,27 @@ export default function VerificationQueue() {
         }
       />
 
-      <VerificationDetailModal
-        isOpen={!!previewItem}
-        onClose={() => setPreviewItem(null)}
-        item={previewItem}
+      <VerificationDetailModal 
+        isOpen={!!previewItem} 
+        onClose={() => setPreviewItem(null)} 
+        item={previewItem as Record<string, unknown> | null}
         onApprove={() => setApprovalModalOpen(true)}
         onReject={() => setRejectionModalOpen(true)}
       />
 
-      <ApprovalConfirmationModal
+      <ConfirmationModal
         isOpen={approvalModalOpen}
-        onClose={() => setApprovalModalOpen(false)}
+        onClose={() => {
+          setApprovalModalOpen(false);
+          setActionTarget(null);
+        }}
         onConfirm={() => {
           setApprovalModalOpen(false);
-          setPreviewItem(null);
+          if (actionTarget === 'bulk') setSelectedRows(new Set());
+          setActionTarget(null);
         }}
-        title="Approve Document"
-        message="Are you sure you want to approve this verification document? The user will be notified of their new verified status."
+        title={actionTarget === 'bulk' ? `Approve ${selectedRows.size} Verifications` : 'Approve Verification'}
+        message={actionTarget === 'bulk' ? `Are you sure you want to approve these ${selectedRows.size} verification requests?` : "Are you sure you want to approve this verification document? The user will be notified of their new verified status."}
       />
 
       <RejectionReasonModal

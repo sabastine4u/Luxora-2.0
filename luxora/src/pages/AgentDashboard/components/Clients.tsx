@@ -1,34 +1,39 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { Users, UserPlus, Heart, Download, Star, Award, MessageSquare, TrendingUp, Calendar, Gift, Zap, CheckCircle2, Clock } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { ClientDetailModal } from './modals/ClientDetailModal';
+import { useToast } from '../../../contexts/ToastContext';
+import { clients as MOCK_CLIENTS } from '../../../data/agentData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 export default function Clients() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Record<string, unknown> | null>(null);
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
 
-  const clients = [
-    { id: 'CL-3001', name: 'Aliko Dangote', type: 'Investor', status: 'VIP', lastContact: '2 days ago', totalValue: '₦2.5B', engagementScore: 98 },
-    { id: 'CL-3002', name: 'Folorunso Alakija', type: 'Owner', status: 'Active', lastContact: '1 week ago', totalValue: '₦1.2B', engagementScore: 85 },
-    { id: 'CL-3003', name: 'Tony Elumelu', type: 'Buyer', status: 'Active', lastContact: 'Today', totalValue: '₦850M', engagementScore: 92 },
-    { id: 'CL-3004', name: 'Mike Adenuga', type: 'Investor', status: 'Dormant', lastContact: '3 months ago', totalValue: '₦4.1B', engagementScore: 40 },
-    { id: 'CL-3005', name: 'Jim Ovia', type: 'Owner', status: 'VIP', lastContact: 'Yesterday', totalValue: '₦1.8B', engagementScore: 95 },
-  ];
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
 
-  const filteredClients = clients.filter(c => 
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
+
+  const filteredClients = MOCK_CLIENTS.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     c.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleViewClient = (client: any) => {
+  const handleViewClient = (client: Record<string, unknown>) => {
     setSelectedClient(client);
   };
 
@@ -60,10 +65,10 @@ export default function Clients() {
         subtitle="Nurture high-value relationships, track client milestones, and automate engagement."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => handleAction('Export CRM', 'export')}>
               <Download className="h-4 w-4" /> Export CRM
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => handleAction('New Client', 'new_client')}>
               <UserPlus className="h-4 w-4" /> New Client
             </GoldButton>
           </div>
@@ -196,49 +201,49 @@ export default function Clients() {
             searchPlaceholder="Search clients by name or type..."
           />
 
-          <DataTable keyExtractor={(item: any, index: number) => item.id || String(index)}
+          <DataTable keyExtractor={(item: Record<string, unknown>, index: number) => (item.id as string) || String(index)}
             columns={[
               {
                 header: 'Client Name',
-                render: (client: any) => (
+                render: (client: Record<string, unknown>) => (
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-cream">
                       <Users className="h-5 w-5 text-emerald-400" />
                     </div>
                     <div>
                       <div className="font-semibold text-cream flex items-center gap-1">
-                        {client.name} {client.status === 'VIP' && <Star className="h-3 w-3 text-gold-400 fill-gold-400" />}
+                        {client.name as string} {client.status === 'VIP' && <Star className="h-3 w-3 text-gold-400 fill-gold-400" />}
                       </div>
-                      <div className="text-xs text-ink/60">{client.type}</div>
+                      <div className="text-xs text-ink/60">{client.type as string}</div>
                     </div>
                   </div>
                 )
               },
               {
                 header: 'Total Value',
-                render: (client: any) => (
-                  <div className="font-bold text-gold-400">{client.totalValue}</div>
+                render: (client: Record<string, unknown>) => (
+                  <div className="font-bold text-gold-400">{client.totalValue as string}</div>
                 )
               },
               {
                 header: 'Last Contact',
-                render: (client: any) => (
+                render: (client: Record<string, unknown>) => (
                   <div className="text-sm text-cream flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-ink/40" /> {client.lastContact}
+                    <Clock className="h-3.5 w-3.5 text-ink/40" /> {client.lastContact as string}
                   </div>
                 )
               },
               {
                 header: 'Engagement Score',
-                render: (client: any) => (
+                render: (client: Record<string, unknown>) => (
                   <div className="w-24">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-ink/60">Score</span>
-                      <span className="text-cream">{client.engagementScore}</span>
+                      <span className="text-cream">{client.engagementScore as number}</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div 
-                        className={`h-full ${client.engagementScore >= 90 ? 'bg-emerald-400' : client.engagementScore >= 60 ? 'bg-gold-400' : 'bg-rose-400'}`}
+                        className={`h-full ${(client.engagementScore as number) >= 90 ? 'bg-emerald-400' : (client.engagementScore as number) >= 60 ? 'bg-gold-400' : 'bg-rose-400'}`}
                         style={{ width: `${client.engagementScore}%` }}
                       />
                     </div>
@@ -247,11 +252,11 @@ export default function Clients() {
               },
               {
                 header: 'Status',
-                render: (client: any) => <StatusBadge status={client.status} />
+                render: (client: Record<string, unknown>) => <EnterpriseStatusBadge status={client.status as string} />
               },
               {
                 header: 'Actions',
-                render: (client: any) => (
+                render: (client: Record<string, unknown>) => (
                   <GhostButton 
                     onClick={() => handleViewClient(client)}
                     className="h-8 px-3 text-xs"
@@ -315,7 +320,7 @@ export default function Clients() {
             <div className="text-sm text-ink/80 mb-3">
               You have 2 VIP clients who haven't received a portfolio review this quarter.
             </div>
-            <GoldButton className="w-full text-xs py-2">Schedule Reviews</GoldButton>
+            <GoldButton className="w-full text-xs py-2" onClick={() => handleAction('Schedule Reviews', 'schedule_reviews')}>Schedule Reviews</GoldButton>
           </div>
 
           <ActivityTimeline
@@ -330,6 +335,43 @@ export default function Clients() {
         onClose={() => setSelectedClient(null)} 
         client={selectedClient} 
       />
+
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

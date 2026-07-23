@@ -1,11 +1,37 @@
 import { Package, AlertTriangle, Filter, Eye, Clock, MapPin } from 'lucide-react';
+import { useState } from 'react';
 import { GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useWorkflowToast } from '../utils/workflowUtils';
 
 export default function Inventory() {
   const { showWorkflowToast } = useWorkflowToast();
+  
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
+  const handleAction = (action: string, sku?: string) => {
+    setConfirmationState({
+      isOpen: true,
+      title: action,
+      description: sku ? `Are you sure you want to ${action.toLowerCase()} for SKU ${sku}?` : `Are you sure you want to ${action.toLowerCase()}?`,
+      confirmText: action.split(' ')[0],
+      onConfirm: () => showWorkflowToast(action)
+    });
+  };
   const items = [
     { sku: 'INV-A101', item: 'A4 Printing Paper', category: 'Stationery', stock: 120, minLevel: 50, status: 'Healthy' },
     { sku: 'INV-A102', item: 'Black Ink Cartridges', category: 'Stationery', stock: 4, minLevel: 10, status: 'Low Stock' },
@@ -19,7 +45,7 @@ export default function Inventory() {
           <h2 className="font-heading text-2xl font-bold text-cream">Consumables Inventory</h2>
           <p className="text-sm text-ink/60">Track stock levels for office supplies and small accessories.</p>
         </div>
-        <GoldButton onClick={() => showWorkflowToast('Update Stock')}>Update Stock</GoldButton>
+        <GoldButton onClick={() => handleAction('Update Stock')}>Update Stock</GoldButton>
       </div>
 
       <DataTableToolbar
@@ -29,7 +55,7 @@ export default function Inventory() {
         actions={
           <button 
             className="flex items-center justify-center rounded-xl border border-white/10 bg-navy-900/80 px-4 text-sm text-cream hover:bg-white/5 transition-colors"
-            onClick={() => showWorkflowToast('Low Stock Alerts')}
+            onClick={() => handleAction('Low Stock Alerts')}
           >
             <Filter className="h-4 w-4 mr-2" /> Low Stock
           </button>
@@ -81,24 +107,32 @@ export default function Inventory() {
           {
             header: <div className="text-right">Actions</div>,
             className: "text-right",
-            render: () => (
+            render: (item) => (
               <div className="flex justify-end gap-2">
                 <button 
                   className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Inventory Details')}
+                  onClick={() => handleAction('Inventory Details', item.sku)}
                 ><Eye className="h-4 w-4" /></button>
                 <button 
                   className="text-gold-400 hover:bg-gold-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Stock History')}
+                  onClick={() => handleAction('Stock History', item.sku)}
                 ><Clock className="h-4 w-4" /></button>
                 <button 
                   className="text-emerald-400 hover:bg-emerald-400/10 p-2 rounded-lg transition-colors"
-                  onClick={() => showWorkflowToast('Warehouse Info')}
+                  onClick={() => handleAction('Warehouse Info', item.sku)}
                 ><MapPin className="h-4 w-4" /></button>
               </div>
             )
           }
         ]}
+      />
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
       />
     </div>
   );

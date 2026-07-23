@@ -1,11 +1,14 @@
-import { Users, Activity, ShieldCheck, ShieldAlert, FileCheck, Search, Filter, Plus, Trash2, UserPlus, Fingerprint, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Activity, ShieldCheck, ShieldAlert, FileCheck, Search, Filter, Trash2, UserPlus, Fingerprint, CheckCircle, XCircle } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { useState } from 'react';
 
 export default function AdminManagement() {
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'add' | 'suspend' | null}>({ isOpen: false, type: null });
 
   const userDistribution = [
     { label: 'Active Buyers', value: 45, color: 'bg-emerald-400' },
@@ -116,7 +119,6 @@ export default function AdminManagement() {
                 <input type="text" placeholder="Search administrators..." className="h-9 w-full sm:w-64 rounded-lg border border-white/10 bg-navy-900/50 pl-10 pr-4 text-sm text-cream focus:border-gold-400 focus:outline-none focus:ring-1 focus:ring-gold-400" />
               </div>
               <GhostButton className="h-9 w-9 p-0 flex items-center justify-center shrink-0"><Filter className="h-4 w-4" /></GhostButton>
-              <GoldButton className="h-9 px-3 text-xs flex items-center gap-2"><Plus className="h-4 w-4" /> Add Admin</GoldButton>
             </div>
           </div>
           <DataTable
@@ -170,7 +172,7 @@ export default function AdminManagement() {
                 className: "text-right",
                 render: (admin) => (
                   admin.role !== 'Super Admin' && (
-                    <button className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors" title="Suspend Admin">
+                    <button className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors" title="Suspend Admin" onClick={() => setConfirmModal({ isOpen: true, type: 'suspend' })}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )
@@ -180,6 +182,16 @@ export default function AdminManagement() {
           />
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
+        title="Suspend Administrator"
+        message="Are you sure you want to suspend this Administrator? This will immediately revoke their access to the Luxora platform."
+        confirmText="Suspend"
+        isDestructive={true}
+      />
     </div>
   );
 }

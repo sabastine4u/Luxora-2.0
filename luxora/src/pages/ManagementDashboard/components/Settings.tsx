@@ -8,9 +8,23 @@ import { useSession } from '../../../contexts/SessionContext';
 import { SettingsLayout } from '../../../components/dashboard/shared/layouts/SettingsLayout';
 import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export default function Settings() {
   const { user } = useSession();
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
   
   const [notifs, setNotifs] = useState({
     email: true, sms: true, push: true, operationalAlerts: true, approvalRequests: true, messages: true, performanceUpdates: true
@@ -24,12 +38,32 @@ export default function Settings() {
   };
 
   const handleMockSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    }, 1000);
+    setConfirmationState({
+      isOpen: true,
+      title: 'Save Settings',
+      description: 'Are you sure you want to save all changes to your profile and notification preferences?',
+      confirmText: 'Save Changes',
+      onConfirm: () => {
+        setIsSaving(true);
+        setTimeout(() => {
+          setIsSaving(false);
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+        }, 800);
+      }
+    });
+  };
+
+  const handleAction = (title: string, description: string, confirmText: string = 'Confirm') => {
+    setConfirmationState({
+      isOpen: true,
+      title,
+      description,
+      confirmText,
+      onConfirm: () => {
+        // Mock action
+      }
+    });
   };
 
   return (
@@ -61,7 +95,10 @@ export default function Settings() {
                   </div>
                 )}
               </div>
-              <button className="absolute inset-0 flex items-center justify-center rounded-full bg-navy-900/60 opacity-0 transition-opacity group-hover:opacity-100">
+              <button 
+                onClick={() => handleAction('Change Picture', 'Are you sure you want to change your profile picture?', 'Upload New')}
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-navy-900/60 opacity-0 transition-opacity group-hover:opacity-100"
+              >
                 <Camera className="h-6 w-6 text-cream" />
               </button>
             </div>
@@ -69,8 +106,8 @@ export default function Settings() {
               <h3 className="font-heading text-lg font-bold text-cream">{user?.name || 'Management User'}</h3>
               <p className="text-sm text-ink/60">{user?.role} • ID: MGT-40291</p>
               <div className="mt-2 flex gap-2">
-                <GhostButton size="sm">Change Picture</GhostButton>
-                <GhostButton size="sm" className="text-rose-400 hover:text-rose-300">Remove</GhostButton>
+                <GhostButton size="sm" onClick={() => handleAction('Change Picture', 'Are you sure you want to change your profile picture?', 'Upload New')}>Change Picture</GhostButton>
+                <GhostButton size="sm" className="text-rose-400 hover:text-rose-300" onClick={() => handleAction('Remove Picture', 'Are you sure you want to remove your profile picture?', 'Remove')}>Remove</GhostButton>
               </div>
             </div>
           </div>
@@ -185,7 +222,7 @@ export default function Settings() {
                 <p className="text-sm text-ink/60">Last changed 3 months ago</p>
               </div>
             </div>
-            <GhostButton size="sm">Update Password</GhostButton>
+            <GhostButton size="sm" onClick={() => handleAction('Update Password', 'Are you sure you want to update your password? You will be redirected to the secure portal.', 'Update')}>Update Password</GhostButton>
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
@@ -198,7 +235,7 @@ export default function Settings() {
                 <p className="text-sm text-ink/60">Authenticator app is configured</p>
               </div>
             </div>
-            <GhostButton size="sm">Configure</GhostButton>
+            <GhostButton size="sm" onClick={() => handleAction('Configure 2FA', 'Are you sure you want to modify your Two-Factor Authentication settings?', 'Configure')}>Configure</GhostButton>
           </div>
           
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
@@ -211,10 +248,18 @@ export default function Settings() {
                 <p className="text-sm text-ink/60">You are logged in on 2 devices</p>
               </div>
             </div>
-            <GhostButton size="sm">Manage Devices</GhostButton>
+            <GhostButton size="sm" onClick={() => handleAction('Manage Devices', 'Are you sure you want to review and manage your active sessions?', 'Manage')}>Manage Devices</GhostButton>
           </div>
         </div>
       </SettingsSection>
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
+      />
     </SettingsLayout>
   );
 }

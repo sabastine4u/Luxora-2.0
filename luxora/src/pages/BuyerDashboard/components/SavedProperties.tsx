@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Heart, Star, TrendingUp, Building2, Calculator, Trash2, Scale, Share2 } from 'lucide-react';
+import { Heart, Scale, Share2, Trash2, Clock, Star, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { properties } from '../../../data/luxoraData';
 import { useFavorites } from '../../../contexts/FavoriteContext';
@@ -10,6 +10,8 @@ import { EmptyState } from '../../../components/layout';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { ROUTES } from '../../../constants/routes';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { ShareModal } from './modals/ShareModal';
 
 export default function SavedProperties() {
   const { favoriteProperties: savedProperties, toggleFavorite } = useFavorites();
@@ -22,6 +24,9 @@ export default function SavedProperties() {
   const [sortBy, setSortBy] = useState('newest');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { showToast } = useToast();
+
+  const [isRemoveOpen, setIsRemoveOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const baseProps = useMemo(() => {
     return savedProperties
@@ -62,32 +67,18 @@ export default function SavedProperties() {
       result = result.filter((p) => p.title.toLowerCase().includes(q));
     }
 
-    if (filterType !== 'All') {
-      result = result.filter((p) => p.type === filterType);
-    }
-
-    if (filterLocation !== 'All') {
-      result = result.filter((p) => p.location.includes(filterLocation));
-    }
+    if (filterType !== 'All') result = result.filter((p) => p.type === filterType);
+    if (filterLocation !== 'All') result = result.filter((p) => p.location.includes(filterLocation));
 
     result.sort((a, b) => {
-      if (sortBy === 'price_asc') {
-        return a.priceValue - b.priceValue;
-      } else if (sortBy === 'price_desc') {
-        return b.priceValue - a.priceValue;
-      } else if (sortBy === 'alpha') {
-        return a.title.localeCompare(b.title);
-      } else if (sortBy === 'oldest') {
-        return savedProperties.indexOf(a.id) - savedProperties.indexOf(b.id);
-      }
-      return 0; // Default: 'newest' handled below
+      if (sortBy === 'price_asc') return a.priceValue - b.priceValue;
+      if (sortBy === 'price_desc') return b.priceValue - a.priceValue;
+      if (sortBy === 'alpha') return a.title.localeCompare(b.title);
+      if (sortBy === 'oldest') return savedProperties.indexOf(a.id) - savedProperties.indexOf(b.id);
+      return 0; 
     });
 
-    if (sortBy === 'newest') {
-      // Reverse array to put latest inserted first
-      result.reverse();
-    }
-
+    if (sortBy === 'newest') result.reverse();
     return result;
   }, [baseProps, searchQuery, filterType, filterLocation, sortBy, savedProperties]);
 
@@ -104,14 +95,11 @@ export default function SavedProperties() {
   };
 
   const handleSelectAll = () => {
-    if (selectedIds.size === filteredAndSortedProps.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredAndSortedProps.map(p => p.id)));
-    }
+    if (selectedIds.size === filteredAndSortedProps.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredAndSortedProps.map(p => p.id)));
   };
 
-  const handleBulkRemove = () => {
+  const handleBulkRemoveConfirm = () => {
     selectedIds.forEach(id => toggleFavorite(id));
     setSelectedIds(new Set());
     showToast({ type: 'success', title: 'Removed', description: 'Properties removed from favorites.' });
@@ -126,9 +114,7 @@ export default function SavedProperties() {
         limitHit = true;
         break;
       }
-      if (result === 'added') {
-        added++;
-      }
+      if (result === 'added') added++;
     }
     setSelectedIds(new Set());
     if (limitHit) {
@@ -138,8 +124,8 @@ export default function SavedProperties() {
     }
   };
 
-  const handleBulkShare = () => {
-    showToast({ type: 'info', title: 'Share Properties', description: 'Bulk sharing will be available during backend integration.' });
+  const handleShareSubmit = (method: string) => {
+    showToast({ type: 'success', title: 'Shared via ' + method, description: 'Property sharing initiated.' });
   };
 
   if (baseProps.length === 0) {
@@ -148,7 +134,7 @@ export default function SavedProperties() {
         <EmptyState
           icon={<Heart className="h-12 w-12 text-gold-400" />}
           title="My Favorites is Empty"
-          description="You haven't saved any properties yet. Browse our premium collection to build your luxury portfolio."
+          description="You haven't saved any properties yet. Browse our collection and click the heart icon to save your favorites."
           actionLabel="Browse Properties"
           onAction={() => navigate(ROUTES.PROPERTIES)}
         />
@@ -160,45 +146,17 @@ export default function SavedProperties() {
     <div className="space-y-6 pb-12">
       <div className="flex flex-col gap-2">
         <h2 className="font-heading text-2xl font-bold text-cream">My Favorites</h2>
-        <p className="text-sm text-ink/60">Your curated collection of premium properties.</p>
+        <p className="text-sm text-ink/60">Manage and compare your saved properties.</p>
       </div>
 
-      {/* Metrics Section */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <KPICard 
-          title="Favorite Properties" value={metrics.total.toString()} icon={Heart} 
-          iconColor="text-rose-400" backgroundColor="bg-rose-400/10" 
-          iconBorder={true} valueTypography="heading" labelTypography="small" hoverEffect="lift"
-        />
-        <KPICard 
-          title="Last Saved" value={metrics.lastSaved} icon={TrendingUp} 
-          iconColor="text-emerald-400" backgroundColor="bg-emerald-400/10" 
-          iconBorder={true} valueTypography="heading" labelTypography="small" hoverEffect="lift"
-        />
-        <KPICard 
-          title="Premium Verified" value={metrics.premiumCount.toString()} icon={Star} 
-          iconColor="text-gold-400" backgroundColor="bg-gold-400/10" 
-          iconBorder={true} valueTypography="heading" labelTypography="small" hoverEffect="lift"
-        />
-        <KPICard 
-          title="Featured Listings" value={metrics.featuredCount.toString()} icon={Building2} 
-          iconColor="text-blue-400" backgroundColor="bg-blue-400/10" 
-          iconBorder={true} valueTypography="heading" labelTypography="small" hoverEffect="lift"
-        />
-        <KPICard 
-          title="Avg Saved Price" value={metrics.avgValue} icon={Calculator} 
-          iconColor="text-purple-400" backgroundColor="bg-purple-400/10" 
-          iconBorder={true} valueTypography="heading" labelTypography="small" hoverEffect="lift"
-        />
-        <KPICard 
-          title="Favorites Value" value={metrics.totalValue} icon={Calculator} 
-          iconColor="text-gold-400" backgroundColor="bg-gold-400/10" 
-          iconBorder={true} valueTypography="heading" labelTypography="small" hoverEffect="lift"
-        />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KPICard title="Total Saved" value={metrics.total.toString()} trend="+2 this week" trendColor="text-emerald-400" icon={Heart} />
+        <KPICard title="Last Saved" value={metrics.lastSaved} icon={Clock} />
+        <KPICard title="Premium Properties" value={metrics.premiumCount.toString()} icon={Star} />
+        <KPICard title="Total Value" value={metrics.totalValue} icon={TrendingUp} />
       </div>
 
       <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 backdrop-blur-md space-y-4">
-        {/* Bulk Actions Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/5">
           <div className="flex items-center gap-3">
             <button 
@@ -218,17 +176,16 @@ export default function SavedProperties() {
               <button onClick={handleBulkCompare} className="flex items-center gap-1.5 text-xs text-cream/70 hover:text-gold-400 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
                 <Scale className="h-3.5 w-3.5" /> Compare
               </button>
-              <button onClick={handleBulkShare} className="flex items-center gap-1.5 text-xs text-cream/70 hover:text-blue-400 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+              <button onClick={() => setIsShareOpen(true)} className="flex items-center gap-1.5 text-xs text-cream/70 hover:text-blue-400 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
                 <Share2 className="h-3.5 w-3.5" /> Share
               </button>
-              <button onClick={handleBulkRemove} className="flex items-center gap-1.5 text-xs text-rose-400/70 hover:text-rose-400 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+              <button onClick={() => setIsRemoveOpen(true)} className="flex items-center gap-1.5 text-xs text-rose-400/70 hover:text-rose-400 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
                 <Trash2 className="h-3.5 w-3.5" /> Remove
               </button>
             </div>
           )}
         </div>
 
-        {/* Search & Filters */}
         <DataTableToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
@@ -237,37 +194,23 @@ export default function SavedProperties() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 pt-2">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">City</label>
-                <select
-                  value={filterLocation}
-                  onChange={(e) => setFilterLocation(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:border-gold-400/50 focus:outline-none transition-all appearance-none"
-                >
+                <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none">
                   {uniqueLocations.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">Property Type</label>
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:border-gold-400/50 focus:outline-none transition-all appearance-none"
-                >
+                <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none">
                   {uniqueTypes.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">Sort By</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:border-gold-400/50 focus:outline-none transition-all appearance-none"
-                >
-                  <option value="newest">Newest Saved</option>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none">
+                  <option value="newest">Recently Saved</option>
                   <option value="oldest">Oldest Saved</option>
-                  <option value="price_desc">Highest Price</option>
-                  <option value="price_asc">Lowest Price</option>
+                  <option value="price_desc">Price (High to Low)</option>
+                  <option value="price_asc">Price (Low to High)</option>
                   <option value="alpha">Alphabetical</option>
                 </select>
               </div>
@@ -276,44 +219,38 @@ export default function SavedProperties() {
         />
       </div>
 
-      {filteredAndSortedProps.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredAndSortedProps.map((property) => {
-            const isSelected = selectedIds.has(property.id);
-            return (
-              <div key={property.id} className="relative group">
-                <PropertyCard property={property} />
-                
-                {/* Selection Overlay */}
-                <div 
-                  className={`absolute top-4 left-4 z-10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                >
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleSelect(property.id); }}
-                    className={`flex h-8 w-8 items-center justify-center rounded-xl border-2 transition-all ${
-                      isSelected 
-                        ? 'bg-gold-400 border-gold-400 text-navy-900' 
-                        : 'bg-navy-900/80 border-white/20 text-transparent hover:border-gold-400/50 backdrop-blur-sm'
-                    }`}
-                  >
-                    <svg className={`h-4 w-4 ${isSelected ? 'opacity-100' : 'opacity-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
-           <EmptyState
-            icon={<Search className="h-8 w-8 text-gold-400" />}
-            title="No matching properties"
-            description="Adjust your search and filter criteria to find what you're looking for."
-          />
-        </div>
-      )}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filteredAndSortedProps.map((property) => (
+          <div key={property.id} className="relative group">
+            <div className="absolute top-4 left-4 z-10">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(property.id)}
+                onChange={() => handleSelect(property.id)}
+                className="h-5 w-5 rounded border-white/20 bg-navy-900/80 checked:bg-gold-400 checked:border-gold-400 focus:ring-gold-400 focus:ring-offset-navy-900 cursor-pointer backdrop-blur-sm"
+              />
+            </div>
+            <PropertyCard property={property} />
+          </div>
+        ))}
+      </div>
+
+      <ConfirmationModal
+        isOpen={isRemoveOpen}
+        onClose={() => setIsRemoveOpen(false)}
+        onConfirm={handleBulkRemoveConfirm}
+        title="Remove Saved Properties"
+        message={`Are you sure you want to remove ${selectedIds.size} propert${selectedIds.size === 1 ? 'y' : 'ies'} from your favorites?`}
+        confirmText="Remove"
+        type="danger"
+      />
+
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        onShare={handleShareSubmit}
+        propertyTitle={`${selectedIds.size} Selected Properties`}
+      />
     </div>
   );
 }

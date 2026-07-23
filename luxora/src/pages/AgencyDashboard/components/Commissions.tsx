@@ -4,24 +4,19 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
-import { StatusBadge } from '../../ManagementDashboard/components/shared/StatusBadge';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { CommissionDetailModal } from './modals/CommissionDetailModal';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
+import { agencyCommissions } from '../../../data/agencyData';
+import type { AgencyCommission } from '../../../types/agency';
 
 export default function Commissions() {
   const [searchQuery, setSearchQuery] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedCommission, setSelectedCommission] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCommission, setSelectedCommission] = useState<AgencyCommission | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const commissions = [
-    { id: 'COM-2025-104', agent: 'Sarah James', property: 'The Continental Duplex', date: 'Oct 05, 2025', amount: '₦13,500,000', status: 'Pending', dealValue: '₦450M' },
-    { id: 'COM-2025-103', agent: 'Emeka Uzo', property: 'Ikoyi Penthouse', date: 'Oct 01, 2025', amount: '₦25,500,000', status: 'Paid', dealValue: '₦850M' },
-    { id: 'COM-2025-102', agent: 'Sarah James', property: 'Victoria Island Office', date: 'Sep 25, 2025', amount: '₦36,000,000', status: 'Paid', dealValue: '₦1.2B' },
-    { id: 'COM-2025-101', agent: 'Michael Eze', property: 'Lekki Phase 1 Villa', date: 'Sep 15, 2025', amount: '₦8,500,000', status: 'Processing', dealValue: '₦280M' },
-    { id: 'COM-2025-100', agent: 'Daniel O.', property: 'Banana Island Plot', date: 'Sep 10, 2025', amount: '₦15,000,000', status: 'Overdue', dealValue: '₦500M' },
-  ];
+  const commissions = agencyCommissions;
 
   const filteredCommissions = commissions.filter(c => 
     c.agent.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -29,10 +24,9 @@ export default function Commissions() {
     c.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleViewCommission = (commission: any) => {
+  const handleViewCommission = (commission: AgencyCommission) => {
     setSelectedCommission(commission);
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   return (
@@ -137,7 +131,7 @@ export default function Commissions() {
                 },
                 {
                   header: "Status",
-                  render: (c) => <StatusBadge status={String(c.status)} />
+                  render: (c) => <EnterpriseStatusBadge status={String(c.status)} />
                 },
                 {
                   header: <div className="text-right">Actions</div>,
@@ -222,11 +216,31 @@ export default function Commissions() {
 
       </div>
 
-      <CommissionDetailModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        commission={selectedCommission}
-      />
+      <EnterpriseDetailDrawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        title={selectedCommission ? `Commission: ${selectedCommission.id}` : 'Commission Details'}
+        footerActions={
+          <div className="flex gap-3 w-full">
+            <GhostButton className="flex-1">View Deal</GhostButton>
+            <GoldButton className="flex-1">Approve Payout</GoldButton>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-semibold text-cream mb-4">Commission Details</h4>
+            <div className="space-y-3 text-sm text-ink/80">
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Commission ID</span><span className="font-medium text-cream">{selectedCommission?.id}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Assigned Agent</span><span className="font-medium text-cream">{selectedCommission?.agent}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Property</span><span className="font-medium text-cream">{selectedCommission?.property}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Deal Value</span><span className="font-medium text-cream">{selectedCommission?.dealValue}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Commission Amount</span><span className="font-medium text-cream">{selectedCommission?.amount}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Date</span><span className="font-medium text-cream">{selectedCommission?.date}</span></div>
+            </div>
+          </div>
+        </div>
+      </EnterpriseDetailDrawer>
     </div>
   );
 }

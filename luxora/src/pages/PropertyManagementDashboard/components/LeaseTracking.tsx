@@ -6,7 +6,7 @@ import { DataTableToolbar } from '../../../components/dashboard/shared/filters/D
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { LeaseActionModal } from './modals/LeaseActionModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useToast } from '../../../contexts/ToastContext';
 import type { Lease } from '../../../types';
 export default function LeaseTracking() {

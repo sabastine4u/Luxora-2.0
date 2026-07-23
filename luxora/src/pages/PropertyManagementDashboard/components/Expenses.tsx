@@ -7,7 +7,7 @@ import { useToast } from '../../../contexts/ToastContext';
 import type { Expense } from '../../../types';
 // import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { ExpenseFormModal } from './modals/ExpenseFormModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 
 

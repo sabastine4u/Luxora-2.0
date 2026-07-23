@@ -5,7 +5,7 @@ import { SettingsSection } from '../../../components/dashboard/shared/settings/S
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
 import { useToast } from '../../../contexts/ToastContext';
 import { MapPin, Mail, Smartphone, Shield, Zap, UserCheck } from 'lucide-react';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export default function Settings() {
   const { showToast } = useToast();

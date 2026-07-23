@@ -7,7 +7,7 @@ import { EnterpriseStatusBadge } from '../../../components/enterprise/Enterprise
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import type { Payment } from '../../../types/propertyManager';
 import { PaymentModal } from './modals/PaymentModal';
-import { ConfirmationModal } from './modals/ConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useToast } from '../../../contexts/ToastContext';
 export default function RentCollection() {
   const rents: Payment[] = [

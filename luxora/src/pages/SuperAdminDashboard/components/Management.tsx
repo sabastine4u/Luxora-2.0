@@ -3,9 +3,11 @@ import { Briefcase, Building, Users, AlertCircle, Lightbulb, Target, Clock, Tren
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export default function Management() {
   const [activeDept, setActiveDept] = useState('Sales');
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'broadcast' | 'plan' | 'review' | null}>({ isOpen: false, type: null });
 
   const decisions = [
     { title: 'Approve Q4 Marketing Budget', desc: 'Requested by CMO. ₦450M allocation.', time: 'Requires review today', icon: AlertCircle, color: 'text-orange-400' },
@@ -25,10 +27,10 @@ export default function Management() {
         subtitle="Global workforce intelligence, department performance, and strategic decisions."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2">
+            <GhostButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'broadcast' })}>
               <MessageSquare className="h-4 w-4" /> Broadcast Message
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
+            <GoldButton className="flex items-center gap-2" onClick={() => setConfirmModal({ isOpen: true, type: 'plan' })}>
               <Target className="h-4 w-4" /> Strategic Planning
             </GoldButton>
           </div>
@@ -58,7 +60,7 @@ export default function Management() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-xs text-orange-400 font-medium">{decision.time}</span>
-                  <GoldButton className="h-8 text-xs px-3">Review</GoldButton>
+                  <GoldButton className="h-8 text-xs px-3" onClick={() => setConfirmModal({ isOpen: true, type: 'review' })}>Review</GoldButton>
                 </div>
               </div>
             ))}
@@ -155,6 +157,28 @@ export default function Management() {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
+        title={
+          confirmModal.type === 'broadcast' ? 'Broadcast Message' : 
+          confirmModal.type === 'plan' ? 'Strategic Planning' : 
+          'Review Executive Decision'
+        }
+        message={
+          confirmModal.type === 'broadcast' ? 'Send a global broadcast message to all internal employees?' : 
+          confirmModal.type === 'plan' ? 'Initialize a new strategic planning session for Q4?' : 
+          'Open the detailed dossier for this executive decision? This will require cryptographic signature to approve.'
+        }
+        confirmText={
+          confirmModal.type === 'broadcast' ? 'Send Broadcast' : 
+          confirmModal.type === 'plan' ? 'Initialize' : 
+          'Open Dossier'
+        }
+        isDestructive={false}
+      />
     </div>
   );
 }

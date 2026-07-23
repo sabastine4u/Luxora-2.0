@@ -12,6 +12,7 @@ import { SettingsLayout } from '../../../components/dashboard/shared/layouts/Set
 import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
 import { useToast } from '../../../contexts/ToastContext';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 export default function Settings() {
   const { user } = useSession();
@@ -28,8 +29,18 @@ export default function Settings() {
     residential: true, commercial: false, luxury: true, land: false, studentHousing: false, shortLet: true, industrial: false, mixedUse: false
   });
   
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
+
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
 
   const toggleNotif = (key: keyof typeof notifs) => {
     setNotifs(prev => ({ ...prev, [key]: !prev[key] }));
@@ -390,7 +401,7 @@ export default function Settings() {
                     <p className="text-xs text-ink/50">Last changed 2 months ago</p>
                   </div>
                 </div>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Change Password', description: 'Opening password change dialog...' })}>Change</GhostButton>
+                <GhostButton size="sm" onClick={() => handleAction('Change Password', 'change_password')}>Change</GhostButton>
               </div>
 
               <div className="flex items-center justify-between">
@@ -401,13 +412,13 @@ export default function Settings() {
                     <p className="text-xs text-ink/50">Enabled via Authenticator App</p>
                   </div>
                 </div>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Two-Factor Auth', description: 'Opening 2FA setup...' })}>Manage</GhostButton>
+                <GhostButton size="sm" onClick={() => handleAction('Manage 2FA', 'manage_2fa')}>Manage</GhostButton>
               </div>
               
               <div className="border-t border-white/10 pt-4 space-y-4">
                 <h4 className="text-sm font-semibold text-cream flex justify-between items-center">
                   Recent Login Activity
-                  <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Session History', description: 'Viewing all active sessions...' })}>View All</GhostButton>
+                  <GhostButton size="sm" onClick={() => handleAction('Session History', 'session_history')}>View All</GhostButton>
                 </h4>
                 <div className="flex items-center justify-between bg-navy-900/50 p-3 rounded-xl border border-white/5">
                   <div className="flex items-center gap-3">
@@ -503,6 +514,43 @@ export default function Settings() {
           </p>
         </div>
       </Modal>
+
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
     </SettingsLayout>
   );
 }

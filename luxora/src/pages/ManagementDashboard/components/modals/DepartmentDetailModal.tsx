@@ -2,15 +2,32 @@ import { Building2, Users, Target, ShieldAlert, Activity, CheckCircle2, DollarSi
 import { Modal } from '../../../../components/ui/Modal';
 import { GoldButton, GhostButton } from '../../../../components/ui/ui';
 import { StatusBadge } from '../shared/StatusBadge';
+import { useState } from 'react';
 import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { ConfirmationModal } from '../../../../components/ui/ConfirmationModal';
+import type { Department } from '../../../../types';
 
 interface DepartmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  department: Record<string, unknown> | null;
+  department: Department | null;
 }
 
 export function DepartmentDetailModal({ isOpen, onClose, department }: DepartmentDetailModalProps) {
+  const [confirmationState, setConfirmationState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {}
+  });
+
   if (!department) return null;
 
   const timelineItems = [
@@ -19,13 +36,25 @@ export function DepartmentDetailModal({ isOpen, onClose, department }: Departmen
     { title: 'New Department Head Appointed', time: 'Jan 10, 2025', desc: 'Leadership transition completed', icon: Users, color: 'text-blue-400' },
   ];
 
+  const handleAction = (title: string, description: string, confirmText: string = 'Confirm') => {
+    setConfirmationState({
+      isOpen: true,
+      title,
+      description,
+      confirmText,
+      onConfirm: () => {
+        // Mock action
+      }
+    });
+  };
+
   return (
     <Modal 
       isOpen={isOpen} 
       onClose={onClose} 
       title="Department Oversight Details"
       size="xl"
-      actionButton={<GoldButton>Manage Department</GoldButton>}
+      actionButton={<GoldButton onClick={() => handleAction('Manage Department', `Are you sure you want to manage the ${department.name} department?`, 'Manage')}>Manage Department</GoldButton>}
     >
       <div className="space-y-8 pb-4">
         {/* Header Profile Section */}
@@ -35,27 +64,27 @@ export function DepartmentDetailModal({ isOpen, onClose, department }: Departmen
           </div>
           <div className="flex-1 space-y-4">
             <div>
-              <h2 className="text-2xl font-bold text-cream">{String(department.name)}</h2>
-              <p className="text-ink/60 text-lg">Head: <span className="text-cream">{String(department.head)}</span></p>
+              <h2 className="text-2xl font-bold text-cream">{department.name}</h2>
+              <p className="text-ink/60 text-lg">Head: <span className="text-cream">{department.head}</span></p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <StatusBadge status={String(department.status)} />
+              <StatusBadge status={department.status} />
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
-                Headcount: {String(department.headcount)}
+                Headcount: {department.headcount}
               </span>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                String(department.riskLevel) === 'Low' ? 'bg-emerald-400/10 text-emerald-400' :
-                String(department.riskLevel) === 'Medium' ? 'bg-yellow-400/10 text-yellow-400' :
+                department.riskLevel === 'Low' ? 'bg-emerald-400/10 text-emerald-400' :
+                department.riskLevel === 'Medium' ? 'bg-yellow-400/10 text-yellow-400' :
                 'bg-rose-400/10 text-rose-400'
               }`}>
-                Risk: {String(department.riskLevel)}
+                Risk: {department.riskLevel}
               </span>
             </div>
             <div className="flex gap-4 pt-2">
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('View Objectives', `Access current objectives for ${department.name}?`, 'View')}>
                 <Target className="h-4 w-4" /> View Objectives
               </GhostButton>
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('Performance Metrics', `View performance metrics for ${department.name}?`, 'View')}>
                 <Activity className="h-4 w-4" /> Performance Metrics
               </GhostButton>
             </div>
@@ -159,6 +188,14 @@ export function DepartmentDetailModal({ isOpen, onClose, department }: Departmen
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        description={confirmationState.description}
+        confirmText={confirmationState.confirmText}
+      />
     </Modal>
   );
 }

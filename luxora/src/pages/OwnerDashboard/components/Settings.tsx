@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { User, Mail, Shield, KeyRound, Smartphone, Camera, MapPin, AlertTriangle, Monitor, Edit3, Landmark, FileText, Building, Link as LinkIcon, Power } from 'lucide-react';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { useSession } from '../../../contexts/SessionContext';
-import { Modal } from '../../../components/ui/Modal';
 import { SettingsLayout } from '../../../components/dashboard/shared/layouts/SettingsLayout';
 import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
 import { useToast } from '../../../contexts/ToastContext';
+import PasswordChangeModal from './modals/PasswordChangeModal';
+import ConfirmationModal from './modals/ConfirmationModal';
+import UploadDocumentModal from './modals/UploadDocumentModal';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 export default function Settings() {
   const { user } = useSession();
@@ -14,6 +17,11 @@ export default function Settings() {
   
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [isPhotoUploadOpen, setIsPhotoUploadOpen] = useState(false);
+  const [isBankUpdateOpen, setIsBankUpdateOpen] = useState(false);
+  const [is2FAOpen, setIs2FAOpen] = useState(false);
+  const [isSessionDrawerOpen, setIsSessionDrawerOpen] = useState(false);
   
   const [notifs, setNotifs] = useState({
     email: true, sms: true, push: true, offers: true, viewingRequests: true, messages: true
@@ -33,6 +41,11 @@ export default function Settings() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     }, 1000);
+  };
+
+  const handleChangePassword = () => {
+    showToast({ type: 'success', title: 'Password Updated', description: 'Your password has been changed successfully.' });
+    setPasswordModalOpen(false);
   };
 
   return (
@@ -58,11 +71,14 @@ export default function Settings() {
           <div className="flex flex-col items-center gap-3 shrink-0">
             <div className="relative">
               <img src={user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?w=200&h=200&fit=crop'} alt="Profile" className="h-28 w-28 rounded-full object-cover border-4 border-navy-900 shadow-xl bg-navy-800" />
-              <button className="absolute bottom-0 right-0 p-2 bg-gold-400 rounded-full text-navy-900 hover:bg-gold-300 transition-colors shadow-lg">
+              <button 
+                onClick={() => setIsPhotoUploadOpen(true)}
+                className="absolute bottom-0 right-0 p-2 bg-gold-400 rounded-full text-navy-900 hover:bg-gold-300 transition-colors shadow-lg"
+              >
                 <Camera className="h-4 w-4" />
               </button>
             </div>
-            <GhostButton size="sm">Update Photo</GhostButton>
+            <GhostButton size="sm" onClick={() => setIsPhotoUploadOpen(true)}>Update Photo</GhostButton>
           </div>
           
           <div className="flex-1 grid gap-6 sm:grid-cols-2 w-full">
@@ -164,7 +180,7 @@ export default function Settings() {
                     <div className="text-xs text-ink/50">Acct ending in ****4210</div>
                   </div>
                 </div>
-                <GhostButton size="sm">Update</GhostButton>
+                <GhostButton size="sm" onClick={() => setIsBankUpdateOpen(true)}>Update</GhostButton>
               </div>
             </div>
 
@@ -255,7 +271,7 @@ export default function Settings() {
                     <p className="text-xs text-ink/50">Last changed 2 months ago</p>
                   </div>
                 </div>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Change Password', description: 'Opening password change dialog...' })}>Change</GhostButton>
+                <GhostButton size="sm" onClick={() => setPasswordModalOpen(true)}>Change</GhostButton>
               </div>
 
               <div className="flex items-center justify-between">
@@ -266,13 +282,13 @@ export default function Settings() {
                     <p className="text-xs text-ink/50">Enabled via Authenticator App</p>
                   </div>
                 </div>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Two-Factor Auth', description: 'Opening 2FA setup...' })}>Manage</GhostButton>
+                <GhostButton size="sm" onClick={() => setIs2FAOpen(true)}>Manage</GhostButton>
               </div>
               
               <div className="border-t border-white/10 pt-4 space-y-4">
                 <h4 className="text-sm font-semibold text-cream flex justify-between items-center">
                   Recent Login Activity
-                  <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Session History', description: 'Viewing all active sessions...' })}>View All</GhostButton>
+                  <GhostButton size="sm" onClick={() => setIsSessionDrawerOpen(true)}>View All</GhostButton>
                 </h4>
                 <div className="flex items-center justify-between bg-navy-900/50 p-3 rounded-xl border border-white/5">
                   <div className="flex items-center gap-3">
@@ -329,37 +345,98 @@ export default function Settings() {
       </SettingsSection>
 
       {/* Modals */}
-      <Modal 
-        isOpen={deleteModalOpen} 
-        onClose={() => setDeleteModalOpen(false)}
-        title="Delete Account"
-        actionButton={<GhostButton onClick={() => { showToast({ type: 'error', title: 'Account Deleted', description: 'Your account has been successfully deleted.' }); setDeleteModalOpen(false); }} className="bg-rose-500/20 text-rose-400 border-rose-500/30 hover:bg-rose-500 hover:text-white" size="sm">Confirm Deletion</GhostButton>}
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-ink/80">
-            Are you sure you want to delete your Luxora Owner account? This action is <strong className="text-rose-400">permanent and cannot be undone</strong>.
-          </p>
-          <p className="text-sm text-ink/80">
-            All your listings, financial history, analytics, and tenant data will be permanently erased. Active rentals must be resolved before deletion.
-          </p>
-        </div>
-      </Modal>
+      <PasswordChangeModal 
+        isOpen={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        onSave={handleChangePassword}
+      />
 
-      <Modal 
-        isOpen={deactivateModalOpen} 
+      <ConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={() => {
+          showToast({ type: 'error', title: 'Account Deleted', description: 'Your account has been successfully deleted.' });
+          setDeleteModalOpen(false);
+        }}
+        title="Delete Account"
+        description="Are you sure you want to delete your Luxora Owner account? This action is permanent and cannot be undone. All your listings, financial history, analytics, and tenant data will be permanently erased."
+        confirmText="Confirm Deletion"
+        isDestructive={true}
+      />
+
+      <ConfirmationModal
+        isOpen={deactivateModalOpen}
         onClose={() => setDeactivateModalOpen(false)}
+        onConfirm={() => {
+          showToast({ type: 'warning', title: 'Account Deactivated', description: 'Your account has been deactivated.' });
+          setDeactivateModalOpen(false);
+        }}
         title="Deactivate Account"
-        actionButton={<GoldButton onClick={() => { showToast({ type: 'warning', title: 'Account Deactivated', description: 'Your account has been deactivated.' }); setDeactivateModalOpen(false); }} size="sm">Deactivate Now</GoldButton>}
+        description="Deactivating your account will temporarily hide your profile and pause all active listings. You will not lose any data, and you can reactivate your account at any time by logging back in."
+        confirmText="Deactivate Now"
+        isDestructive={false}
+      />
+
+      <ConfirmationModal
+        isOpen={isBankUpdateOpen}
+        onClose={() => setIsBankUpdateOpen(false)}
+        onConfirm={() => {
+          showToast({ type: 'success', title: 'Bank Info Updated', description: 'Your payout bank information has been successfully updated.' });
+          setIsBankUpdateOpen(false);
+        }}
+        title="Update Bank Information"
+        description="Are you sure you want to change your primary payout account? Future rental payments will be routed here."
+        confirmText="Confirm Update"
+      />
+
+      <ConfirmationModal
+        isOpen={is2FAOpen}
+        onClose={() => setIs2FAOpen(false)}
+        onConfirm={() => {
+          showToast({ type: 'success', title: '2FA Updated', description: 'Your Two-Factor Authentication settings have been updated.' });
+          setIs2FAOpen(false);
+        }}
+        title="Manage Two-Factor Authentication"
+        description="Secure your account by enforcing Two-Factor Authentication for all future sign-ins."
+        confirmText="Enable 2FA"
+      />
+
+      <UploadDocumentModal
+        isOpen={isPhotoUploadOpen}
+        onClose={() => setIsPhotoUploadOpen(false)}
+        onUpload={() => {
+          showToast({ type: 'success', title: 'Photo Uploaded', description: 'Your profile photo has been updated successfully.' });
+          setIsPhotoUploadOpen(false);
+        }}
+      />
+
+      <EnterpriseDetailDrawer
+        isOpen={isSessionDrawerOpen}
+        onClose={() => setIsSessionDrawerOpen(false)}
+        title="Session History"
       >
         <div className="space-y-4">
-          <p className="text-sm text-ink/80">
-            Deactivating your account will temporarily hide your profile and pause all active listings.
-          </p>
-          <p className="text-sm text-ink/80">
-            You will not lose any data, and you can reactivate your account at any time by logging back in.
-          </p>
+          <h4 className="font-semibold text-cream">Active Sessions</h4>
+          <div className="p-4 rounded-xl bg-navy-900 border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="font-medium text-cream">MacBook Pro - Chrome</div>
+              <div className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Current</div>
+            </div>
+            <div className="text-xs text-ink/50">Lagos, Nigeria &bull; IP: 192.168.1.1</div>
+          </div>
+          
+          <h4 className="font-semibold text-cream mt-8 pt-4 border-t border-white/5">Past Sessions</h4>
+          {[1, 2].map((i) => (
+            <div key={i} className="p-4 rounded-xl bg-navy-900/50 border border-white/5 space-y-2 opacity-70">
+              <div className="flex items-center justify-between">
+                <div className="font-medium text-cream">iPhone 14 Pro - Safari</div>
+                <div className="text-[10px] text-ink/50 uppercase tracking-wider">Yesterday</div>
+              </div>
+              <div className="text-xs text-ink/50">Lagos, Nigeria &bull; IP: 192.168.1.2</div>
+            </div>
+          ))}
         </div>
-      </Modal>
+      </EnterpriseDetailDrawer>
     </SettingsLayout>
   );
 }

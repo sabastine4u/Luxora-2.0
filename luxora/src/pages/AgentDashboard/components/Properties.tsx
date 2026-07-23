@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  Building2, Calendar as CalendarIcon, FileCheck, CheckCircle2,
+  Building2, Calendar as CalendarIcon, FileCheck,
   Filter, SlidersHorizontal, ArrowRight, MapPin, 
   Briefcase, FileText, X, ArrowUpRight, Plus, Eye, Heart, Key, Activity, Send
 } from 'lucide-react';
@@ -10,23 +10,8 @@ import { PropertyCard } from '../../../components/property/PropertyCard';
 import { properties } from '../../../data/luxoraData';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { useToast } from '../../../contexts/ToastContext';
-
-// --- MOCK DATA ---
-const KPI_DATA = [
-  { label: 'Active Listings', value: '28', icon: Building2, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-  { label: 'Pending Approval', value: '4', icon: ClockIcon, color: 'text-gold-400', bg: 'bg-gold-400/10' },
-  { label: 'Sold Properties', value: '142', icon: CheckCircle2, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  { label: 'Rented Properties', value: '86', icon: FileCheck, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
-  { label: 'Draft Listings', value: '3', icon: FileText, color: 'text-ink/60', bg: 'bg-white/5' },
-];
-
-function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
+import { KPI_DATA_PROPERTIES } from '../../../data/agentData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 
 // Extend the property mock data with some agent-specific metrics
 const EXTENDED_PROPERTIES = properties.map((prop, i) => ({
@@ -39,11 +24,20 @@ const EXTENDED_PROPERTIES = properties.map((prop, i) => ({
   owner: { name: `Owner ${i}`, email: `owner${i}@example.com`, phone: '+234 800 000 0000' }
 }));
 
-// --- COMPONENT ---
 export default function Properties() {
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<typeof EXTENDED_PROPERTIES[0] | null>(null);
+  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
+
+  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
+    setActiveWorkflow({ title, type, data });
+  };
+
+  const executeWorkflow = () => {
+    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    setActiveWorkflow(null);
+  };
 
   const getStatusColor = (status?: string) => {
     switch (status) {
@@ -71,14 +65,14 @@ export default function Properties() {
           <p className="text-sm text-ink/60">Manage listings assigned to you.</p>
         </div>
         <div className="flex gap-3">
-          <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Export CSV', description: 'CSV export will be available during backend integration.' })}><ArrowUpRight className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
-          <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Add Listing', description: 'Listing creation will be available during backend integration.' })}><Plus className="h-4 w-4 mr-2"/> Add Listing</GoldButton>
+          <GhostButton size="sm" onClick={() => handleAction('Export CSV', 'export')}><ArrowUpRight className="h-4 w-4 mr-2"/> Export CSV</GhostButton>
+          <GoldButton size="sm" onClick={() => handleAction('Add Listing', 'add_listing')}><Plus className="h-4 w-4 mr-2"/> Add Listing</GoldButton>
         </div>
       </div>
 
       {/* SUMMARY CARDS */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {KPI_DATA.map((kpi, i) => (
+        {KPI_DATA_PROPERTIES.map((kpi, i) => (
           <div key={i} className="rounded-2xl border border-white/10 bg-navy-800/50 p-4 transition-all hover:bg-navy-800/80 flex items-center gap-4">
             <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${kpi.bg} ${kpi.color}`}>
               <kpi.icon className="h-6 w-6" />
@@ -191,10 +185,10 @@ export default function Properties() {
 
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <GoldButton size="sm" onClick={() => showToast({ type: 'info', title: 'Edit Listing', description: 'Listing editing will be available during backend integration.' })}><FileText className="h-4 w-4 mr-2" /> Edit Listing</GoldButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Share Listing', description: 'Listing sharing will be available during backend integration.' })}><Send className="h-4 w-4 mr-2" /> Share</GhostButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'Schedule Viewing', description: 'Viewing scheduling will be available during backend integration.' })}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
-                <GhostButton size="sm" onClick={() => showToast({ type: 'info', title: 'View Offers', description: 'Offers dashboard will be available during backend integration.' })}><FileCheck className="h-4 w-4 mr-2" /> View Offers ({selectedProperty.offers})</GhostButton>
+                <GoldButton size="sm" onClick={() => handleAction('Edit Listing', 'edit_listing', selectedProperty)}><FileText className="h-4 w-4 mr-2" /> Edit Listing</GoldButton>
+                <GhostButton size="sm" onClick={() => handleAction('Share Listing', 'share', selectedProperty)}><Send className="h-4 w-4 mr-2" /> Share</GhostButton>
+                <GhostButton size="sm" onClick={() => handleAction('Schedule Viewing', 'schedule', selectedProperty)}><CalendarIcon className="h-4 w-4 mr-2" /> Schedule</GhostButton>
+                <GhostButton size="sm" onClick={() => handleAction('View Offers', 'offers', selectedProperty)}><FileCheck className="h-4 w-4 mr-2" /> View Offers ({selectedProperty.offers})</GhostButton>
               </div>
 
               {/* Property Information */}
@@ -265,12 +259,49 @@ export default function Properties() {
               </div>
 
               {/* View Full Details Link */}
-              <GhostButton className="w-full text-gold-400 hover:text-gold-300" onClick={() => showToast({ type: 'info', title: 'View Details', description: 'Full detail view will be available during backend integration.' })}>View Full Details <ArrowRight className="h-4 w-4 ml-2" /></GhostButton>
+              <GhostButton className="w-full text-gold-400 hover:text-gold-300" onClick={() => handleAction('View Full Details', 'view_details', selectedProperty)}>View Full Details <ArrowRight className="h-4 w-4 ml-2" /></GhostButton>
 
             </div>
           </div>
         </>
       )}
+
+      <EnterpriseDetailDrawer
+        isOpen={!!activeWorkflow}
+        onClose={() => setActiveWorkflow(null)}
+        title={activeWorkflow?.title || 'Workflow'}
+        footerActions={
+          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+        }
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
+            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <p className="text-sm text-ink/60 leading-relaxed">
+              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
+              Please review the action details below and confirm to integrate with the backend system.
+            </p>
+          </div>
+          {activeWorkflow?.data && (
+            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <div className="space-y-2 text-sm text-ink/80">
+                {Object.entries(activeWorkflow.data).map(([key, value]) => {
+                  if (typeof value === 'string' || typeof value === 'number') {
+                    return (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="capitalize">{key}</span>
+                        <span className="font-medium text-cream">{value}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </EnterpriseDetailDrawer>
 
     </div>
   );
