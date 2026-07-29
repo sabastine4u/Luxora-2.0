@@ -61,7 +61,7 @@ export default function MyListings() {
     <div className="space-y-6 pb-12">
       <DashboardHeader
         name="Listing Workflow Intelligence"
-        subtitle="Optimize your portfolio, track marketing performance, and automate listing workflows."
+        subtitle="My Listings contains properties that are currently assigned to you and have been accepted for active management."
         actions={
           <div className="flex gap-3">
             <GhostButton className="flex items-center gap-2">

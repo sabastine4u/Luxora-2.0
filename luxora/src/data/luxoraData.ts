@@ -2990,6 +2990,7 @@ export const ownerNav: NavItem[] = [
 export const agentNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Messages', icon: 'MessageSquare' },
+  { label: 'Assignments', icon: 'Package', badge: '3' },
   { label: 'My Listings', icon: 'Building2' },
   { label: 'Leads', icon: 'Target', badge: '12' },
   { label: 'Clients', icon: 'UserCircle' },

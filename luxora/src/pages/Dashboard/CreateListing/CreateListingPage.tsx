@@ -13,13 +13,13 @@ import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { ROUTES } from '../../../constants/routes';
 
 const STEPS = [
-  'Basic Info',
-  'Location',
-  'Details',
-  'Pricing',
-  'Media',
-  'Ownership',
-  'Review'
+  '🏠 Basic Information',
+  '📍 Location',
+  '🏡 Property Details',
+  '💰 Pricing',
+  '🖼 Media',
+  '👤 Ownership',
+  '✅ Review & Publish'
 ];
 
 const STORAGE_KEY = 'luxora_listing_draft';
@@ -132,8 +132,7 @@ export default function CreateListingPage() {
           <div className="mt-12 pt-8 border-t border-white/10 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
             <button
               onClick={() => {
-                // Return to previous page or dashboard
-                if (window.confirm('Are you sure you want to exit? Your draft is saved.')) {
+                if (window.confirm('Are you sure you want to exit? Your draft is saved locally.')) {
                   navigate(-1);
                 }
               }}
@@ -142,7 +141,7 @@ export default function CreateListingPage() {
               Cancel & Exit
             </button>
             
-            <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               {currentStep > 0 && (
                 <GhostButton onClick={handleBack} className="flex-1 sm:flex-none">
                   Back
@@ -154,9 +153,17 @@ export default function CreateListingPage() {
                   Continue
                 </GoldButton>
               ) : (
-                <GoldButton onClick={handleSubmit} className="flex-1 sm:flex-none">
-                  Submit Listing
-                </GoldButton>
+                <>
+                  <GhostButton onClick={() => alert('Draft saved successfully.')} className="flex-1 sm:flex-none border-dashed">
+                    Save Draft
+                  </GhostButton>
+                  <GhostButton onClick={() => alert('Preview mode opened.')} className="flex-1 sm:flex-none">
+                    Preview Listing
+                  </GhostButton>
+                  <GoldButton onClick={handleSubmit} className="flex-1 sm:flex-none">
+                    Submit Listing
+                  </GoldButton>
+                </>
               )}
             </div>
           </div>

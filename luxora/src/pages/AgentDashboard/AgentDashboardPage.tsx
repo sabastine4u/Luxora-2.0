@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout';
 import Overview from './components/Overview';
+import Assignments from './components/Assignments';
 import MyListings from './components/MyListings';
 import Leads from './components/Leads';
 import Clients from './components/Clients';
@@ -23,6 +24,7 @@ export default function AgentDashboardPage() {
   const renderContent = () => {
     switch (activeTab) {
       case 'Overview': return <Overview />;
+      case 'Assignments': return <Assignments />;
       case 'Messages': return <Messages />;
       case 'My Listings': return <MyListings />;
       case 'Leads': return <Leads />;
