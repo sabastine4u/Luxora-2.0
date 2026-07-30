@@ -3005,6 +3005,7 @@ export const agentNav: NavItem[] = [
 export const agencyNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Messages', icon: 'MessageSquare', badge: '5' },
+  { label: 'Assignment Center', icon: 'Briefcase', badge: '12' },
   { label: 'Listings', icon: 'Building2', badge: '42' },
   { label: 'Agents', icon: 'Users', badge: '14' },
   { label: 'Leads', icon: 'Target', badge: '8' },
@@ -3023,6 +3024,7 @@ export const adminNav: NavItem[] = [
   { label: 'Buyers', icon: 'Heart' },
   { label: 'Agents', icon: 'Users' },
   { label: 'Agencies', icon: 'Building2' },
+  { label: 'Internal Staff', icon: 'ShieldAlert' },
   { label: 'Complaints', icon: 'AlertTriangle', badge: '3' },
   { label: 'Reports', icon: 'FileBarChart' },
   { label: 'Finance', icon: 'Landmark' },

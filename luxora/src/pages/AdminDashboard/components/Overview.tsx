@@ -2,20 +2,21 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
-import { AlertTriangle, FileText, UserCheck, CheckCircle, Activity, ShieldAlert, ChevronRight, Bell, Calendar as CalendarIcon, Key, Zap, TrendingUp } from 'lucide-react';
+import { Building2, Users, FileCheck, UserCheck, Activity, ShieldAlert, ChevronRight, Bell, Calendar as CalendarIcon, Key, Zap, TrendingUp, ShieldCheck, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
 import { useSession } from '../../../contexts/SessionContext';
 
 export default function Overview() {
   const { user } = useSession();
-  const mockReports = [
-    { title: 'Listing Dispute', desc: 'Skyline Penthouse', time: '1 hour ago', color: 'text-rose-400', icon: ShieldAlert },
-    { title: 'Agent Conduct', desc: 'Reported by Anonymous', time: '1 day ago', color: 'text-yellow-400', icon: AlertTriangle },
-    { title: 'Payment Issue', desc: 'Failed escrow transaction', time: '2 days ago', color: 'text-rose-400', icon: FileText },
+  const adminRole = user?.role || 'Platform Administrator';
+  const recentActivity = [
+    { title: 'Property Assigned to Agency', desc: 'Meridian Luxury Properties', time: '1 hour ago', color: 'text-emerald-400', icon: ShieldCheck },
+    { title: 'Property Ready for Agency Assignment', desc: 'Banana Island Mansion', time: '2 hours ago', color: 'text-gold-400', icon: CheckCircle },
+    { title: 'Property Returned', desc: 'Lekki Phase 1 Duplex', time: '5 hours ago', color: 'text-yellow-400', icon: AlertTriangle },
   ];
 
   const pendingVerifications = [
-    { id: 'VQ-104', title: 'Bisi Williams', type: 'Owner KYC', time: '2h ago' },
+    { id: 'VQ-104', title: 'Skyline Penthouse', type: 'Property Submission', time: '2h ago' },
     { id: 'VQ-103', title: 'Meridian Luxury', type: 'Agency', time: '5h ago' },
     { id: 'VQ-102', title: 'Chidi Okafor', type: 'Agent KYC', time: '1d ago' },
   ];
@@ -27,13 +28,13 @@ export default function Overview() {
   ];
 
   const announcements = [
-    { id: 1, title: 'System Maintenance', desc: 'Scheduled downtime for db upgrade.', time: 'Tomorrow, 2:00 AM' },
-    { id: 2, title: 'New Moderation Policy', desc: 'Update on property photo guidelines.', time: '2 days ago' },
+    { id: 1, title: 'Verification Policy Update', desc: 'New guidelines for document verification.', time: 'Today, 9:00 AM' },
+    { id: 2, title: 'System Maintenance', desc: 'Scheduled downtime for db upgrade.', time: 'Tomorrow, 2:00 AM' },
   ];
 
   const upcomingTasks = [
-    { id: 1, title: 'Review Flagged Listings', type: 'Moderation', due: 'Today' },
-    { id: 2, title: 'Audit Agent KYC', type: 'Compliance', due: 'Tomorrow' },
+    { id: 1, title: 'Dispatch Approved Properties', type: 'Assignment Hub', due: 'Today' },
+    { id: 2, title: 'Review Property Submissions', type: 'Verification', due: 'Today' },
   ];
 
   const recentLogins = [
@@ -42,15 +43,22 @@ export default function Overview() {
   ];
 
   const operationalAlerts = [
-    { id: 1, title: 'High Verification Queue', level: 'Warning', desc: '45 items pending review.', color: 'text-yellow-400' },
-    { id: 2, title: 'API Latency', level: 'Critical', desc: 'Payment gateway response > 2s.', color: 'text-rose-400' },
+    { id: 1, title: 'Property Ready for Agency Assignment', level: 'Notice', desc: 'Banana Island Mansion approved.', color: 'text-gold-400' },
+    { id: 2, title: 'Verification Queue Spike', level: 'Warning', desc: '45 items pending review.', color: 'text-yellow-400' },
+    { id: 3, title: 'Property Assigned to Agency', level: 'Success', desc: 'Maitama Villa dispatched.', color: 'text-emerald-400' },
   ];
 
   return (
     <div className="space-y-8 pb-12">
       <DashboardHeader 
-        name={`Welcome back, ${user?.name?.split(' ')[0] || 'Administrator'}`}
-        subtitle="Manage users, listings, and platform health."
+        name="Luxora Operations Center"
+        subtitle={`Platform Administration • Managed by ${user?.name?.split(' ')[0] || 'Administrator'}`}
+        badges={['Operations Department', 'Verified Platform']}
+        tags={[
+          { label: adminRole, icon: ShieldCheck },
+          { label: 'Platform Status • Online', icon: Activity }
+        ]}
+        showVerifiedBadge={true}
         actions={
           <>
             <button onClick={() => window.location.href = '?tab=Settings'} className="rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-navy-900 hover:bg-gold-300">Platform Settings</button>
@@ -59,13 +67,42 @@ export default function Overview() {
       />
 
       <div className="mb-2">
-        <h2 className="text-sm font-semibold text-ink/50 uppercase tracking-wider">Today's Platform Snapshot</h2>
+        <h2 className="text-sm font-semibold text-ink/50 uppercase tracking-wider">Platform Snapshot</h2>
       </div>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard title="Listings Reviewed" value="142" icon={FileText} trend="+12% today" trendColor="text-emerald-400" iconColor="text-blue-400" />
-        <KPICard title="Users Verified" value="89" icon={UserCheck} trend="+5% today" trendColor="text-emerald-400" iconColor="text-emerald-400" />
-        <KPICard title="Reports Resolved" value="24" icon={CheckCircle} trend="-3% today" trendColor="text-rose-400" iconColor="text-purple-400" />
-        <KPICard title="Platform Uptime" value="99.9%" icon={Activity} trend="Healthy" trendColor="text-emerald-400" iconColor="text-emerald-400" backgroundColor="bg-emerald-400/10" />
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <KPICard title="Active Owners" value="2,145" icon={UserCheck} trend="+32 this month" trendColor="text-emerald-400" iconColor="text-purple-400" />
+        <KPICard title="Active Agencies" value="315" icon={Building2} trend="Verified" trendColor="text-emerald-400" iconColor="text-blue-400" />
+        <KPICard title="Active Agents" value="980" icon={Users} trend="Verified" trendColor="text-emerald-400" iconColor="text-gold-400" />
+        <KPICard title="Active Listings" value="6,450" icon={FileCheck} trend="Live on platform" trendColor="text-emerald-400" iconColor="text-emerald-400" />
+        <KPICard title="Pending Verifications" value="45" icon={ShieldAlert} trend="Action Required" trendColor="text-yellow-400" iconColor="text-yellow-400" backgroundColor="bg-yellow-400/10" />
+        <KPICard title="Platform Health" value="100%" icon={Activity} trend="Operational" trendColor="text-emerald-400" iconColor="text-emerald-400" backgroundColor="bg-emerald-400/10" />
+      </div>
+
+      {/* Operational Scope */}
+      <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <ShieldCheck className="h-6 w-6 text-gold-400" />
+          <h3 className="font-heading text-lg font-bold text-cream">Operational Scope & Responsibilities</h3>
+        </div>
+        <p className="text-sm text-ink/60 mb-6 max-w-3xl">
+          As a {adminRole}, you are responsible for maintaining the integrity, security, and quality of the Luxora platform. Your primary operational duties include:
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            'Property Verification',
+            'User Compliance & KYC',
+            'Agency Management',
+            'Marketplace Quality',
+            'Platform Monitoring',
+            'Fraud Prevention',
+            'Operational Escalations'
+          ].map((scope, idx) => (
+            <div key={idx} className="flex items-center gap-2 rounded-xl border border-white/5 bg-navy-900/50 px-4 py-3">
+              <div className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+              <span className="text-sm font-medium text-cream">{scope}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -134,8 +171,8 @@ export default function Overview() {
         {/* Recent Reports Widget */}
         <div className="space-y-6">
           <ActivityTimeline 
-            title="Recent Reports" 
-            items={mockReports} 
+            title="Verification Activity" 
+            items={recentActivity} 
             showViewAll
           />
 

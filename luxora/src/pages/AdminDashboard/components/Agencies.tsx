@@ -8,18 +8,27 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { ProvisionUserModal } from './modals/ProvisionUserModal';
 import { adminAgencies } from '../../../data/adminData';
+import { GoldButton } from '../../../components/ui/ui';
+import { ROLES } from '../../../constants/roles';
 import type { AdminAgency } from '../../../types/admin';
 
 export default function Agencies() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminAgency | null>(null);
+  const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
 
   return (
     <div className="space-y-6">
       <DashboardHeader 
         name="Agency Management"
         subtitle="Manage corporate real estate agencies and their teams."
+        actions={
+          <GoldButton onClick={() => setIsProvisionModalOpen(true)} className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> Add Agency
+          </GoldButton>
+        }
       />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -133,6 +142,13 @@ export default function Agencies() {
           </div>
         )}
       </EnterpriseDetailDrawer>
+
+      <ProvisionUserModal
+        isOpen={isProvisionModalOpen}
+        onClose={() => setIsProvisionModalOpen(false)}
+        allowedRoles={[ROLES.AGENCY]}
+        defaultRole={ROLES.AGENCY}
+      />
     </div>
   );
 }

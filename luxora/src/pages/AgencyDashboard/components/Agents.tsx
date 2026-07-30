@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Users, UserPlus, Filter, ShieldCheck, Mail, MoreHorizontal, Activity, Star, Award, Briefcase, Clock, Calendar } from 'lucide-react';
+import { Users, UserPlus, Filter, ShieldCheck, Mail, MoreHorizontal, Activity, Star, Award, Briefcase, Clock, Calendar, FileText, Upload, Trash2, CheckCircle2, User, FileCheck, Search, ShieldAlert, PowerOff, RefreshCw, KeyRound, ArrowRightLeft, Building2 } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
+import { AgentOnboardingModal } from './modals/AgentOnboardingModal';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
@@ -16,6 +17,7 @@ export default function Agents() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<AgencyAgent | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
 
   const agents = agencyAgents;
 
@@ -54,9 +56,11 @@ export default function Agents() {
             <GhostButton className="flex items-center gap-2">
               <Calendar className="h-4 w-4" /> Manage Roster
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" /> Invite Agent
+            <GoldButton className="flex items-center gap-2" onClick={() => setIsOnboardingModalOpen(true)}>
+              <UserPlus className="h-4 w-4" /> Add Agent
             </GoldButton>
+            {/* FUTURE-PROOFING: Reserve space for a future secondary action: "Invite Existing Agent" */}
+            {/* <GhostButton className="...">Invite Existing Agent</GhostButton> */}
           </div>
         }
       />
@@ -252,9 +256,25 @@ export default function Agents() {
                         >
                           <Activity className="h-4 w-4" />
                         </button>
-                        <button className="p-1.5 text-ink/60 hover:text-cream rounded hover:bg-white/5 transition-colors">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
+                        <div className="relative group">
+                          <button className="p-1.5 text-ink/60 hover:text-cream rounded hover:bg-white/5 transition-colors">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                          <div className="absolute right-0 mt-2 w-48 bg-navy-900 border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                            <div className="p-2 space-y-1">
+                              {a.status === 'Pending' && <button className="w-full text-left px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 rounded-lg flex items-center gap-2"><CheckCircle2 className="h-3 w-3"/> Approve Agent</button>}
+                              <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><ArrowRightLeft className="h-3 w-3"/> Transfer Branch</button>
+                              <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><KeyRound className="h-3 w-3"/> Reset Password</button>
+                              {a.status === 'Active' ? (
+                                <button className="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-white/5 rounded-lg flex items-center gap-2"><PowerOff className="h-3 w-3"/> Suspend Agent</button>
+                              ) : (
+                                <button className="w-full text-left px-3 py-2 text-xs text-blue-400 hover:bg-white/5 rounded-lg flex items-center gap-2"><RefreshCw className="h-3 w-3"/> Reactivate</button>
+                              )}
+                              <div className="h-px bg-white/10 my-1"></div>
+                              <button className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-400/10 rounded-lg flex items-center gap-2"><Trash2 className="h-3 w-3"/> Remove Agent</button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )
                   }
@@ -325,22 +345,119 @@ export default function Agents() {
           </div>
         }
       >
-        <div className="space-y-6">
-          <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
-            <h4 className="text-sm font-semibold text-cream mb-4">Agent Profile</h4>
-            <div className="space-y-3 text-sm text-ink/80">
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Email</span><span className="font-medium text-cream">{selectedAgent?.email}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Phone</span><span className="font-medium text-cream">{selectedAgent?.phone}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Department</span><span className="font-medium text-cream">{selectedAgent?.department}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Level</span><span className="font-medium text-cream">{selectedAgent?.level}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Assigned Deals</span><span className="font-medium text-cream">{selectedAgent?.assigned}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Performance Score</span><span className="font-medium text-cream">{selectedAgent?.score}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Client Satisfaction</span><span className="font-medium text-cream">{selectedAgent?.clientSat}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Join Date</span><span className="font-medium text-cream">{selectedAgent?.joinDate}</span></div>
+        <div className="space-y-6 pb-20">
+          {/* SECTION 1: Personal Information */}
+          <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><User className="h-4 w-4 text-ink/50"/> Personal Information</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Full Name</div><div className="text-cream">{selectedAgent?.name}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Date of Birth</div><div className="text-cream">{selectedAgent?.dob || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Gender</div><div className="text-cream">{selectedAgent?.gender || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Nationality</div><div className="text-cream">{selectedAgent?.nationality || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Phone Number</div><div className="text-cream">{selectedAgent?.phone}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Email</div><div className="text-cream break-all">{selectedAgent?.email}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Residential Address</div><div className="text-cream">{selectedAgent?.residentialAddress || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Emergency Contact</div><div className="text-cream">{selectedAgent?.emergencyContact || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Next of Kin</div><div className="text-cream">{selectedAgent?.nextOfKin || 'N/A'}</div></div>
+            </div>
+          </div>
+
+          {/* SECTION 2: Professional Information */}
+          <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><Briefcase className="h-4 w-4 text-ink/50"/> Professional Information</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Years of Experience</div><div className="text-cream">{selectedAgent?.yearsOfExperience || 0} Years</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Languages</div><div className="text-cream">{selectedAgent?.languages?.join(', ') || 'N/A'}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Biography</div><div className="text-cream text-xs leading-relaxed">{selectedAgent?.biography || 'No biography provided.'}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Specializations</div><div className="flex flex-wrap gap-2 mt-1">{selectedAgent?.specializations?.map((s,i) => <span key={i} className="text-[10px] bg-white/5 px-2 py-1 rounded text-ink/80">{s}</span>) || 'N/A'}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Service Areas</div><div className="flex flex-wrap gap-2 mt-1">{selectedAgent?.serviceAreas?.map((s,i) => <span key={i} className="text-[10px] bg-white/5 px-2 py-1 rounded text-ink/80">{s}</span>) || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Coverage Radius</div><div className="text-cream">{selectedAgent?.coverageRadius || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">License Number</div><div className="text-cream font-mono">{selectedAgent?.licenseNumber || 'N/A'}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Certifications</div><div className="text-cream text-xs">{selectedAgent?.certifications?.join(', ') || 'N/A'}</div></div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Agency Information */}
+          <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><Building2 className="h-4 w-4 text-ink/50"/> Agency Information</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Agency</div><div className="text-cream font-medium">Meridian Luxury Properties</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Branch</div><div className="text-cream">{selectedAgent?.branch || 'HQ'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Managing Director</div><div className="text-cream">Marcus Sterling</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Agency Verification Status</div><div className="text-emerald-400 font-medium">{selectedAgent?.agencyVerificationStatus || 'Verified'}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Agency Role</div><div className="text-cream">{selectedAgent?.level} • {selectedAgent?.department} Specialist</div></div>
+            </div>
+          </div>
+
+          {/* SECTION 4: Employment Information */}
+          <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><FileCheck className="h-4 w-4 text-ink/50"/> Employment Information</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employee ID</div><div className="text-cream font-mono">{selectedAgent?.id}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Date Joined</div><div className="text-cream">{selectedAgent?.joinDate}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employment Status</div><div className="text-emerald-400 font-medium">{selectedAgent?.employmentStatus || 'Active'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employment Type</div><div className="text-cream">{selectedAgent?.employmentType || 'Full-Time'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Background Check</div><div className="text-emerald-400">{selectedAgent?.backgroundCheckStatus || 'Cleared'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">License Status</div><div className="text-emerald-400">{selectedAgent?.licenseStatus || 'Active'}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employment Contract</div><div className="text-blue-400 underline cursor-pointer">{selectedAgent?.employmentContract || 'View Contract'}</div></div>
+              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Internal Notes</div><div className="text-ink/80 text-xs italic bg-navy-950 p-2 rounded">{selectedAgent?.internalNotes || 'No notes available.'}</div></div>
+            </div>
+          </div>
+
+          {/* SECTION 5: Performance & Workload */}
+          <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><Activity className="h-4 w-4 text-ink/50"/> Performance & Workload</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Revenue Generated</div><div className="text-emerald-400 font-bold">{selectedAgent?.revenueGenerated || '₦0'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Commission Earned</div><div className="text-gold-400 font-bold">{selectedAgent?.commissionEarned || '₦0'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Active Listings</div><div className="text-cream">{selectedAgent?.assigned}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Pending Assignments</div><div className="text-cream">{selectedAgent?.pendingAssignments || 0}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Open Deals</div><div className="text-cream">{selectedAgent?.openDeals || 0}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Appointments</div><div className="text-cream">{selectedAgent?.appointments || 0}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Current Leads</div><div className="text-cream">{selectedAgent?.activeLeads}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Avg Response Time</div><div className="text-cream">{selectedAgent?.avgResponseTime || 'N/A'}</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Performance Score</div><div className="text-emerald-400">{selectedAgent?.score}%</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Capacity</div><div className="text-yellow-400">{selectedAgent?.capacity || 0}%</div></div>
+              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Client Rating</div><div className="text-gold-400">★ {selectedAgent?.clientSat}</div></div>
+            </div>
+          </div>
+
+          {/* SECTION 6: Verification & Documents */}
+          <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-ink/50"/> Verification & Documents</h4>
+            <div className="space-y-3">
+              {[
+                { name: 'Government ID', status: 'Approved' },
+                { name: 'Passport Photograph', status: 'Approved' },
+                { name: 'Professional License', status: 'Approved' },
+                { name: 'Employment Contract', status: 'Approved' },
+                { name: 'Proof of Address', status: 'Approved' },
+                { name: 'Bank Information', status: 'Pending' },
+                { name: 'Tax Information', status: 'Pending' }
+              ].map((doc, i) => (
+                <div key={i} className="flex justify-between items-center p-3 rounded-lg border border-white/5 bg-navy-950">
+                  <div className="flex items-center gap-3">
+                    <FileText className={`h-4 w-4 ${doc.status === 'Approved' ? 'text-emerald-400' : 'text-yellow-400'}`} />
+                    <div>
+                      <div className="text-sm font-medium text-cream">{doc.name}</div>
+                      <div className={`text-[10px] font-bold tracking-wider uppercase ${doc.status === 'Approved' ? 'text-emerald-400' : 'text-yellow-400'}`}>{doc.status}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="text-ink/60 hover:text-gold-400 transition-colors p-1" title="View"><Search className="h-4 w-4" /></button>
+                    <button className="text-ink/60 hover:text-gold-400 transition-colors p-1" title="Replace"><Upload className="h-4 w-4" /></button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </EnterpriseDetailDrawer>
+
+      <AgentOnboardingModal 
+        isOpen={isOnboardingModalOpen} 
+        onClose={() => setIsOnboardingModalOpen(false)} 
+      />
     </div>
   );
 }

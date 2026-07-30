@@ -43,6 +43,24 @@ export interface AdminListing {
   price: string;
   status: string;
   priority: string;
+  verification?: {
+    status: string;
+    checklist: { id: string; text: string; checked: boolean }[];
+    documents: { name: string; type: string; size?: string }[];
+    notes: string;
+    history: { title: string; time: string; type: string }[];
+  };
+  assignment?: {
+    id: string;
+    status: "Ready for Agency Assignment" | "Assigned to Agency" | "Agency Acknowledged" | "Cancelled";
+    agencyId?: string;
+    agencyName?: string;
+    assignedBy?: string;
+    assignedAt?: string;
+    acknowledgedAt?: string;
+    priority?: "Low" | "Medium" | "High" | "Urgent";
+    notes?: string;
+  };
 }
 
 export interface AdminVerification {

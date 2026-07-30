@@ -89,18 +89,42 @@ export default function Settings() {
         {/* Security & Access */}
         <div className="space-y-6">
           <SettingsSection
-            title="My Access"
+            title="Administrator Profile"
             size="2xl"
             className="!space-y-4"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
               <Shield className={`h-5 w-5 ${isSuperAdmin ? 'text-gold-400' : 'text-blue-400'}`} />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-cream">Role</p>
-                <p className={`text-xs ${isSuperAdmin ? 'text-gold-400' : 'text-blue-400'}`}>{user?.role}</p>
+                <p className="text-sm font-semibold text-cream">Role & Permission Level</p>
+                <p className={`text-xs ${isSuperAdmin ? 'text-gold-400' : 'text-blue-400'}`}>{user?.role || 'Platform Administrator'} • {isSuperAdmin ? 'Full Access' : 'Restricted'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            <div className="grid grid-cols-2 gap-4 border-b border-white/5 pb-4">
+              <div>
+                <p className="text-xs text-ink/60 uppercase tracking-wider mb-1">Department</p>
+                <p className="text-sm font-medium text-cream">Platform Operations</p>
+              </div>
+              <div>
+                <p className="text-xs text-ink/60 uppercase tracking-wider mb-1">Employee ID</p>
+                <p className="text-sm font-medium text-cream">LUX-9482</p>
+              </div>
+              <div>
+                <p className="text-xs text-ink/60 uppercase tracking-wider mb-1">Assigned Region</p>
+                <p className="text-sm font-medium text-cream">Global</p>
+              </div>
+              <div>
+                <p className="text-xs text-ink/60 uppercase tracking-wider mb-1">Office Location</p>
+                <p className="text-sm font-medium text-cream">Lagos HQ</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-ink/60 uppercase tracking-wider mb-1">Administrator Since</p>
+                <p className="text-sm font-medium text-cream">January 2024</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
               <KeyRound className="h-5 w-5 text-ink/50" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-cream">Admin Password</p>

@@ -3,6 +3,7 @@ import { DashboardLayout } from '../../components/layout';
 import Overview from './components/Overview';
 import Listings from './components/Listings';
 import Agents from './components/Agents';
+import AssignmentCenter from './components/AssignmentCenter';
 import Leads from './components/Leads';
 import Clients from './components/Clients';
 import Performance from './components/Performance';
@@ -22,6 +23,7 @@ export default function AgencyDashboardPage() {
     switch (activeTab) {
       case 'Overview': return <Overview onNavigate={setActiveTab} />;
       case 'Messages': return <Messages />;
+      case 'Assignment Center': return <AssignmentCenter />;
       case 'Listings': return <Listings />;
       case 'Agents': return <Agents />;
       case 'Leads': return <Leads />;

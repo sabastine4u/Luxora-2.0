@@ -1,14 +1,17 @@
-import { Users, Activity, ShieldCheck, ShieldAlert, FileCheck, Search, Filter, Trash2, UserPlus, Fingerprint, CheckCircle, XCircle } from 'lucide-react';
+import { Activity, ShieldCheck, ShieldAlert, FileCheck, Search, Filter, Trash2, UserPlus, Fingerprint, CheckCircle, XCircle } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { ProvisionUserModal } from '../../AdminDashboard/components/modals/ProvisionUserModal';
+import { ROLES } from '../../../constants/roles';
 import { useState } from 'react';
 
 export default function AdminManagement() {
   const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'add' | 'suspend' | null}>({ isOpen: false, type: null });
+  const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
 
   const userDistribution = [
     { label: 'Active Buyers', value: 45, color: 'bg-emerald-400' },
@@ -28,8 +31,8 @@ export default function AdminManagement() {
             <GhostButton className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" /> Permission Audit
             </GhostButton>
-            <GoldButton className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> Bulk Operations
+            <GoldButton onClick={() => setIsProvisionModalOpen(true)} className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" /> Add Administrator
             </GoldButton>
           </div>
         }
@@ -191,6 +194,13 @@ export default function AdminManagement() {
         message="Are you sure you want to suspend this Administrator? This will immediately revoke their access to the Luxora platform."
         confirmText="Suspend"
         isDestructive={true}
+      />
+
+      <ProvisionUserModal
+        isOpen={isProvisionModalOpen}
+        onClose={() => setIsProvisionModalOpen(false)}
+        allowedRoles={[ROLES.ADMIN]}
+        defaultRole={ROLES.ADMIN}
       />
     </div>
   );

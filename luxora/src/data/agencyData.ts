@@ -1,8 +1,20 @@
-import type { AgencyAgent, AgencyClient, AgencyLead, AgencyCommission } from '../types/agency';
+import type { AgencyAgent, AgencyClient, AgencyLead, AgencyCommission, AgencyAssignment } from '../types/agency';
 
 export const agencyAgents: AgencyAgent[] = [
-  { id: 'AGT-001', name: 'Sarah James', email: 'sarah@meridian.com', phone: '+234 800 123 4567', status: 'Active', verified: true, assigned: 12, score: 95, department: 'Residential', level: 'Senior Broker', joinDate: '2022', activeLeads: 24, clientSat: 4.9 },
-  { id: 'AGT-002', name: 'Emeka Uzo', email: 'emeka@meridian.com', phone: '+234 800 234 5678', status: 'Active', verified: true, assigned: 8, score: 88, department: 'Commercial', level: 'Broker', joinDate: '2023', activeLeads: 15, clientSat: 4.7 },
+  { 
+    id: 'AGT-001', name: 'Sarah James', email: 'sarah@meridian.com', phone: '+234 800 123 4567', status: 'Active', verified: true, assigned: 12, score: 95, department: 'Residential', level: 'Senior Broker', joinDate: '2022', activeLeads: 24, clientSat: 4.9,
+    dob: '1985-06-15', gender: 'Female', residentialAddress: '15 Bourdillon Road, Ikoyi', emergencyContact: '+234 800 999 8888', nextOfKin: 'David James', nationality: 'Nigerian',
+    yearsOfExperience: 8, biography: 'Expert in luxury residential properties in Ikoyi and Victoria Island.', languages: ['English', 'French'], specializations: ['Luxury Residential', 'Penthouses'], serviceAreas: ['Ikoyi', 'Victoria Island'], coverageRadius: '20km', licenseNumber: 'REB-2022-001', certifications: ['Certified Luxury Home Marketing Specialist'],
+    branch: 'Victoria Island HQ', agencyVerificationStatus: 'Verified', employmentStatus: 'Active', employmentType: 'Full-Time', employmentContract: 'Contract_001.pdf', backgroundCheckStatus: 'Cleared', licenseStatus: 'Active', internalNotes: 'Top performer for Q3.',
+    revenueGenerated: '₦2.5B', commissionEarned: '₦125M', pendingAssignments: 3, appointments: 8, openDeals: 5, avgResponseTime: '15 mins', capacity: 85
+  },
+  { 
+    id: 'AGT-002', name: 'Emeka Uzo', email: 'emeka@meridian.com', phone: '+234 800 234 5678', status: 'Active', verified: true, assigned: 8, score: 88, department: 'Commercial', level: 'Broker', joinDate: '2023', activeLeads: 15, clientSat: 4.7,
+    dob: '1990-03-22', gender: 'Male', residentialAddress: '42 Admiralty Way, Lekki', emergencyContact: '+234 800 777 6666', nextOfKin: 'Nneka Uzo', nationality: 'Nigerian',
+    yearsOfExperience: 5, biography: 'Specializes in commercial real estate and office spaces.', languages: ['English', 'Igbo'], specializations: ['Commercial', 'Office Spaces'], serviceAreas: ['Lekki', 'Victoria Island'], coverageRadius: '30km', licenseNumber: 'REB-2023-045', certifications: ['Commercial Real Estate Certificate'],
+    branch: 'Lekki Branch', agencyVerificationStatus: 'Verified', employmentStatus: 'Active', employmentType: 'Full-Time', employmentContract: 'Contract_002.pdf', backgroundCheckStatus: 'Cleared', licenseStatus: 'Active', internalNotes: 'Strong pipeline for Q4.',
+    revenueGenerated: '₦1.8B', commissionEarned: '₦90M', pendingAssignments: 1, appointments: 5, openDeals: 3, avgResponseTime: '45 mins', capacity: 70
+  },
   { id: 'AGT-003', name: 'Daniel O.', email: 'daniel@meridian.com', phone: '+234 800 345 6789', status: 'Pending', verified: false, assigned: 0, score: 0, department: 'Residential', level: 'Junior Broker', joinDate: '2025', activeLeads: 2, clientSat: 0 },
   { id: 'AGT-004', name: 'Michael Eze', email: 'michael@meridian.com', phone: '+234 800 456 7890', status: 'On Leave', verified: true, assigned: 2, score: 92, department: 'Luxury', level: 'Partner', joinDate: '2021', activeLeads: 5, clientSat: 5.0 },
 ];
@@ -29,4 +41,12 @@ export const agencyCommissions: AgencyCommission[] = [
   { id: 'COM-2025-102', agent: 'Sarah James', property: 'Victoria Island Office', date: 'Sep 25, 2025', amount: '₦36,000,000', status: 'Paid', dealValue: '₦1.2B' },
   { id: 'COM-2025-101', agent: 'Michael Eze', property: 'Lekki Phase 1 Villa', date: 'Sep 15, 2025', amount: '₦8,500,000', status: 'Processing', dealValue: '₦280M' },
   { id: 'COM-2025-100', agent: 'Daniel O.', property: 'Banana Island Plot', date: 'Sep 10, 2025', amount: '₦15,000,000', status: 'Overdue', dealValue: '₦500M' },
+];
+
+export const agencyAssignments: AgencyAssignment[] = [
+  { id: 'ASN-001', propertyTitle: 'Skyline Penthouse Residence', propertyLocation: 'Eko Atlantic, Lagos', propertyType: 'Penthouse', propertyPrice: '₦420,000,000', ownerName: 'David Nwachukwu', source: 'Newly Approved', priority: 'High', verificationLevel: 'Premium', recommendedAgent: 'Sarah James', responseDeadline: '2h 15m', status: 'Pending Agent' },
+  { id: 'ASN-002', propertyTitle: 'Garden Court Villa', propertyLocation: 'Banana Island, Lagos', propertyType: 'Villa', propertyPrice: '₦680,000,000', ownerName: 'Folorunso Alakija', source: 'Corporate Listing', priority: 'High', verificationLevel: 'Premium', recommendedAgent: 'Michael Eze', responseDeadline: '4h 30m', status: 'Pending Agent' },
+  { id: 'ASN-003', propertyTitle: 'Marina View Apartment', propertyLocation: 'Lekki Phase 1, Lagos', propertyType: 'Apartment', propertyPrice: '₦185,000,000', ownerName: 'Chidi O.', source: 'Returned', priority: 'Medium', verificationLevel: 'Standard', recommendedAgent: null, responseDeadline: '12h 00m', status: 'Unassigned' },
+  { id: 'ASN-004', propertyTitle: 'Contemporary Duplex', propertyLocation: 'Chevron, Lagos', propertyType: 'Duplex', propertyPrice: '₦320,000,000', ownerName: 'Amara E.', source: 'Reassignment', priority: 'Medium', verificationLevel: 'Standard', recommendedAgent: 'Emeka Uzo', responseDeadline: 'Expiring Soon', status: 'Pending Agent' },
+  { id: 'ASN-005', propertyTitle: 'Executive Studio Apartment', propertyLocation: 'Yaba, Lagos', propertyType: 'Studio', propertyPrice: '₦62,000,000', ownerName: 'Bisi W.', source: 'Developer Listing', priority: 'Low', verificationLevel: 'Pending', recommendedAgent: null, responseDeadline: '24h 00m', status: 'Hold' },
 ];

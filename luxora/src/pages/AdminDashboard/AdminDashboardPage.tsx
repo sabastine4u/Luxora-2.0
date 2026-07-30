@@ -7,6 +7,7 @@ import Owners from './components/Owners';
 import Buyers from './components/Buyers';
 import Agents from './components/Agents';
 import Agencies from './components/Agencies';
+import InternalStaff from './components/InternalStaff';
 import Complaints from './components/Complaints';
 import Reports from './components/Reports';
 import Finance from './components/Finance';
@@ -30,6 +31,7 @@ export default function AdminDashboardPage() {
       case 'Buyers': return <Buyers />;
       case 'Agents': return <Agents />;
       case 'Agencies': return <Agencies />;
+      case 'Internal Staff': return <InternalStaff />;
       case 'Complaints': return <Complaints />;
       case 'Reports': return <Reports />;
       case 'Finance': return <Finance />;

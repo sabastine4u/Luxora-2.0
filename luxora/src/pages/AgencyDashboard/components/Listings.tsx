@@ -35,7 +35,7 @@ export default function Listings() {
   // Local Mock Data using properties base
   const mockListings = React.useMemo(() => properties.map((p, i) => ({
     ...p,
-    status: i % 3 === 0 ? 'Pending' : i % 5 === 0 ? 'Sold' : 'Active',
+    assignmentStatus: i % 4 === 0 ? 'Hold' : i % 3 === 0 ? 'Transacting' : i % 5 === 0 ? 'Expiring' : 'Active',
     assignedAgent: i % 2 === 0 ? 'Sarah James' : 'Emeka Uzo',
     isFeatured: i % 4 === 0,
     priority: i % 3 === 0 ? 'High' : 'Normal',
@@ -43,6 +43,10 @@ export default function Listings() {
     saves: (i * 42) % 200,
     enquiries: (i * 17) % 50,
     marketingStatus: i % 2 === 0 ? 'Published' : 'Draft',
+    assignmentHistory: [
+      { date: 'Oct 05, 2025', action: 'Assigned to Agent', actor: 'Marcus Sterling', note: 'New property onboarded' },
+      { date: 'Oct 06, 2025', action: 'Agent Accepted', actor: i % 2 === 0 ? 'Sarah James' : 'Emeka Uzo', note: 'Began marketing preparations' }
+    ]
   })), []);
 
   const filteredListings = mockListings.filter(l => 
@@ -80,31 +84,31 @@ export default function Listings() {
       {/* Listing Lifecycle Summary */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Active Listings"
-          value={mockListings.filter(l => l.status === 'Active').length.toString()}
+          title="Active (Marketing)"
+          value={mockListings.filter(l => l.assignmentStatus === 'Active').length.toString()}
           trend="Currently on market"
           trendColor="text-blue-400"
           icon={Building2}
         />
         <KPICard
-          title="Draft / Pending"
-          value={mockListings.filter(l => l.status === 'Pending').length.toString()}
-          trend="Awaiting approval"
+          title="On Hold"
+          value={mockListings.filter(l => l.assignmentStatus === 'Hold').length.toString()}
+          trend="Paused operations"
           trendColor="text-yellow-400"
           icon={AlertCircle}
         />
         <KPICard
-          title="Featured Properties"
-          value={mockListings.filter(l => l.isFeatured).length.toString()}
-          trend="Boosted visibility"
-          trendColor="text-gold-400"
+          title="Transacting"
+          value={mockListings.filter(l => l.assignmentStatus === 'Transacting').length.toString()}
+          trend="In deal pipeline"
+          trendColor="text-emerald-400"
           icon={Star}
         />
         <KPICard
-          title="Recently Sold"
-          value={mockListings.filter(l => l.status === 'Sold').length.toString()}
-          trend="Last 30 days"
-          trendColor="text-emerald-400"
+          title="Expiring Soon"
+          value={mockListings.filter(l => l.assignmentStatus === 'Expiring').length.toString()}
+          trend="Requires renewal"
+          trendColor="text-rose-400"
           icon={CheckCircle2}
         />
       </div>
@@ -194,8 +198,8 @@ export default function Listings() {
                 render: (l) => <span className="text-sm text-ink/80">{String(l.assignedAgent)}</span>
               },
               {
-                header: "Status",
-                render: (l) => <EnterpriseStatusBadge status={String(l.status)} />
+                header: "Internal Status",
+                render: (l) => <EnterpriseStatusBadge status={String(l.assignmentStatus)} />
               },
               {
                 header: <div className="text-right">Actions</div>,
@@ -234,7 +238,7 @@ export default function Listings() {
           </div>
         }
       >
-        <div className="space-y-6">
+        <div className="space-y-6 pb-20">
           <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
             <h4 className="text-sm font-semibold text-cream mb-4">Listing Details</h4>
             <div className="space-y-3 text-sm text-ink/80">
@@ -243,7 +247,26 @@ export default function Listings() {
               <div className="flex justify-between border-b border-white/5 pb-2"><span>Price</span><span className="font-medium text-cream">{String(selectedListing?.price || '')}</span></div>
               <div className="flex justify-between border-b border-white/5 pb-2"><span>Type</span><span className="font-medium text-cream">{String(selectedListing?.type || '')}</span></div>
               <div className="flex justify-between border-b border-white/5 pb-2"><span>Assigned Agent</span><span className="font-medium text-cream">{String(selectedListing?.assignedAgent || '')}</span></div>
-              <div className="flex justify-between border-b border-white/5 pb-2"><span>Views</span><span className="font-medium text-cream">{String(selectedListing?.views || '')}</span></div>
+              <div className="flex justify-between border-b border-white/5 pb-2"><span>Internal Status</span><span className="font-medium text-cream">{String(selectedListing?.assignmentStatus || '')}</span></div>
+            </div>
+          </div>
+          
+          <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
+            <h4 className="text-sm font-semibold text-cream mb-4">Assignment History</h4>
+            <div className="space-y-4">
+              {(selectedListing?.assignmentHistory as Array<{ action: string, date: string, actor: string, note: string }>)?.map((hist, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full bg-gold-400 mt-1.5" />
+                    {i !== (selectedListing?.assignmentHistory as Array<unknown>).length - 1 && <div className="w-px h-full bg-white/10 my-1" />}
+                  </div>
+                  <div className="pb-4">
+                    <div className="text-sm font-bold text-cream">{hist.action}</div>
+                    <div className="text-xs text-ink/60">{hist.date} • {hist.actor}</div>
+                    <div className="text-xs text-ink/80 mt-1">{hist.note}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

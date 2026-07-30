@@ -1,4 +1,4 @@
-import { X, Bell, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { X, Bell, CheckCircle2, AlertTriangle, Clock, Briefcase, XCircle } from 'lucide-react';
 
 export interface NotificationPanelProps {
   isOpen: boolean;
@@ -8,26 +8,42 @@ export interface NotificationPanelProps {
 const mockNotifications = [
   {
     id: 1,
-    title: 'New Property Verification',
-    message: 'A new luxury villa in Eko Atlantic is pending verification.',
-    time: '5 mins ago',
-    icon: <CheckCircle2 className="h-5 w-5 text-emerald-400" />,
+    title: 'New Assignment Request',
+    message: 'Agency assigned "Skyline Penthouse Residence" to you.',
+    time: '2 mins ago',
+    icon: <Briefcase className="h-5 w-5 text-blue-400" />,
     read: false,
   },
   {
     id: 2,
-    title: 'Subscription Expiring',
-    message: 'Agency Prime Properties subscription expires in 3 days.',
-    time: '2 hours ago',
-    icon: <AlertTriangle className="h-5 w-5 text-amber-400" />,
+    title: 'Agent Accepted Assignment',
+    message: 'Sarah James accepted the assignment for "Garden Court Villa".',
+    time: '15 mins ago',
+    icon: <CheckCircle2 className="h-5 w-5 text-emerald-400" />,
     read: false,
   },
   {
     id: 3,
+    title: 'SLA Breach: No Response',
+    message: 'Michael Eze has not responded to "Lekki Phase 1 Villa" assignment in 4 hours.',
+    time: '1 hour ago',
+    icon: <AlertTriangle className="h-5 w-5 text-rose-400" />,
+    read: false,
+  },
+  {
+    id: 4,
+    title: 'Agent Declined Assignment',
+    message: 'Emeka Uzo declined "Marina View Apartment". Reason: Over capacity.',
+    time: '2 hours ago',
+    icon: <XCircle className="h-5 w-5 text-amber-400" />,
+    read: true,
+  },
+  {
+    id: 5,
     title: 'System Update',
     message: 'Platform maintenance scheduled for tomorrow 2 AM UTC.',
     time: '1 day ago',
-    icon: <Clock className="h-5 w-5 text-blue-400" />,
+    icon: <Clock className="h-5 w-5 text-ink/60" />,
     read: true,
   },
 ];

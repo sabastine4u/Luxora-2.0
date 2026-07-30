@@ -1,17 +1,20 @@
 import { 
   Building2, Users, Target, UserCircle, 
   TrendingUp, CheckCircle2, AlertTriangle, FileText,
-  Calendar, Star, DollarSign, Clock, Zap
+  Calendar, Star, DollarSign, Clock, Zap, ShieldCheck
 } from 'lucide-react';
-import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
+
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { GhostButton } from '../../../components/ui/ui';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 
+import { useState } from 'react';
 import { useSession } from '../../../contexts/SessionContext';
+import { AgentOnboardingModal } from './modals/AgentOnboardingModal';
 
 export default function Overview({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const { user } = useSession();
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const upcomingMeetings = [
     { title: 'Client Meeting - Aliko Dangote', time: '10:00 AM', desc: 'Discussing Banana Island Plot', icon: Users, color: 'text-blue-400' },
     { title: 'Property Inspection', time: '1:00 PM', desc: 'The Continental Duplex with Inspector', icon: Building2, color: 'text-emerald-400' },
@@ -26,17 +29,39 @@ export default function Overview({ onNavigate }: { onNavigate?: (tab: string) =>
 
   return (
     <div className="space-y-6">
-      <DashboardHeader
-        name={`Welcome back, ${user?.name || 'Marcus Sterling'}`}
-        subtitle="Executive dashboard, daily briefing, and agency performance."
-        actions={
-          <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2" onClick={() => onNavigate?.('Agents')}>
-              <Users className="h-4 w-4" /> Manage Roster
-            </GhostButton>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="font-heading text-3xl font-bold text-cream">Meridian Luxury Properties</h1>
+            <span className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-400/10 text-emerald-400 text-xs font-bold tracking-wider uppercase">
+              <CheckCircle2 className="h-3 w-3" /> Verified Agency
+            </span>
           </div>
-        }
-      />
+          <div className="text-sm text-ink/70 space-y-1">
+            <div className="flex items-center gap-2">
+              <span>Managed by <strong className="text-cream">{user?.name || 'Marcus Sterling'}</strong></span>
+              <span className="text-ink/40">•</span>
+              <span>Managing Director</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs mt-2">
+              <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-gold-400"/> RC-1234567</span>
+              <span className="text-ink/40">•</span>
+              <span className="flex items-center gap-1"><Star className="h-3 w-3 text-gold-400"/> 4.8/5.0</span>
+              <span className="text-ink/40">•</span>
+              <span className="flex items-center gap-1"><Building2 className="h-3 w-3 text-blue-400"/> 3 Branches</span>
+              <span className="text-ink/40">•</span>
+              <span className="flex items-center gap-1"><Users className="h-3 w-3 text-emerald-400"/> 42 Agents</span>
+              <span className="text-ink/40">•</span>
+              <span className="flex items-center gap-1"><Target className="h-3 w-3 text-rose-400"/> 124 Active Listings</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <GhostButton className="flex items-center gap-2" onClick={() => onNavigate?.('Agents')}>
+            <Users className="h-4 w-4" /> Manage Roster
+          </GhostButton>
+        </div>
+      </div>
 
       {/* Quick Action Center */}
       <div className="flex flex-wrap gap-4 mb-6">
@@ -46,9 +71,11 @@ export default function Overview({ onNavigate }: { onNavigate?: (tab: string) =>
         <button onClick={() => onNavigate?.('Leads')} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
           <Target className="h-4 w-4" /> Register Lead
         </button>
-        <button onClick={() => onNavigate?.('Agents')} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
-          <Users className="h-4 w-4" /> Invite Agent
+        <button onClick={() => setIsOnboardingModalOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
+          <Users className="h-4 w-4" /> Add Agent
         </button>
+        {/* FUTURE-PROOFING: Reserve space for a future secondary action: "Invite Existing Agent" */}
+        {/* <button className="...">Invite Existing Agent</button> */}
         <button onClick={() => onNavigate?.('Performance')} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-navy-800/50 hover:bg-gold-400/10 hover:border-gold-400/30 transition-all text-ink/80 hover:text-gold-400 text-sm font-medium">
           <FileText className="h-4 w-4" /> Create Report
         </button>
@@ -139,24 +166,24 @@ export default function Overview({ onNavigate }: { onNavigate?: (tab: string) =>
             {/* Business Highlights */}
             <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col justify-between">
               <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
-                <Star className="h-5 w-5 text-gold-400" /> Highlights
+                <Star className="h-5 w-5 text-gold-400" /> Assignment KPIs
               </h3>
               <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-navy-900/50 rounded-xl border border-white/5">
+                  <div className="text-[10px] text-ink/60 uppercase font-bold mb-1">Active Assign.</div>
+                  <div className="text-sm font-bold text-emerald-400 truncate">42 Properties</div>
+                </div>
+                <div className="p-3 bg-navy-900/50 rounded-xl border border-white/5">
+                  <div className="text-[10px] text-ink/60 uppercase font-bold mb-1">Pending Assign.</div>
+                  <div className="text-sm font-bold text-yellow-400 truncate">12 Awaiting</div>
+                </div>
                 <div className="p-3 bg-navy-900/50 rounded-xl border border-white/5">
                   <div className="text-[10px] text-ink/60 uppercase font-bold mb-1">Top Agent</div>
                   <div className="text-sm font-bold text-cream truncate">Sarah James</div>
                 </div>
                 <div className="p-3 bg-navy-900/50 rounded-xl border border-white/5">
-                  <div className="text-[10px] text-ink/60 uppercase font-bold mb-1">Top Deal</div>
-                  <div className="text-sm font-bold text-emerald-400 truncate">₦1.2B</div>
-                </div>
-                <div className="p-3 bg-navy-900/50 rounded-xl border border-white/5">
-                  <div className="text-[10px] text-ink/60 uppercase font-bold mb-1">Fastest Sale</div>
-                  <div className="text-sm font-bold text-cream truncate">12 Days</div>
-                </div>
-                <div className="p-3 bg-navy-900/50 rounded-xl border border-white/5">
-                  <div className="text-[10px] text-ink/60 uppercase font-bold mb-1">Client Sat.</div>
-                  <div className="text-sm font-bold text-gold-400 truncate">4.9/5.0</div>
+                  <div className="text-[10px] text-ink/60 uppercase font-bold mb-1">SLA Compliance</div>
+                  <div className="text-sm font-bold text-gold-400 truncate">98.5%</div>
                 </div>
               </div>
             </div>
@@ -245,6 +272,11 @@ export default function Overview({ onNavigate }: { onNavigate?: (tab: string) =>
 
         </div>
       </div>
+
+      <AgentOnboardingModal 
+        isOpen={isOnboardingModalOpen} 
+        onClose={() => setIsOnboardingModalOpen(false)} 
+      />
     </div>
   );
 }

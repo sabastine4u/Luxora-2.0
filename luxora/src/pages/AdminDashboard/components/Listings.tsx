@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Building2, MoreHorizontal, CheckCircle, XCircle, Eye, Clock, AlertTriangle } from 'lucide-react';
+import { Building2, MoreHorizontal, CheckCircle, XCircle, Eye, Clock, AlertTriangle, Send } from 'lucide-react';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
-import { RejectionReasonModal } from './RejectionReasonModal';
+import { RejectionReasonModal, type ReviewActionType } from './RejectionReasonModal';
 import { ListingDetailModal } from './ListingDetailModal';
+import { AgencyAssignmentModal } from './modals/AgencyAssignmentModal';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
@@ -20,11 +21,14 @@ import { EnterpriseStatusBadge } from '../../../components/enterprise/Enterprise
 
 export default function Listings() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
-  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
+  const [actionType, setActionType] = useState<ReviewActionType>('reject');
   const [actionTarget, setActionTarget] = useState<string | null>(null);
   const [previewListing, setPreviewListing] = useState<AdminListing | null>(null);
+  const [assignmentListing, setAssignmentListing] = useState<AdminListing | null>(null);
   const navigate = useNavigate();
 
   const toggleSelection = (id: string) => {
@@ -38,19 +42,35 @@ export default function Listings() {
   };
 
   const toggleAll = () => {
-    if (selectedRows.size === adminListings.length) {
+    if (selectedRows.size === filteredListings.length) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(adminListings.map(l => l.id)));
+      setSelectedRows(new Set(filteredListings.map(l => l.id)));
     }
   };
 
+  const handleReviewAction = (type: 'approve' | 'return' | 'hold' | 'reject') => {
+    if (type === 'approve') {
+      setApprovalModalOpen(true);
+    } else {
+      setActionType(type);
+      setReasonModalOpen(true);
+    }
+  };
+
+  const filteredListings = adminListings.filter(listing => {
+    const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          listing.owner.toLowerCase().includes(searchQuery.toLowerCase());
+    const vStatus = listing.verification?.status || listing.status;
+    const matchesStatus = statusFilter === 'All' || vStatus === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-6">
       <DashboardHeader 
-        name="Listing Moderation"
-        subtitle="Review and moderate property listings before they go live."
+        name="Verification Queue"
+        subtitle="Review, verify, and approve property submissions before Agency Assignment."
         actions={
           <GoldButton onClick={() => navigate(ROUTES.CREATE_LISTING)} className="flex items-center gap-2">
             Create Platform Listing
@@ -59,13 +79,13 @@ export default function Listings() {
       />
 
       <div className="mb-2">
-        <h2 className="text-sm font-semibold text-ink/50 uppercase tracking-wider">Moderation Analytics</h2>
+        <h2 className="text-sm font-semibold text-ink/50 uppercase tracking-wider">Verification Analytics</h2>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard title="Total Listings" value="8,234" icon={Building2} trend="+42 this week" trendColor="text-emerald-400" />
-        <KPICard title="Pending Review" value="142" icon={Clock} trend="Needs Review" trendColor="text-yellow-400" iconColor="text-yellow-400" backgroundColor="bg-yellow-400/10" />
-        <KPICard title="Approved Today" value="56" icon={CheckCircle} trend="+12% vs yesterday" trendColor="text-emerald-400" iconColor="text-emerald-400" />
-        <KPICard title="Flagged Listings" value="12" icon={AlertTriangle} trend="Action Required" trendColor="text-rose-400" iconColor="text-rose-400" backgroundColor="bg-rose-400/10" />
+        <KPICard title="Total Submissions" value="8,234" icon={Building2} trend="+42 this week" trendColor="text-emerald-400" />
+        <KPICard title="Under Review" value="142" icon={Clock} trend="Needs Action" trendColor="text-yellow-400" iconColor="text-yellow-400" backgroundColor="bg-yellow-400/10" />
+        <KPICard title="Approved Today" value="56" icon={CheckCircle} trend="Ready for Assignment" trendColor="text-emerald-400" iconColor="text-emerald-400" />
+        <KPICard title="Returned / On Hold" value="12" icon={AlertTriangle} trend="Awaiting Owner" trendColor="text-rose-400" iconColor="text-rose-400" backgroundColor="bg-rose-400/10" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -76,17 +96,17 @@ export default function Listings() {
           <SegmentedProgressBar
             segments={[
               { label: 'Approved', value: 85, color: 'bg-emerald-400' },
-              { label: 'Rejected', value: 15, color: 'bg-rose-400' },
-              { label: 'Pending Review', value: 42, color: 'bg-yellow-400' },
+              { label: 'Returned', value: 15, color: 'bg-rose-400' },
+              { label: 'Under Review', value: 42, color: 'bg-yellow-400' },
             ]}
           />
         </div>
         <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
           <ActivityTimeline 
-            title="Recently Moderated" 
+            title="Recently Verified" 
             items={[
-              { title: 'Lekki Phase 1 Duplex', desc: 'Approved by Chidi', time: '10 mins ago', color: 'text-emerald-400', icon: CheckCircle },
-              { title: 'Skyline Penthouse', desc: 'Rejected (Photo Quality)', time: '1 hour ago', color: 'text-rose-400', icon: XCircle },
+              { title: 'Lekki Phase 1 Duplex', desc: 'Ready for Assignment', time: '10 mins ago', color: 'text-emerald-400', icon: CheckCircle },
+              { title: 'Skyline Penthouse', desc: 'Returned (Title Document)', time: '1 hour ago', color: 'text-yellow-400', icon: AlertTriangle },
             ]} 
           />
         </div>
@@ -108,7 +128,7 @@ export default function Listings() {
               className="text-rose-400 hover:text-rose-300 hover:bg-rose-400/10"
               onClick={() => {
                 setActionTarget('bulk');
-                setRejectionModalOpen(true);
+                handleReviewAction('reject');
               }}
             >
               Reject Selected
@@ -117,7 +137,7 @@ export default function Listings() {
               size="sm"
               onClick={() => {
                 setActionTarget('bulk');
-                setApprovalModalOpen(true);
+                handleReviewAction('approve');
               }}
             >
               Approve Selected
@@ -126,15 +146,29 @@ export default function Listings() {
         </div>
       )}
 
-      <DataTableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Search listings..."
-        showFilter
-      />
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <DataTableToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search verification queue..."
+        />
+        <select 
+          className="rounded-xl border border-white/10 bg-navy-900/50 py-2.5 px-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none appearance-none min-w-[200px]"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="All">All Verification Statuses</option>
+          <option value="Submitted">Submitted</option>
+          <option value="Under Review">Under Review</option>
+          <option value="Returned for Correction">Returned for Correction</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
 
       <DataTable
-        data={adminListings}
+        data={filteredListings}
         keyExtractor={(item) => item.id}
         columns={[
           {
@@ -142,7 +176,7 @@ export default function Listings() {
               <input 
                 type="checkbox" 
                 className="rounded border-white/20 bg-navy-900/50 text-gold-400 focus:ring-gold-400/50"
-                checked={selectedRows.size === adminListings.length && adminListings.length > 0}
+                checked={selectedRows.size === filteredListings.length && filteredListings.length > 0}
                 onChange={toggleAll}
               />
             ),
@@ -177,19 +211,15 @@ export default function Listings() {
             render: (item) => <span className="text-ink/60">{item.location}</span>
           },
           {
-            header: "Price",
-            render: (item) => <span className="font-semibold text-cream">{item.price}</span>
-          },
-          {
-            header: "Status",
+            header: "Verification Status",
             render: (item) => (
               <div className="flex flex-col gap-1">
                 <div className="w-fit">
-                  <EnterpriseStatusBadge status={item.status} />
+                  <EnterpriseStatusBadge status={item.verification?.status || item.status} />
                 </div>
                 {item.priority === 'High' && (
                   <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase w-fit text-rose-400 bg-rose-400/10 border-rose-400/20">
-                    High Priority
+                    Priority Review
                   </span>
                 )}
               </div>
@@ -205,7 +235,7 @@ export default function Listings() {
                   title="Approve"
                   onClick={() => {
                     setActionTarget(item.id);
-                    setApprovalModalOpen(true);
+                    handleReviewAction('approve');
                   }}
                 >
                   <CheckCircle className="h-4 w-4" />
@@ -215,18 +245,27 @@ export default function Listings() {
                   title="Reject"
                   onClick={() => {
                     setActionTarget(item.id);
-                    setRejectionModalOpen(true);
+                    handleReviewAction('reject');
                   }}
                 >
                   <XCircle className="h-4 w-4" />
                 </button>
                 <button 
                   className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors" 
-                  title="Review"
+                  title="Review Verification"
                   onClick={() => setPreviewListing(item)}
                 >
                   <Eye className="h-4 w-4" />
                 </button>
+                {item.verification?.status === 'Approved' && item.assignment?.status === 'Ready for Agency Assignment' && (
+                  <button 
+                    className="rounded-lg p-2 text-ink/40 hover:bg-gold-400/10 hover:text-gold-400 transition-colors" 
+                    title="Assign Agency"
+                    onClick={() => setAssignmentListing(item)}
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                )}
                 <button className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors">
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -247,30 +286,48 @@ export default function Listings() {
           if (actionTarget === 'bulk') setSelectedRows(new Set());
           setActionTarget(null);
         }}
-        title={actionTarget === 'bulk' ? `Approve ${selectedRows.size} Listings` : 'Approve Listing'}
-        message={actionTarget === 'bulk' ? `Are you sure you want to approve these ${selectedRows.size} listings?` : undefined}
+        title={actionTarget === 'bulk' ? `Approve ${selectedRows.size} Properties` : 'Approve Property'}
+        message={actionTarget === 'bulk' 
+          ? `Are you sure you want to approve these ${selectedRows.size} properties? They will be marked as 'Ready for Agency Assignment'.` 
+          : "Are you sure you want to approve this property? It will be marked as 'Ready for Agency Assignment'."
+        }
+        confirmText="Approve for Assignment"
       />
 
       <RejectionReasonModal
-        isOpen={rejectionModalOpen}
+        isOpen={reasonModalOpen}
+        actionType={actionType}
         onClose={() => {
-          setRejectionModalOpen(false);
+          setReasonModalOpen(false);
           setActionTarget(null);
         }}
-        onConfirm={(reason) => {
-          // Mock reject with reason
-          console.log('Rejected with reason:', reason);
-          setRejectionModalOpen(false);
+        onConfirm={(reason, type) => {
+          console.log(`${type} with reason:`, reason);
+          setReasonModalOpen(false);
           if (actionTarget === 'bulk') setSelectedRows(new Set());
           setActionTarget(null);
         }}
-        title={actionTarget === 'bulk' ? `Reject ${selectedRows.size} Listings` : 'Reject Listing'}
       />
 
       <ListingDetailModal 
+        key={previewListing?.id || 'modal'}
         isOpen={!!previewListing} 
         onClose={() => setPreviewListing(null)} 
-        listing={previewListing as Record<string, unknown> | null} 
+        listing={previewListing} 
+        onAction={(type) => {
+          setPreviewListing(null);
+          setTimeout(() => handleReviewAction(type), 150);
+        }}
+      />
+
+      <AgencyAssignmentModal
+        isOpen={!!assignmentListing}
+        onClose={() => setAssignmentListing(null)}
+        listing={assignmentListing}
+        onAssign={(agencyId, notes) => {
+          console.log(`Assigned to ${agencyId} with notes: ${notes}`);
+          setAssignmentListing(null);
+        }}
       />
     </div>
   );
