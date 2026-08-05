@@ -11,7 +11,8 @@ export function ReviewSubmitStep({ draft }: Props) {
     details: Boolean(draft.bedrooms !== '' && draft.bathrooms !== '' && draft.propertySize),
     pricing: Boolean(draft.priceValue !== ''),
     media: draft.images.length > 0,
-    ownership: draft.listingSource !== 'Private Owner' || Boolean(draft.ownerReference || draft.ownerName)
+    ownership: draft.listingSource === 'Assigned Property' || 
+               (Boolean(draft.ownerName || draft.organizationName) && draft.ownershipVerification.length > 0)
   };
 
   const completedSteps = Object.values(validation).filter(Boolean).length;
@@ -94,9 +95,9 @@ export function ReviewSubmitStep({ draft }: Props) {
                   <span className="text-ink font-medium">{draft.listingSource || '—'}</span>
                 </div>
                 <div>
-                  <span className="block text-xs text-ink/50 uppercase tracking-wider mb-1">Identifier</span>
+                  <span className="block text-xs text-ink/50 uppercase tracking-wider mb-1">Legal Owner / Organization</span>
                   <span className="text-ink font-medium">
-                    {draft.ownerName || draft.ownerReference || draft.organizationName || 'Linked CRM Client'}
+                    {draft.ownerName || draft.organizationName || 'Internal Assignment'}
                   </span>
                 </div>
               </div>

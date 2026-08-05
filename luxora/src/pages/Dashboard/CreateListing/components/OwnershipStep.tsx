@@ -15,19 +15,8 @@ export function OwnershipStep({ draft, onChange }: Props) {
   const renderAssignedProperty = () => (
     <div className="space-y-4">
       <div className="p-4 bg-navy-800 border border-white/10 rounded-xl">
-        <h4 className="text-sm font-semibold text-white mb-2">CRM Integration Active</h4>
-        <p className="text-sm text-ink/70 mb-4">This property was assigned to you via the CRM. Owner information is already verified and linked.</p>
-        
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="block text-ink/50 uppercase tracking-wider text-xs mb-1">Owner</span>
-            <span className="text-white font-medium">Linked CRM Client</span>
-          </div>
-          <div>
-            <span className="block text-ink/50 uppercase tracking-wider text-xs mb-1">Verification</span>
-            <span className="text-green-400 font-medium">✓ Verified by Admin</span>
-          </div>
-        </div>
+        <h4 className="text-sm font-semibold text-white mb-2">Internal Assignment</h4>
+        <p className="text-sm text-ink/70 mb-4">This property was assigned internally. Ownership details are managed by the assigning administrator.</p>
       </div>
     </div>
   );
@@ -36,33 +25,17 @@ export function OwnershipStep({ draft, onChange }: Props) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
-          label="Search Existing CRM Owner"
-          placeholder="e.g. John Doe or +234..."
+          label="Legal Owner Full Name"
+          placeholder="e.g. John Doe"
           value={draft.ownerName}
           onChange={(e) => onChange({ ownerName: e.target.value })}
         />
         <Input
-          label="Owner Reference / ID (If New)"
-          placeholder="e.g. owner_12345"
+          label="Owner Contact Information (Internal Use Only)"
+          placeholder="e.g. +234..."
           value={draft.ownerReference}
           onChange={(e) => onChange({ ownerReference: e.target.value })}
         />
-      </div>
-
-      <ImageUploader
-        label="Verification Documents (C of O, Deed of Assignment, etc.)"
-        maxFiles={5}
-        value={draft.ownershipVerification}
-        onChange={(docs) => onChange({ ownershipVerification: docs })}
-      />
-      
-      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3">
-        <svg className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-sm text-blue-200/80 leading-relaxed">
-          All submitted documents are heavily encrypted and routed strictly to the internal Legal & Compliance team.
-        </p>
       </div>
     </div>
   );
@@ -98,9 +71,6 @@ export function OwnershipStep({ draft, onChange }: Props) {
             onChange={(e) => onChange({ organizationRep: e.target.value })}
           />
         </div>
-        <p className="text-sm text-ink/50">
-          No individual private owner reference is required for this listing source.
-        </p>
       </div>
     );
   };
@@ -125,10 +95,29 @@ export function OwnershipStep({ draft, onChange }: Props) {
           onChange={(e) => onChange({ listingSource: e.target.value })}
         />
 
-        <div className="pt-4 border-t border-white/10">
+        <div className="pt-4 border-t border-white/10 space-y-6">
           {source === 'Assigned Property' && renderAssignedProperty()}
           {source === 'Private Owner' && renderPrivateOwner()}
           {['Agency Portfolio', 'Developer Project', 'Bank Property', 'Corporate Property', 'Government Property'].includes(source) && renderOrganizationFields()}
+          
+          {source !== 'Assigned Property' && (
+            <div className="space-y-6 pt-2">
+              <ImageUploader
+                label="Verification Documents (C of O, Deed of Assignment, etc.)"
+                maxFiles={5}
+                value={draft.ownershipVerification}
+                onChange={(docs) => onChange({ ownershipVerification: docs })}
+              />
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-blue-200/80 leading-relaxed">
+                  All submitted documents are heavily encrypted and routed strictly to the internal Legal & Compliance team.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

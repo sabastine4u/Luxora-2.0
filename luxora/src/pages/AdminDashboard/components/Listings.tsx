@@ -18,7 +18,17 @@ import { adminListings } from '../../../data/adminData';
 import type { AdminListing } from '../../../types/admin';
 import { ListingTable } from '../../../components/dashboard/shared/tables/ListingTable';
 
-export default function Listings() {
+export interface ListingsProps {
+  pageTitle?: string;
+  pageSubtitle?: string;
+  mode?: 'operational' | 'oversight';
+}
+
+export default function Listings({
+  pageTitle = "Verification Queue",
+  pageSubtitle = "Review, verify, and approve property submissions before Agency Assignment.",
+  mode = "operational"
+}: ListingsProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -68,8 +78,8 @@ export default function Listings() {
   return (
     <div className="space-y-6">
       <DashboardHeader 
-        name="Verification Queue"
-        subtitle="Review, verify, and approve property submissions before Agency Assignment."
+        name={pageTitle}
+        subtitle={pageSubtitle}
         actions={
           <GoldButton onClick={() => navigate(ROUTES.CREATE_LISTING)} className="flex items-center gap-2">
             Create Platform Listing
@@ -168,7 +178,7 @@ export default function Listings() {
 
       <ListingTable
         data={filteredListings}
-        mode="operational"
+        mode={mode}
         selectedRows={selectedRows}
         onToggleSelection={toggleSelection}
         onToggleAll={toggleAll}

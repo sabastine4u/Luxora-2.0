@@ -10,7 +10,8 @@ import { OwnershipStep } from './components/OwnershipStep';
 import { ReviewSubmitStep } from './components/ReviewSubmitStep';
 import { initialDraftState, type ListingDraft } from './types';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
-import { ROUTES } from '../../../constants/routes';
+import { getDashboardRoute } from '../../../constants/routes';
+import { useSession } from '../../../contexts/SessionContext';
 
 const STEPS = [
   '🏠 Basic Information',
@@ -26,6 +27,7 @@ const STORAGE_KEY = 'luxora_listing_draft';
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
+  const { user } = useSession();
   const [currentStep, setCurrentStep] = useState(0);
   const [draft, setDraft] = useState<ListingDraft>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -78,8 +80,8 @@ export default function CreateListingPage() {
     // Clear draft on success
     localStorage.removeItem(STORAGE_KEY);
     
-    // Redirect back to agent dashboard (My Listings)
-    navigate(ROUTES.AGENT_DASHBOARD);
+    // Redirect back to user's respective dashboard
+    navigate(getDashboardRoute(user?.role));
   };
 
   const renderStepContent = () => {
