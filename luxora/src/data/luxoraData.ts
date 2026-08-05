@@ -2943,7 +2943,7 @@ export const testimonials: Testimonial[] = [
 
 /* ---------- Dashboard data ---------- */
 
-export type NavItem = { label: string; icon: string; badge?: string };
+export type NavItem = { label: string; icon: string; badge?: string; displayLabel?: string };
 
 export const sidebarNav: NavItem[] = [
   { label: 'Dashboard', icon: 'LayoutDashboard' },
@@ -3035,20 +3035,24 @@ export const superAdminNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Business Health', icon: 'Activity' },
   { label: 'Messages', icon: 'MessageSquare' },
-  { label: 'Revenue', icon: 'Banknote' },
-  { label: 'Management', icon: 'Briefcase' },
-  { label: 'Procurement', icon: 'ShoppingCart' },
-  { label: 'Finance', icon: 'Landmark' },
+  { label: 'Revenue', displayLabel: 'Revenue Oversight', icon: 'Banknote' },
+  { label: 'Management', displayLabel: 'Workforce Oversight', icon: 'Briefcase' },
+  { label: 'Procurement', displayLabel: 'Procurement Oversight', icon: 'ShoppingCart' },
+  { label: 'Finance', displayLabel: 'Finance Oversight', icon: 'Landmark' },
   { label: 'Reports', icon: 'FileBarChart' },
   { label: 'Fraud Alerts', icon: 'ShieldAlert', badge: '3' },
+  { label: 'Verification Oversight', icon: 'ShieldCheck' },
+  { label: 'Assignment Oversight', icon: 'Briefcase' },
+  { label: 'Marketplace Oversight', icon: 'Building2' },
+  { label: 'Complaint Oversight', icon: 'AlertCircle' },
   { label: 'Property Intelligence', icon: 'Brain' },
-  { label: 'Property Management', icon: 'Building2' },
+  { label: 'Property Management', displayLabel: 'Property Operations Oversight', icon: 'Building2' },
   { label: 'Home Services', icon: 'Wrench' },
   { label: 'Admin Management', icon: 'UserCog' },
   { label: 'System Settings', icon: 'Settings' },
   { label: 'Agency Rankings', icon: 'Crown' },
   { label: 'Charts', icon: 'PieChart' },
-  { label: 'Analytics', icon: 'TrendingUp' },
+  { label: 'Analytics', displayLabel: 'Platform Analytics', icon: 'TrendingUp' },
   { label: 'User Settings', icon: 'Settings2' },
 ];
 
@@ -3182,11 +3186,6 @@ export const verificationQueue = [
   { id: 'VQ-2038', property: 'The Continental Duplex', type: 'Premium', submitted: '1d ago', status: 'review' },
 ];
 
-export const complaints = [
-  { id: 'C-882', subject: 'Delayed inspection schedule', user: 'Bisi W.', priority: 'high', status: 'open' },
-  { id: 'C-881', subject: 'Payment plan clarification', user: 'Chidi O.', priority: 'medium', status: 'progress' },
-  { id: 'C-880', subject: 'Agent response time', user: 'Amara E.', priority: 'low', status: 'resolved' },
-];
 
 export const dealPipeline = [
   { stage: 'Lead', count: 420, value: '₦12.4B' },

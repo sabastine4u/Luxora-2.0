@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { CheckCircle, XCircle, AlertTriangle, ShieldAlert, Image as ImageIcon, MessageSquare, Clock, User, Activity, FileText } from 'lucide-react';
+import type { AdminComplaint } from '../../../types/admin';
 
 export interface ReportDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  report: Record<string, unknown> | null;
+  report: AdminComplaint | null;
+  onEscalate?: (id: string) => void;
+  onCloseTicket?: (id: string) => void;
+  onResolve?: (id: string) => void;
 }
 
-export function ReportDetailModal({ isOpen, onClose, report }: ReportDetailModalProps) {
+export function ReportDetailModal({ isOpen, onClose, report, onEscalate, onCloseTicket, onResolve }: ReportDetailModalProps) {
   const [notes, setNotes] = useState('');
 
   if (!report) return null;
@@ -25,13 +29,13 @@ export function ReportDetailModal({ isOpen, onClose, report }: ReportDetailModal
       size="4xl"
       actionButton={
         <div className="flex gap-2">
-          <GhostButton size="sm" className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10">
+          <GhostButton size="sm" onClick={() => { if (report?.id) { onEscalate?.(report.id); onClose(); } }} className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10">
             <AlertTriangle className="h-4 w-4 mr-2" /> Escalate
           </GhostButton>
-          <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 hover:bg-rose-400/10">
+          <GhostButton size="sm" onClick={() => { if (report?.id) { onCloseTicket?.(report.id); onClose(); } }} className="text-rose-400 hover:text-rose-300 hover:bg-rose-400/10">
             <XCircle className="h-4 w-4 mr-2" /> Close Ticket
           </GhostButton>
-          <GoldButton size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-white">
+          <GoldButton size="sm" onClick={() => { if (report?.id) { onResolve?.(report.id); onClose(); } }} className="bg-emerald-500 hover:bg-emerald-400 text-white">
             <CheckCircle className="h-4 w-4 mr-2" /> Resolve
           </GoldButton>
         </div>

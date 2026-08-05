@@ -11,7 +11,7 @@ import { EnterpriseStatusBadge } from '../../../components/enterprise/Enterprise
 import { ProvisionUserModal } from './modals/ProvisionUserModal';
 import { adminAgencies } from '../../../data/adminData';
 import { GoldButton } from '../../../components/ui/ui';
-import { ROLES } from '../../../constants/roles';
+
 import type { AdminAgency } from '../../../types/admin';
 
 export default function Agencies() {
@@ -146,8 +146,8 @@ export default function Agencies() {
       <ProvisionUserModal
         isOpen={isProvisionModalOpen}
         onClose={() => setIsProvisionModalOpen(false)}
-        allowedRoles={[ROLES.AGENCY]}
-        defaultRole={ROLES.AGENCY}
+        mode="admin"
+        fixedType="agency"
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { Activity, ShieldCheck, ShieldAlert, FileCheck, Search, Filter, Trash2, UserPlus, Fingerprint, CheckCircle, XCircle } from 'lucide-react';
+import { Activity, ShieldCheck, ShieldAlert, FileCheck, Search, Filter, UserPlus, Fingerprint, CheckCircle, XCircle, MoreVertical } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
@@ -6,12 +6,17 @@ import { SegmentedProgressBar } from '../../../components/dashboard/shared/widge
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { ProvisionUserModal } from '../../AdminDashboard/components/modals/ProvisionUserModal';
-import { ROLES } from '../../../constants/roles';
+
 import { useState } from 'react';
+import { administrators } from '../../../data/superAdminData';
+import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 
 export default function AdminManagement() {
-  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: 'add' | 'suspend' | null}>({ isOpen: false, type: null });
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: string | null}>({ isOpen: false, type: null });
   const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
+  const [selectedAdmin, setSelectedAdmin] = useState<typeof administrators[0] | null>(null);
 
   const userDistribution = [
     { label: 'Active Buyers', value: 45, color: 'bg-emerald-400' },
@@ -105,7 +110,7 @@ export default function AdminManagement() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard title="Total Admins" value="24" trend="System Access" trendColor="text-blue-400" icon={ShieldCheck} />
+        <KPICard title="Total Admins" value={administrators.length.toString()} trend="System Access" trendColor="text-blue-400" icon={ShieldCheck} />
         <KPICard title="Admin Actions" value="1,248" trend="Last 24 Hours" trendColor="text-emerald-400" icon={Activity} />
         <KPICard title="Pending KYC" value="60" trend="Awaiting Approval" trendColor="text-gold-400" icon={FileCheck} />
         <KPICard title="Suspended Users" value="214" trend="Platform Wide" trendColor="text-rose-400" icon={ShieldAlert} />
@@ -125,11 +130,7 @@ export default function AdminManagement() {
             </div>
           </div>
           <DataTable
-            data={[
-              { id: 'ADM-001', name: 'John Doe', email: 'john.doe@luxora.com', role: 'Super Admin', status: 'Active', lastLogin: '2 mins ago', dept: 'Executive' },
-              { id: 'ADM-002', name: 'Jane Smith', email: 'jane.smith@luxora.com', role: 'Compliance Admin', status: 'Active', lastLogin: '1 hour ago', dept: 'Legal' },
-              { id: 'ADM-003', name: 'Chidi Okafor', email: 'chidi.o@luxora.com', role: 'Support Lead', status: 'Suspended', lastLogin: '2 months ago', dept: 'Support' },
-            ]}
+            data={administrators}
             keyExtractor={(admin) => admin.id}
             columns={[
               {
@@ -174,11 +175,19 @@ export default function AdminManagement() {
                 header: <div className="text-right">Actions</div>,
                 className: "text-right",
                 render: (admin) => (
-                  admin.role !== 'Super Admin' && (
-                    <button className="text-rose-400 hover:bg-rose-400/10 p-2 rounded-lg transition-colors" title="Suspend Admin" onClick={() => setConfirmModal({ isOpen: true, type: 'suspend' })}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )
+                  <div className="flex justify-end items-center gap-2">
+                    <GhostButton className="h-8 px-3 text-xs" onClick={() => setSelectedAdmin(admin)}>View Profile</GhostButton>
+                    <div className="relative group cursor-pointer p-2 hover:bg-white/5 rounded-lg">
+                      <MoreVertical className="h-4 w-4 text-ink/40" />
+                      {/* Simple Dropdown for quick actions (simulated by hover/group) */}
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-navy-800 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                        <button className="w-full text-left px-4 py-2 text-sm text-cream hover:bg-white/5" onClick={() => setSelectedAdmin(admin)}>Edit Profile</button>
+                        {admin.role !== 'Super Admin' && (
+                          <button className="w-full text-left px-4 py-2 text-sm text-rose-400 hover:bg-rose-400/10" onClick={() => setConfirmModal({ isOpen: true, type: 'suspend' })}>Suspend</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )
               }
             ]}
@@ -186,21 +195,163 @@ export default function AdminManagement() {
         </div>
       </div>
 
+      {/* Enterprise Detail Drawer for Administrator Profile */}
+      <EnterpriseDetailDrawer
+        isOpen={selectedAdmin !== null}
+        onClose={() => setSelectedAdmin(null)}
+        title="Administrator Profile"
+        subtitle={selectedAdmin?.id}
+        footerActions={
+          <div className="w-full space-y-3">
+            <div className="flex gap-2">
+              <GoldButton className="flex-1">Edit Admin</GoldButton>
+              <GhostButton className="flex-1" onClick={() => setConfirmModal({ isOpen: true, type: 'transfer' })}>Transfer Queues</GhostButton>
+            </div>
+            <div className="flex gap-2">
+              <GhostButton className="flex-1 text-orange-400 hover:bg-orange-400/10" onClick={() => setConfirmModal({ isOpen: true, type: 'lock' })}>Lock Account</GhostButton>
+              <GhostButton className="flex-1 text-rose-400 hover:bg-rose-400/10" onClick={() => setConfirmModal({ isOpen: true, type: 'reset' })}>Force Reset</GhostButton>
+            </div>
+            <div className="border-t border-white/10 pt-3 flex gap-2">
+              <GhostButton className="flex-1 border-rose-400/20 text-rose-400 hover:bg-rose-400/10" onClick={() => setConfirmModal({ isOpen: true, type: 'override' })}>Force Override</GhostButton>
+            </div>
+          </div>
+        }
+      >
+        {selectedAdmin && (
+          <div className="space-y-8 pb-6">
+            {/* Identity & Organization */}
+            <div className="flex gap-4 items-center">
+              <div className="w-16 h-16 rounded-full bg-blue-400/20 text-blue-400 flex items-center justify-center text-2xl font-bold">
+                {selectedAdmin.name.charAt(0)}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-cream">{selectedAdmin.name}</h3>
+                <p className="text-sm text-ink/60">{selectedAdmin.role}</p>
+                <div className="mt-1 flex gap-2">
+                  <EnterpriseStatusBadge status={selectedAdmin.status} />
+                  <EnterpriseStatusBadge status={selectedAdmin.dept} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Identity Details</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-ink/60">Email</div>
+                  <div className="text-sm text-cream">{selectedAdmin.email}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink/60">Phone</div>
+                  <div className="text-sm text-cream">{selectedAdmin.phone}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink/60">Employee ID</div>
+                  <div className="text-sm text-cream">{selectedAdmin.employeeId}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Organization & Access</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-ink/60">Region</div>
+                  <div className="text-sm text-cream">{selectedAdmin.region}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink/60">Business Unit</div>
+                  <div className="text-sm text-cream">{selectedAdmin.businessUnit}</div>
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-ink/60 mb-1">Responsibilities</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedAdmin.responsibilities.map(r => (
+                    <span key={r} className="px-2 py-1 bg-white/5 rounded-md text-xs text-cream">{r}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Security Status</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-ink/60 mb-1">MFA Status</div>
+                  <EnterpriseStatusBadge status={selectedAdmin.mfaStatus === 'Enabled' ? 'Optimal' : 'Critical'} />
+                </div>
+                <div>
+                  <div className="text-xs text-ink/60 mb-1">Password Status</div>
+                  <EnterpriseStatusBadge status={selectedAdmin.passwordStatus === 'Valid' ? 'Healthy' : 'Warning'} />
+                </div>
+                <div className="col-span-2">
+                  <div className="text-xs text-ink/60 mb-1">Last Login</div>
+                  <div className="text-sm text-cream">{selectedAdmin.lastLogin} from {selectedAdmin.loginHistory[0]?.location}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Performance & Queues</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-ink/60">SLA Performance</div>
+                  <div className="text-sm font-bold text-emerald-400">{selectedAdmin.slaPerformance}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink/60">Complaints Resolved</div>
+                  <div className="text-sm font-bold text-cream">{selectedAdmin.complaintsResolved}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink/60">Verification Queue</div>
+                  <div className="text-sm font-bold text-gold-400">{selectedAdmin.verificationQueue} Pending</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink/60">Agencies Managed</div>
+                  <div className="text-sm font-bold text-blue-400">{selectedAdmin.agenciesManaged}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Administrator Timeline</h4>
+              <ActivityTimeline items={selectedAdmin.timeline} />
+            </div>
+          </div>
+        )}
+      </EnterpriseDetailDrawer>
+
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: null })}
         onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
-        title="Suspend Administrator"
-        message="Are you sure you want to suspend this Administrator? This will immediately revoke their access to the Luxora platform."
-        confirmText="Suspend"
-        isDestructive={true}
+        title={
+          confirmModal.type === 'suspend' ? 'Suspend Administrator' : 
+          confirmModal.type === 'transfer' ? 'Transfer Responsibilities' : 
+          confirmModal.type === 'lock' ? 'Lock Account' : 
+          confirmModal.type === 'reset' ? 'Force Password Reset' : 
+          'Override Decision'
+        }
+        message={
+          confirmModal.type === 'suspend' ? 'Are you sure you want to suspend this Administrator? This will immediately revoke their access.' : 
+          confirmModal.type === 'transfer' ? 'Assign this administrator\'s active verification and assignment queues to an Acting Administrator.' : 
+          confirmModal.type === 'lock' ? 'Lock this account to temporarily disable login without suspending.' : 
+          confirmModal.type === 'reset' ? 'Invalidate the current password and force a reset upon next login.' : 
+          'Force an override on an operational decision. This action will be heavily audited.'
+        }
+        confirmText={
+          confirmModal.type === 'transfer' ? 'Initiate Transfer' : 
+          confirmModal.type === 'override' ? 'Confirm Override' : 
+          'Confirm Action'
+        }
+        isDestructive={['suspend', 'lock', 'reset', 'override'].includes(confirmModal.type || '')}
       />
 
       <ProvisionUserModal
         isOpen={isProvisionModalOpen}
         onClose={() => setIsProvisionModalOpen(false)}
-        allowedRoles={[ROLES.ADMIN]}
-        defaultRole={ROLES.ADMIN}
+        mode="super-admin"
       />
     </div>
   );

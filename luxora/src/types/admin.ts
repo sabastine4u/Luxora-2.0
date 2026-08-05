@@ -89,3 +89,43 @@ export interface AdminTransaction {
   value: string;
   fee: string;
 }
+
+export type ProvisioningEntityType = "administrator" | "agency" | "internal_staff";
+
+export interface AdministratorProvisioningData {
+  fullName: string;
+  email: string;
+  phone: string;
+  region: string;
+  businessUnit: string;
+  department: string;
+  role: string;
+  tempPassword?: string;
+}
+
+export interface AgencyProvisioningData {
+  agencyName: string;
+  registrationNumber: string;
+  agencyCategory: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  primaryRegion: string;
+  assignedAdministrator: string;
+}
+
+export interface InternalStaffProvisioningData {
+  fullName: string;
+  email: string;
+  phone: string;
+  department: string;
+  jobTitle: string;
+  reportingAdministrator: string;
+  businessUnit: string;
+  tempPassword?: string;
+}
+
+export type EnterpriseProvisioningPayload =
+  | { type: "administrator"; payload: AdministratorProvisioningData }
+  | { type: "agency"; payload: AgencyProvisioningData }
+  | { type: "internal_staff"; payload: InternalStaffProvisioningData };

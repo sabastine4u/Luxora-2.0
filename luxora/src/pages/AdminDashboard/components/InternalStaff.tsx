@@ -11,6 +11,7 @@ import { ProvisionUserModal } from './modals/ProvisionUserModal';
 import { GoldButton } from '../../../components/ui/ui';
 import { ROLES } from '../../../constants/roles';
 
+
 // Mock data for Internal Staff
 const mockStaff = [
   { id: 'STF-001', name: 'James Carter', role: ROLES.MANAGER, department: 'Operations', status: 'Active', joined: '2023-01-15' },
@@ -149,13 +150,8 @@ export default function InternalStaff() {
       <ProvisionUserModal
         isOpen={isProvisionModalOpen}
         onClose={() => setIsProvisionModalOpen(false)}
-        allowedRoles={[
-          ROLES.MANAGER,
-          ROLES.PROCUREMENT,
-          ROLES.FINANCE,
-          ROLES.PROPERTY_MANAGER,
-          ROLES.ANALYST
-        ]}
+        mode="admin"
+        fixedType="internal_staff"
       />
     </div>
   );

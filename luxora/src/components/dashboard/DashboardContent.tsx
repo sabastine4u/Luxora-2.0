@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 import {
   kpis, revenueMonths, revenueData, agencyRankings, agentPerformance,
-  fraudAlerts, verificationQueue, complaints, dealPipeline,
+  fraudAlerts, verificationQueue, dealPipeline,
   userGrowthMonths, userGrowthData,
 } from '../../data/luxoraData';
+import { adminComplaints } from '../../data/adminData';
 
 const kpiIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   TrendingUp, Building2, CheckCircle2, Users,
@@ -423,14 +424,14 @@ function VerificationQueue() { return <VerificationQueueCard />; }
 /* ---------- Complaints Center ---------- */
 function ComplaintsCenter() {
   const priConfig = {
-    high: 'text-rose-400 bg-rose-400/10 border-rose-400/20',
-    medium: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
-    low: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+    High: 'text-rose-400 bg-rose-400/10 border-rose-400/20',
+    Medium: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+    Low: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
   };
   const statusConfig = {
-    open: 'text-rose-400',
-    progress: 'text-yellow-400',
-    resolved: 'text-emerald-400',
+    Open: 'text-rose-400',
+    'In Progress': 'text-yellow-400',
+    Resolved: 'text-emerald-400',
   };
   return (
     <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-5">
@@ -441,7 +442,7 @@ function ComplaintsCenter() {
         </div>
       </div>
       <div className="space-y-2">
-        {complaints.map((c) => (
+        {adminComplaints.map((c) => (
           <div key={c.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-ink/50">{c.id}</span>
@@ -449,10 +450,10 @@ function ComplaintsCenter() {
                 {c.priority}
               </span>
             </div>
-            <div className="mt-1 text-sm font-medium text-cream">{c.subject}</div>
+            <div className="mt-1 text-sm font-medium text-cream">{c.type}</div>
             <div className="mt-1 flex items-center justify-between">
               <span className="text-xs text-ink/50">{c.user}</span>
-              <span className={`text-xs font-semibold capitalize ${statusConfig[c.status as keyof typeof statusConfig]}`}>{c.status}</span>
+              <span className={`text-xs font-semibold capitalize ${statusConfig[c.status as keyof typeof statusConfig] || 'text-ink/50'}`}>{c.status}</span>
             </div>
           </div>
         ))}

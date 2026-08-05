@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { CheckCircle, XCircle, Eye, Clock, SearchX, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
-import { GoldButton } from '../../../components/ui/ui';
-import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { RejectionReasonModal } from './RejectionReasonModal';
@@ -11,7 +9,7 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { adminVerifications } from '../../../data/adminData';
 import type { AdminVerification } from '../../../types/admin';
-import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { VerificationTable } from '../../../components/dashboard/shared/tables/VerificationTable';
 
 export default function VerificationQueue() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,60 +69,23 @@ export default function VerificationQueue() {
         </div>
       </div>
 
-      <DataTable
+      <VerificationTable 
         data={adminVerifications}
-        keyExtractor={(item) => item.id}
-        columns={[
-          {
-            header: "ID",
-            render: (item) => <span className="font-medium text-cream">{item.id}</span>
-          },
-          {
-            header: "Type",
-            render: (item) => (
-              <div className="w-fit">
-                <EnterpriseStatusBadge status={item.status} />
-              </div>
-            )
-          },
-          {
-            header: "Submission",
-            render: (item) => (
-              <>
-                <div className="font-semibold text-cream">{item.title}</div>
-                <div className="text-xs text-ink/50">{item.date}</div>
-              </>
-            )
-          },
-          {
-            header: "Submitted By",
-            render: (item) => <span className="text-ink/60">{item.submitter}</span>
-          },
-          {
-            header: <div className="text-right">Actions</div>,
-            className: "text-right",
-            render: (item) => (
-              <div className="flex items-center justify-end gap-2">
-                <button className="rounded-lg p-2 text-ink/40 hover:bg-emerald-400/10 hover:text-emerald-400 transition-colors" title="Approve">
-                  <CheckCircle className="h-5 w-5" />
-                </button>
-                <button className="rounded-lg p-2 text-ink/40 hover:bg-rose-400/10 hover:text-rose-400 transition-colors" title="Reject">
-                  <XCircle className="h-5 w-5" />
-                </button>
-                <GoldButton size="sm" className="ml-2 flex items-center gap-2" onClick={() => setPreviewItem(item)}>
-                  <Eye className="h-4 w-4" /> Review
-                </GoldButton>
-              </div>
-            )
-          }
-        ]}
-        emptyState={
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <SearchX className="h-12 w-12 text-ink/20 mb-4" />
-            <h3 className="text-lg font-bold text-cream">Queue is empty</h3>
-            <p className="text-sm text-ink/50 mt-1">All verification documents have been processed.</p>
-          </div>
-        }
+        mode="operational"
+        selectedRows={selectedRows}
+        onToggleSelection={(id) => {
+          const newSelected = new Set(selectedRows);
+          if (newSelected.has(id)) newSelected.delete(id);
+          else newSelected.add(id);
+          setSelectedRows(newSelected);
+        }}
+        onToggleAll={() => {
+          if (selectedRows.size === adminVerifications.length) setSelectedRows(new Set());
+          else setSelectedRows(new Set(adminVerifications.map(v => v.id)));
+        }}
+        onReview={setPreviewItem}
+        onApprove={() => setApprovalModalOpen(true)}
+        onReject={() => setRejectionModalOpen(true)}
       />
 
       <VerificationDetailModal 

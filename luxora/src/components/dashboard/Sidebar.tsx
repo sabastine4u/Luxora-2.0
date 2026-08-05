@@ -91,7 +91,7 @@ export default function Sidebar({
                 }`}
               >
                 <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-gold-400' : ''}`} />
-                <span className="flex-1 text-left font-medium">{item.label}</span>
+                <span className="flex-1 text-left font-medium">{item.displayLabel || item.label}</span>
                 {item.badge && (
                   <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-ink/60">
                     {item.badge}

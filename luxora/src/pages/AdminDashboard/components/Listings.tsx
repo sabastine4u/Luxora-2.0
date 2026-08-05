@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Building2, MoreHorizontal, CheckCircle, XCircle, Eye, Clock, AlertTriangle, Send } from 'lucide-react';
-import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { Building2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { RejectionReasonModal, type ReviewActionType } from './RejectionReasonModal';
@@ -17,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { adminListings } from '../../../data/adminData';
 import type { AdminListing } from '../../../types/admin';
-import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
+import { ListingTable } from '../../../components/dashboard/shared/tables/ListingTable';
 
 export default function Listings() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,112 +166,22 @@ export default function Listings() {
         </select>
       </div>
 
-      <DataTable
+      <ListingTable
         data={filteredListings}
-        keyExtractor={(item) => item.id}
-        columns={[
-          {
-            header: (
-              <input 
-                type="checkbox" 
-                className="rounded border-white/20 bg-navy-900/50 text-gold-400 focus:ring-gold-400/50"
-                checked={selectedRows.size === filteredListings.length && filteredListings.length > 0}
-                onChange={toggleAll}
-              />
-            ),
-            className: "w-10 text-center",
-            render: (item) => (
-              <input 
-                type="checkbox" 
-                className="rounded border-white/20 bg-navy-900/50 text-gold-400 focus:ring-gold-400/50"
-                checked={selectedRows.has(item.id)}
-                onChange={() => toggleSelection(item.id)}
-              />
-            )
-          },
-          {
-            header: "Listing ID",
-            render: (item) => <span className="font-medium text-cream">{item.id}</span>
-          },
-          {
-            header: "Property / Owner",
-            render: (item) => (
-              <>
-                <div className="font-semibold text-cream flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-gold-400" />
-                  {item.title}
-                </div>
-                <div className="text-xs text-ink/50 mt-1">{item.owner}</div>
-              </>
-            )
-          },
-          {
-            header: "Location",
-            render: (item) => <span className="text-ink/60">{item.location}</span>
-          },
-          {
-            header: "Verification Status",
-            render: (item) => (
-              <div className="flex flex-col gap-1">
-                <div className="w-fit">
-                  <EnterpriseStatusBadge status={item.verification?.status || item.status} />
-                </div>
-                {item.priority === 'High' && (
-                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase w-fit text-rose-400 bg-rose-400/10 border-rose-400/20">
-                    Priority Review
-                  </span>
-                )}
-              </div>
-            )
-          },
-          {
-            header: <div className="text-right">Actions</div>,
-            className: "text-right",
-            render: (item) => (
-              <div className="flex items-center justify-end gap-2">
-                <button 
-                  className="rounded-lg p-2 text-ink/40 hover:bg-emerald-400/10 hover:text-emerald-400 transition-colors" 
-                  title="Approve"
-                  onClick={() => {
-                    setActionTarget(item.id);
-                    handleReviewAction('approve');
-                  }}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                </button>
-                <button 
-                  className="rounded-lg p-2 text-ink/40 hover:bg-rose-400/10 hover:text-rose-400 transition-colors" 
-                  title="Reject"
-                  onClick={() => {
-                    setActionTarget(item.id);
-                    handleReviewAction('reject');
-                  }}
-                >
-                  <XCircle className="h-4 w-4" />
-                </button>
-                <button 
-                  className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors" 
-                  title="Review Verification"
-                  onClick={() => setPreviewListing(item)}
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-                {item.verification?.status === 'Approved' && item.assignment?.status === 'Ready for Agency Assignment' && (
-                  <button 
-                    className="rounded-lg p-2 text-ink/40 hover:bg-gold-400/10 hover:text-gold-400 transition-colors" 
-                    title="Assign Agency"
-                    onClick={() => setAssignmentListing(item)}
-                  >
-                    <Send className="h-4 w-4" />
-                  </button>
-                )}
-                <button className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors">
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-              </div>
-            )
-          }
-        ]}
+        mode="operational"
+        selectedRows={selectedRows}
+        onToggleSelection={toggleSelection}
+        onToggleAll={toggleAll}
+        onReview={(item) => setPreviewListing(item)}
+        onApprove={(item) => {
+          setActionTarget(item.id);
+          handleReviewAction('approve');
+        }}
+        onReject={(item) => {
+          setActionTarget(item.id);
+          handleReviewAction('reject');
+        }}
+        onAssignAgency={(item) => setAssignmentListing(item)}
       />
 
       <ConfirmationModal

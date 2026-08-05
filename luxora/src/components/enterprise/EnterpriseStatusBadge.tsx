@@ -5,13 +5,13 @@ export interface EnterpriseStatusBadgeProps {
 export function EnterpriseStatusBadge({ status }: EnterpriseStatusBadgeProps) {
   const getStatusColor = (s: string) => {
     const normalized = s.toLowerCase();
-    if (['active', 'completed', 'approved', 'paid', 'success', 'open', 'published', 'verified', 'assigned to agency', 'agency acknowledged'].includes(normalized)) {
+    if (['active', 'completed', 'approved', 'paid', 'success', 'open', 'published', 'verified', 'assigned to agency', 'agency acknowledged', 'online', 'operational', 'optimal', 'healthy'].includes(normalized)) {
       return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
     }
-    if (['pending', 'processing', 'in progress', 'under review', 'scheduled', 'submitted', 'requires info', 'returned for correction', 'ready for agency assignment'].includes(normalized)) {
+    if (['pending', 'processing', 'in progress', 'under review', 'scheduled', 'submitted', 'requires info', 'returned for correction', 'ready for agency assignment', 'warning'].includes(normalized)) {
       return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
     }
-    if (['rejected', 'failed', 'overdue', 'closed', 'suspended'].includes(normalized)) {
+    if (['rejected', 'failed', 'overdue', 'closed', 'suspended', 'critical', 'offline'].includes(normalized)) {
       return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
     }
     if (['draft', 'inactive', 'on hold', 'cancelled'].includes(normalized)) {
