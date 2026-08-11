@@ -14,8 +14,16 @@ export interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles, allowedDepartments, guestOnly }: ProtectedRouteProps) {
-  const { user, isAuthenticated } = useSession();
-
+  const { user, isAuthenticated, isAuthLoading } = useSession();
+// Still checking with the backend whether a saved session is valid - don't decide anything yet.
+  // Without this, a logged-in user would get bounced to /login for a split second on every refresh.
+  if (isAuthLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-navy-950">
+        <div className="h-8 w-8 rounded-full border-2 border-gold-400 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
   if (guestOnly) {
     if (isAuthenticated && user) {
       const dashboardRoute = getDashboardRoute(user.role);

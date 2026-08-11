@@ -20,30 +20,31 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+ // `async` lets us `await` the real login call instead of faking a delay with setTimeout.
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading || isSuccess) return;
 
     setIsLoading(true);
     setError('');
 
-    // Simulate network request
-    setTimeout(() => {
-      try {
-        const user = login(email, password);
-        const dashboardRoute = getDashboardRoute(user.role);
-        
-        setIsLoading(false);
-        setIsSuccess(true);
-        
-        setTimeout(() => {
-          navigate(dashboardRoute);
-        }, 1200);
-      } catch (err) {
-        setError(err instanceof Error && err.message ? err.message : 'Invalid email or password');
-        setIsLoading(false);
-      }
-    }, 1500);
+    try {
+      // We removed the old setTimeout - the real network request IS the delay now.
+      const user = await login(email, password);
+      const dashboardRoute = getDashboardRoute(user.role);
+
+      setIsLoading(false);
+      setIsSuccess(true);
+
+      setTimeout(() => {
+        navigate(dashboardRoute);
+      }, 1200);
+    } catch (err) {
+      // The backend sends back a proper error message (e.g. "Invalid email or password")
+      // via the ApiError class we saw in http.js - err.message will contain that text.
+      setError(err instanceof Error && err.message ? err.message : 'Invalid email or password');
+      setIsLoading(false);
+    }
   };
 
   const disabled = isLoading || isSuccess;

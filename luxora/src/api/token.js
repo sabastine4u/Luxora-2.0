@@ -9,6 +9,17 @@ export const getToken = ()  => {
     };
 };
 
+// Saves the JWT after a successful login/register so future requests are authenticated.
+// Called once, right after the backend returns { token, user }.
+export const setToken = (token) => {
+    try {
+        localStorage.setItem(TOKEN_KEY, token);
+    } catch {
+        /* storage unavailable (private mode, etc.) - user just won't stay logged in */
+    }
+};
+
+
 //Can be used for logout and to send the user out back to login page when the token expire
 export const clearToken = () => {
     try {

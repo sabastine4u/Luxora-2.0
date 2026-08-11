@@ -1,5 +1,6 @@
 import axios from "axios";
-import getToken from "./token";
+// import getToken from "./token";
+import { setToken, getToken} from "../api/token";
 
 //let the dev proxy handle forwarding without any env file at all
 const BASE_URL =
@@ -7,7 +8,7 @@ const BASE_URL =
 
 const http = axios.create({
   baseURL: BASE_URL,
-  timeout: 3000, // 3 seconds timeout- generous enough for the PDF generation endpoints
+  timeout: 30000, // 30 seconds timeout- generous enough for the PDF generation endpoints
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

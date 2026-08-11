@@ -6,7 +6,7 @@ import { GoldButton } from '../../components/ui/ui';
 import { useSession } from '../../contexts/SessionContext';
 import type { UserRole } from '../../contexts/SessionContext';
 import { ROLES } from '../../constants/roles';
-import { ROUTES, getDashboardRoute } from '../../constants/routes';
+import { ROUTES} from '../../constants/routes';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -63,8 +63,8 @@ export default function RegisterPage() {
       setStep(2);
     }
   };
-
-  const handleRegister = (e: React.FormEvent) => {
+//  since we now await inside, the function itself needs to be async.===added async
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading || isSuccess) return;
 
@@ -83,24 +83,24 @@ export default function RegisterPage() {
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length === 0) {
+   if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
-      setTimeout(() => {
-        const newUser = register({
-          name: name || `${role} User`,
-          email: email || `demo.${role.toLowerCase()}@luxora.com`,
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100',
-          role,
-        });
+      try {
+        // Sends the real form values to the backend instead of faking a user object
+        await register(name, email, password, role);
 
         setIsLoading(false);
         setIsSuccess(true);
 
+        // No auto-login on register (backend returns no token here) -
+        // send them to Login so they sign in with the account they just created.
         setTimeout(() => {
-          const dashboardRoute = getDashboardRoute(newUser.role);
-          navigate(dashboardRoute);
+          navigate(ROUTES.LOGIN);
         }, 1200);
-      }, 1500);
+      } catch (err) {
+        setErrors({ form: err instanceof Error && err.message ? err.message : 'Registration failed. Please try again.' });
+        setIsLoading(false);
+      }
     }
   };
 
@@ -328,7 +328,12 @@ export default function RegisterPage() {
               >
                 <form onSubmit={handleRegister} className="flex flex-col h-full">
                   <div className="space-y-4 overflow-y-auto pb-4 pr-1">
-                    
+                    {/* added an error message since the create button would trigger */}
+                    {errors.form && (
+                      <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3">
+                        <p className="text-xs font-medium text-red-400">{errors.form}</p>
+                      </div>
+                    )}
                     <div className="space-y-1 group">
                       <label className="text-xs font-medium text-ink/70 group-focus-within:text-gold-400 transition-colors">Password</label>
                       <div className="relative">
