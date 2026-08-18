@@ -3049,7 +3049,9 @@ export const superAdminNav: NavItem[] = [
   { label: 'Listings', displayLabel: 'All Listings', icon: 'Building2' },
   { label: 'Home Services', icon: 'Wrench' },
   { label: 'Admin Management', icon: 'UserCog' },
-  { label: 'Agents', icon: 'Users' }, // added this line to add the agent sidebar to superadmin
+  { label: 'Agents', icon: 'Users' },
+  { label: 'Agencies', icon: 'Building2' },
+  { label: 'Internal Staff', icon: 'ShieldAlert' },
   { label: 'System Settings', icon: 'Settings' },
   { label: 'Agency Rankings', icon: 'Crown' },
   { label: 'Charts', icon: 'PieChart' },

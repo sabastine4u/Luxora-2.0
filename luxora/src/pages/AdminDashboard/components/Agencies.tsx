@@ -1,41 +1,145 @@
-import { useState } from 'react';
-import { MoreHorizontal, SearchX, Building2, CheckCircle, Clock, UserPlus, Activity } from 'lucide-react';
-import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+// Import the React hooks needed for state, memoized callbacks, and effects.
+import { useState, useEffect, useCallback } from "react";
+import {
+  MoreHorizontal,
+  SearchX,
+  Building2,
+  CheckCircle,
+  Clock,
+  UserPlus,
+  Activity,
+} from "lucide-react";
+import { ActivityTimeline } from "../../../components/dashboard/shared/timelines/ActivityTimeline";
 
-import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
-import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
-import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
-import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
-import { ProvisionUserModal } from './modals/ProvisionUserModal';
-import { adminAgencies } from '../../../data/adminData';
-import { GoldButton } from '../../../components/ui/ui';
+import { DataTable } from "../../../components/dashboard/shared/tables/DataTable";
+import { DataTableToolbar } from "../../../components/dashboard/shared/filters/DataTableToolbar";
+import { DashboardHeader } from "../../../components/dashboard/shared/headers/DashboardHeader";
+import { KPICard } from "../../../components/dashboard/shared/cards/KPICard";
+import { EnterpriseDetailDrawer } from "../../../components/enterprise/EnterpriseDetailDrawer";
+import { EnterpriseStatusBadge } from "../../../components/enterprise/EnterpriseStatusBadge";
+import { ProvisionUserModal } from "./modals/ProvisionUserModal";
+// Import the real Admin API used to load Agencies from MongoDB.
+import { adminApi } from "../../../api/admin.api";
+import { GoldButton } from "../../../components/ui/ui";
 
-import type { AdminAgency } from '../../../types/admin';
+import type { AdminAgency } from "../../../types/admin";
+
+// Convert the backend Agency record into the shape expected by this UI.
+  const mapAgencyToAdminAgency = (apiAgency: any): AdminAgency => ({
+    // Use the MongoDB Agency ID.
+    id: apiAgency._id,
+
+    // Display the real Agency name.
+    name: apiAgency.name,
+
+    // Use the real Agent count calculated by the backend.
+    agents: apiAgency.agentCount || 0,
+
+    // Listings are not available from the current backend endpoint yet.
+    listings: 0,
+
+    // Format the real creation date for the existing table.
+    joined: new Date(apiAgency.createdAt).toLocaleDateString(),
+
+    // Preserve the real backend Agency status.
+    status: apiAgency.status,
+  });
 
 export default function Agencies() {
-  const [searchQuery, setSearchQuery] = useState('');
+  // Store the current Agency search text.
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Store the Agency currently selected in the detail drawer.
   const [selectedUser, setSelectedUser] = useState<AdminAgency | null>(null);
+
+  // Track whether the Agency provisioning modal is open.
   const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
+
+  // Store the real Agencies returned by the backend.
+  const [agencies, setAgencies] = useState<AdminAgency[]>([]);
+
+  // Track whether the Agency list is currently loading.
+  const [isLoadingAgencies, setIsLoadingAgencies] = useState(true);
+
+
+
+  // Fetch the real Agency list from the backend.
+  const fetchAgencies = useCallback(async () => {
+    try {
+      // Turn on the loading state before requesting data.
+      setIsLoadingAgencies(true);
+
+      // Fetch all Agencies from the Admin backend endpoint.
+      const response = await adminApi.getAgencies();
+
+      // Convert backend records into the existing AdminAgency UI shape.
+      setAgencies(response.agencies.map(mapAgencyToAdminAgency));
+    } catch (error) {
+      // Log the real API failure while testing the integration.
+      console.error("Failed to load agencies:", error);
+
+      // Clear the table instead of falling back to mock data.
+      setAgencies([]);
+    } finally {
+      // Always turn off the loading state.
+      setIsLoadingAgencies(false);
+    }
+  }, []);
+
+  // Load the real Agencies when the page mounts and whenever the fetch callback changes.
+  useEffect(() => {
+    void fetchAgencies();
+  }, [fetchAgencies]);
 
   return (
     <div className="space-y-6">
-      <DashboardHeader 
+      <DashboardHeader
         name="Agency Management"
         subtitle="Manage corporate real estate agencies and their teams."
         actions={
-          <GoldButton onClick={() => setIsProvisionModalOpen(true)} className="flex items-center gap-2">
+          <GoldButton
+            onClick={() => setIsProvisionModalOpen(true)}
+            className="flex items-center gap-2"
+          >
             <UserPlus className="h-4 w-4" /> Add Agency
           </GoldButton>
         }
       />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard title="Total Agencies" value="342" icon={Building2} trend="+12 this month" trendColor="text-emerald-400" iconColor="text-purple-400" />
-        <KPICard title="New Registrations" value="4" icon={UserPlus} trend="Agency Growth" trendColor="text-emerald-400" iconColor="text-emerald-400" />
-        <KPICard title="Active Agencies" value="315" icon={CheckCircle} trend="Verification Status" trendColor="text-emerald-400" iconColor="text-blue-400" />
-        <KPICard title="Pending Approval" value="8" icon={Clock} trend="Action Required" trendColor="text-yellow-400" iconColor="text-yellow-400" backgroundColor="bg-yellow-400/10" />
+        <KPICard
+          title="Total Agencies"
+          value="342"
+          icon={Building2}
+          trend="+12 this month"
+          trendColor="text-emerald-400"
+          iconColor="text-purple-400"
+        />
+        <KPICard
+          title="New Registrations"
+          value="4"
+          icon={UserPlus}
+          trend="Agency Growth"
+          trendColor="text-emerald-400"
+          iconColor="text-emerald-400"
+        />
+        <KPICard
+          title="Active Agencies"
+          value="315"
+          icon={CheckCircle}
+          trend="Verification Status"
+          trendColor="text-emerald-400"
+          iconColor="text-blue-400"
+        />
+        <KPICard
+          title="Pending Approval"
+          value="8"
+          icon={Clock}
+          trend="Action Required"
+          trendColor="text-yellow-400"
+          iconColor="text-yellow-400"
+          backgroundColor="bg-yellow-400/10"
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -48,64 +152,105 @@ export default function Agencies() {
           />
 
           <DataTable
-            data={adminAgencies}
+            // Filter the real Agency list using the existing search box.
+            data={agencies.filter((agency) =>
+              agency.name.toLowerCase().includes(searchQuery.toLowerCase()),
+            )}
             keyExtractor={(agency) => agency.id}
             columns={[
               {
                 header: "Agency ID",
-                render: (agency) => <span className="font-medium text-cream">{agency.id}</span>
+                render: (agency) => (
+                  <span className="font-medium text-cream">{agency.id}</span>
+                ),
               },
               {
                 header: "Name",
-                render: (agency) => <span className="font-semibold text-cream">{agency.name}</span>
+                render: (agency) => (
+                  <span className="font-semibold text-cream">
+                    {agency.name}
+                  </span>
+                ),
               },
               {
                 header: "Total Agents",
-                render: (agency) => <span className="text-ink/60">{agency.agents}</span>
+                render: (agency) => (
+                  <span className="text-ink/60">{agency.agents}</span>
+                ),
               },
               {
                 header: "Active Listings",
-                render: (agency) => <span className="font-semibold text-gold-400">{agency.listings}</span>
+                render: (agency) => (
+                  <span className="font-semibold text-gold-400">
+                    {agency.listings}
+                  </span>
+                ),
               },
               {
                 header: "Joined Date",
-                render: (agency) => <span className="text-ink/60">{agency.joined}</span>
+                render: (agency) => (
+                  <span className="text-ink/60">{agency.joined}</span>
+                ),
               },
               {
                 header: "Status",
-                render: (agency) => <EnterpriseStatusBadge status={agency.status} />
+                render: (agency) => (
+                  <EnterpriseStatusBadge status={agency.status} />
+                ),
               },
               {
                 header: <div className="text-right">Actions</div>,
                 className: "text-right",
                 render: (agency) => (
-                  <button 
+                  <button
                     className="rounded-lg p-2 text-ink/40 hover:bg-white/10 hover:text-cream transition-colors"
                     onClick={() => setSelectedUser(agency)}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
-                )
-              }
+                ),
+              },
             ]}
             emptyState={
               <div className="flex flex-col items-center justify-center py-12 text-center bg-navy-900/50 rounded-xl border border-white/5 border-dashed">
                 <SearchX className="h-12 w-12 text-ink/20 mb-4" />
-                <h3 className="text-lg font-bold text-cream">No agencies found</h3>
-                <p className="text-sm text-ink/50 mt-1">Try adjusting your search or filters.</p>
+                <h3 className="text-lg font-bold text-cream">
+                  No agencies found
+                </h3>
+                <p className="text-sm text-ink/50 mt-1">
+                  Try adjusting your search or filters.
+                </p>
               </div>
             }
           />
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-          <ActivityTimeline 
-            title="Recently Active Agencies" 
+          <ActivityTimeline
+            title="Recently Active Agencies"
             items={[
-              { title: 'Meridian Luxury', desc: 'Added 2 New Agents', time: '10 mins ago', color: 'text-emerald-400', icon: Activity },
-              { title: 'Eko Estates', desc: 'Updated Business Profile', time: '1 hour ago', color: 'text-blue-400', icon: Activity },
-              { title: 'Abuja Premier Properties', desc: 'Submitted KYC', time: '3 hours ago', color: 'text-gold-400', icon: Activity },
-            ]} 
+              {
+                title: "Meridian Luxury",
+                desc: "Added 2 New Agents",
+                time: "10 mins ago",
+                color: "text-emerald-400",
+                icon: Activity,
+              },
+              {
+                title: "Eko Estates",
+                desc: "Updated Business Profile",
+                time: "1 hour ago",
+                color: "text-blue-400",
+                icon: Activity,
+              },
+              {
+                title: "Abuja Premier Properties",
+                desc: "Submitted KYC",
+                time: "3 hours ago",
+                color: "text-gold-400",
+                icon: Activity,
+              },
+            ]}
           />
         </div>
       </div>
@@ -124,20 +269,34 @@ export default function Agencies() {
         {selectedUser && (
           <div className="space-y-6">
             <div>
-              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Status</div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">
+                Status
+              </div>
               <EnterpriseStatusBadge status={selectedUser.status} />
             </div>
             <div>
-              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Total Agents</div>
-              <div className="text-sm font-semibold text-cream">{selectedUser.agents}</div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">
+                Total Agents
+              </div>
+              <div className="text-sm font-semibold text-cream">
+                {selectedUser.agents}
+              </div>
             </div>
             <div>
-              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Total Listings</div>
-              <div className="text-sm font-semibold text-gold-400">{selectedUser.listings}</div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">
+                Total Listings
+              </div>
+              <div className="text-sm font-semibold text-gold-400">
+                {selectedUser.listings}
+              </div>
             </div>
             <div>
-              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">Joined Date</div>
-              <div className="text-sm font-semibold text-cream">{selectedUser.joined}</div>
+              <div className="text-xs text-ink/60 uppercase tracking-wider mb-1">
+                Joined Date
+              </div>
+              <div className="text-sm font-semibold text-cream">
+                {selectedUser.joined}
+              </div>
             </div>
           </div>
         )}
@@ -148,6 +307,10 @@ export default function Agencies() {
         onClose={() => setIsProvisionModalOpen(false)}
         mode="admin"
         fixedType="agency"
+        // Refresh the real Agency list immediately after successful creation.
+        onAgencyCreated={() => {
+          void fetchAgencies();
+        }}
       />
     </div>
   );

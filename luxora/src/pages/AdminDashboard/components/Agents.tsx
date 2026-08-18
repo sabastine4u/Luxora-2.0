@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// Import React state and effect hooks for the real Agency data lifecycle.
+import { useState, useEffect } from 'react';
 import { MoreHorizontal, SearchX, Users, CheckCircle, Star, UserPlus, Activity } from 'lucide-react';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
@@ -7,12 +8,44 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
-import { adminAgents } from '../../../data/adminData';
+import { adminApi } from '../../../api/admin.api';
 import type { AdminAgent } from '../../../types/admin';
 
 export default function Agents() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminAgent | null>(null);
+
+  // NEW: real, platform-wide agents fetched from GET /admin/agents,
+  // replacing the hardcoded `adminAgents` mock import.
+  const [agents, setAgents] = useState<AdminAgent[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
+
+  // The backend uses .populate('agency', 'name'), so apiAgent.agency is an
+  // OBJECT ({ _id, name }), not a plain string - unlike the Agency dashboard's
+  // own agent list, where agency isn't included at all. We pull out .name here.
+  const mapAgentToAdminAgent = (apiAgent: any): AdminAgent => ({
+    id: apiAgent._id,
+    name: apiAgent.fullName,
+    agency: apiAgent.agency?.name || 'Unknown',
+    deals: 0, // not built yet - depends on a future bookings/transactions module
+    joined: new Date(apiAgent.createdAt).toLocaleDateString(),
+    status: apiAgent.status,
+  });
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        setIsLoadingAgents(true);
+        const response = await adminApi.getAgents();
+        setAgents(response.agents.map(mapAgentToAdminAgent));
+      } catch (err) {
+        console.error('Failed to load agents:', err);
+      } finally {
+        setIsLoadingAgents(false);
+      }
+    };
+    fetchAgents();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -38,7 +71,10 @@ export default function Agents() {
           />
 
           <DataTable
-            data={adminAgents}
+            data={agents.filter(a =>
+              a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              a.agency.toLowerCase().includes(searchQuery.toLowerCase())
+            )}
             keyExtractor={(agent) => agent.id}
             columns={[
               {

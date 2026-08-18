@@ -16,6 +16,8 @@ import PropertyIntelligence from './components/PropertyIntelligence';
 import SuperAdminListings from './components/SuperAdminListings';
 import Listings from '../AdminDashboard/components/Listings';
 import Agents from '../AdminDashboard/components/Agents'; //add to import agent to superadmin
+import Agencies from '../AdminDashboard/components/Agencies';
+import InternalStaff from '../AdminDashboard/components/InternalStaff';
 import HomeServices from './components/HomeServices';
 import AdminManagement from './components/AdminManagement';
 import SystemSettings from './components/SystemSettings';
@@ -52,6 +54,8 @@ export default function SuperAdminDashboardPage() {
       case 'Home Services': return <HomeServices />;
       case 'Admin Management': return <AdminManagement />;
       case 'Agents': return <Agents />;
+      case 'Agencies': return <Agencies />;
+      case 'Internal Staff': return <InternalStaff />;
       case 'System Settings': return <SystemSettings />;
       case 'Agency Rankings': return <AgencyRankings />;
       case 'Charts': return <Charts />;

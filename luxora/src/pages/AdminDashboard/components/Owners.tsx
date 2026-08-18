@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MoreHorizontal, SearchX, Users, CheckCircle, Clock, UserPlus, Activity } from 'lucide-react';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
@@ -7,12 +7,44 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
-import { adminOwners } from '../../../data/adminData';
+import { adminApi } from '../../../api/admin.api';
 import type { AdminOwner } from '../../../types/admin';
+
+// Defined outside the component (same fix we applied to Agencies.tsx) since
+// it doesn't touch any component state - avoids an ESLint exhaustive-deps warning.
+const mapUserToAdminOwner = (apiUser: any): AdminOwner => ({
+  id: apiUser._id,
+  name: apiUser.fullName,
+  email: apiUser.email,
+  properties: 0, // not built yet - depends on the future Property module
+  joined: new Date(apiUser.createdAt).toLocaleDateString(),
+  status: apiUser.isVerified ? 'Verified' : 'Pending',
+});
 
 export default function Owners() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminOwner | null>(null);
+
+  // Real Owners fetched from the backend, replacing the hardcoded adminOwners mock.
+  const [owners, setOwners] = useState<AdminOwner[]>([]);
+  const [isLoadingOwners, setIsLoadingOwners] = useState(true);
+
+  const fetchOwners = useCallback(async () => {
+    try {
+      setIsLoadingOwners(true);
+      const response = await adminApi.getOwners();
+      setOwners(response.owners.map(mapUserToAdminOwner));
+    } catch (err) {
+      console.error('Failed to load owners:', err);
+      setOwners([]);
+    } finally {
+      setIsLoadingOwners(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchOwners();
+  }, [fetchOwners]);
 
   return (
     <div className="space-y-6">
@@ -37,8 +69,11 @@ export default function Owners() {
             showFilter
           />
 
-          <DataTable
-            data={adminOwners}
+                   <DataTable
+            data={owners.filter(o =>
+              o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              o.email.toLowerCase().includes(searchQuery.toLowerCase())
+            )}
             keyExtractor={(owner) => owner.id}
             columns={[
               {

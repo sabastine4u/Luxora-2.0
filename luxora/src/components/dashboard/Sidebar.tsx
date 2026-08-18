@@ -11,7 +11,9 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileBarChart, Settings, Crown, ChevronLeft, LogOut, Heart, MessageSquare, Eye, FileCheck, Home, TrendingUp, Calendar, AlertCircle, Activity, Banknote, Briefcase, ShoppingCart, ShieldAlert, UserCog, PieChart, Megaphone, Calculator, LineChart, MapPin, Map, FileText, Sparkles: Brain, Truck: Briefcase, Paintbrush: Wrench, Zap: Activity, Droplet: Activity, PenTool: Wrench, Palette: Heart, Armchair: Building2, Wifi: Activity, Leaf: Heart
 };
 
+import { useState, useEffect } from 'react';
 import { useSession } from '../../contexts/SessionContext';
+import { agentApi } from '../../api/agent.api';
 
 export default function Sidebar({
   active,
@@ -25,6 +27,20 @@ export default function Sidebar({
   onClose: () => void;
 }) {
   const { user, logout } = useSession();
+
+  // NEW: the "Agents" sidebar badge used to be a hardcoded '14' from
+  // luxoraData.ts, regardless of how many agents actually exist. We fetch
+  // the real count here, only when the logged-in user is an Agency
+  // (nobody else sees this badge).
+  const [agentCount, setAgentCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user?.role === 'Agency') {
+      agentApi.getAgents()
+        .then((response) => setAgentCount(response.agents.length))
+        .catch(() => setAgentCount(null)); // fail quietly - falls back to the old static badge
+    }
+  }, [user?.role]);
 
   // Helper to get initials
   const getInitials = (name?: string) => {
@@ -92,9 +108,11 @@ export default function Sidebar({
               >
                 <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-gold-400' : ''}`} />
                 <span className="flex-1 text-left font-medium">{item.displayLabel || item.label}</span>
-                {item.badge && (
+                {/* For "Agents" specifically, use the real fetched count instead of
+                    the static mock badge, when we successfully got one */}
+                {(item.label === 'Agents' && agentCount !== null ? String(agentCount) : item.badge) && (
                   <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-ink/60">
-                    {item.badge}
+                    {item.label === 'Agents' && agentCount !== null ? agentCount : item.badge}
                   </span>
                 )}
                 {isActive && <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />}

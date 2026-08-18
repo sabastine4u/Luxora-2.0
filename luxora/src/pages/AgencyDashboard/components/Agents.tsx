@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, UserPlus, Filter, ShieldCheck, Mail, MoreHorizontal, Activity, Star, Award, Briefcase, Clock, Calendar, FileText, Upload, Trash2, CheckCircle2, User, FileCheck, Search, ShieldAlert, PowerOff, RefreshCw, KeyRound, ArrowRightLeft, Building2 } from 'lucide-react';
+import { agentApi } from '../../../api/agent.api';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { AgentOnboardingModal } from './modals/AgentOnboardingModal';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
@@ -9,7 +10,6 @@ import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
-import { agencyAgents } from '../../../data/agencyData';
 import type { AgencyAgent } from '../../../types/agency';
 
 export default function Agents() {
@@ -17,9 +17,52 @@ export default function Agents() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<AgencyAgent | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+ const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
 
-  const agents = agencyAgents;
+  // NEW: real agents fetched from the backend, replacing the hardcoded
+  // `agencyAgents` mock import. Starts empty; useEffect below fills it in.
+  const [agents, setAgents] = useState<AgencyAgent[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
+
+  // Translates the backend's raw Agent document into the AgencyAgent shape
+  // this component already expects. Real fields map directly; stats that
+  // depend on features we haven't built yet (leads, deals, client
+  // satisfaction) get safe defaults instead of breaking the UI.
+  const mapAgentToAgencyAgent = (apiAgent: any): AgencyAgent => ({
+    id: apiAgent._id,
+    name: apiAgent.fullName,
+    email: apiAgent.email,
+    phone: apiAgent.phone || '',
+    status: apiAgent.status,
+    verified: apiAgent.status === 'Active',
+    assigned: 0,        // not built yet - depends on a future leads/bookings module
+    score: 0,            // not built yet
+    department: apiAgent.department || '',
+    level: apiAgent.level || '',
+    joinDate: apiAgent.createdAt,
+    activeLeads: 0,       // not built yet
+    clientSat: 0,          // not built yet
+    dob: apiAgent.dateOfBirth,
+    residentialAddress: apiAgent.residentialAddress,
+  });
+
+// Pulled out of the useEffect so it can ALSO be called manually later -
+  // e.g. right after a new agent is created, not just once on page load.
+  const fetchAgents = async () => {
+    try {
+      setIsLoadingAgents(true);
+      const response = await agentApi.getAgents();
+      setAgents(response.agents.map(mapAgentToAgencyAgent));
+    } catch (err) {
+      console.error('Failed to load agents:', err);
+    } finally {
+      setIsLoadingAgents(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAgents();
+  }, []);
 
   const filteredAgents = agents.filter(a => 
     a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -41,9 +84,56 @@ export default function Agents() {
     }
   };
 
-  const handleViewAgent = (agent: AgencyAgent) => {
+ const handleViewAgent = (agent: AgencyAgent) => {
     setSelectedAgent(agent);
     setIsDrawerOpen(true);
+  };
+
+  // NEW: replaces the old CSS hover-based dropdown, which closed the instant
+  // your mouse left the button (e.g. while scrolling) and got visually
+  // clipped by the table's overflow-hidden wrapper. This version opens on
+  // an actual click, and positions the menu with `fixed` (escapes the
+  // table's clipping) based on exactly where the button was clicked.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  const toggleActionMenu = (e: React.MouseEvent, agentId: string) => {
+    e.stopPropagation(); // don't let this click also trigger the "close on outside click" handler below
+    if (openMenuId === agentId) {
+      setOpenMenuId(null);
+      return;
+    }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenuPosition({ top: rect.bottom + 4, left: rect.right - 192 }); // 192px matches the menu's w-48 width
+    setOpenMenuId(agentId);
+  };
+
+  // Closes the menu if you click ANYWHERE else on the page
+  useEffect(() => {
+    const closeMenu = () => setOpenMenuId(null);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
+  }, []);
+
+  // Handles Approve/Suspend/Reactivate - all three are really the same
+  // action (change status), just with a different target value.
+  const handleStatusChange = async (agentId: string, newStatus: string) => {
+    try {
+      await agentApi.updateAgentStatus(agentId, newStatus);
+      setOpenMenuId(null); // close the dropdown
+
+      // Update this one agent in our local list immediately, instead of
+      // re-fetching everyone from the backend just to see one change -
+      // faster, and the screen updates instantly rather than after a delay.
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.id === agentId ? { ...a, status: newStatus, verified: newStatus === 'Active' } : a
+        )
+      );
+    } catch (err) {
+      console.error('Failed to update agent status:', err);
+      alert('Failed to update agent status. Please try again.');
+    }
   };
 
   return (
@@ -256,24 +346,67 @@ export default function Agents() {
                         >
                           <Activity className="h-4 w-4" />
                         </button>
-                        <div className="relative group">
-                          <button className="p-1.5 text-ink/60 hover:text-cream rounded hover:bg-white/5 transition-colors">
+                       <div className="relative">
+                          {/* onClick instead of nothing - this button now actually
+                              controls opening/closing, instead of relying on CSS hover */}
+                          <button
+                            onClick={(e) => toggleActionMenu(e, String(a.id))}
+                            className="p-1.5 text-ink/60 hover:text-cream rounded hover:bg-white/5 transition-colors"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
-                          <div className="absolute right-0 mt-2 w-48 bg-navy-900 border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                            <div className="p-2 space-y-1">
-                              {a.status === 'Pending' && <button className="w-full text-left px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 rounded-lg flex items-center gap-2"><CheckCircle2 className="h-3 w-3"/> Approve Agent</button>}
-                              <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><ArrowRightLeft className="h-3 w-3"/> Transfer Branch</button>
-                              <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><KeyRound className="h-3 w-3"/> Reset Password</button>
-                              {a.status === 'Active' ? (
-                                <button className="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-white/5 rounded-lg flex items-center gap-2"><PowerOff className="h-3 w-3"/> Suspend Agent</button>
-                              ) : (
-                                <button className="w-full text-left px-3 py-2 text-xs text-blue-400 hover:bg-white/5 rounded-lg flex items-center gap-2"><RefreshCw className="h-3 w-3"/> Reactivate</button>
-                              )}
-                              <div className="h-px bg-white/10 my-1"></div>
-                              <button className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-400/10 rounded-lg flex items-center gap-2"><Trash2 className="h-3 w-3"/> Remove Agent</button>
+
+                          {/* Only render the menu at all when THIS row's id matches
+                              the currently-open one - every other row's menu stays closed */}
+                          {openMenuId === String(a.id) && menuPosition && (
+                            <div
+                              // Stop clicks INSIDE the menu from bubbling up and
+                              // triggering the "close on any click" listener we added
+                              onClick={(e) => e.stopPropagation()}
+                              // `fixed` + exact pixel coordinates = this menu draws
+                              // relative to the whole browser window, not the table,
+                              // so the table's overflow-hidden can no longer clip it
+                              style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left }}
+                              className="w-48 bg-navy-900 border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                            >
+                             <div className="p-2 space-y-1">
+                                {/* Approve: only shown while Pending Verification. Sets status to Active. */}
+                                {a.status === 'Pending Verification' && (
+                                  <button
+                                    onClick={() => handleStatusChange(String(a.id), 'Active')}
+                                    className="w-full text-left px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                  >
+                                    <CheckCircle2 className="h-3 w-3"/> Approve Agent
+                                  </button>
+                                )}
+
+                                {/* Not built yet - stays decorative, same as Documents */}
+                                <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><ArrowRightLeft className="h-3 w-3"/> Transfer Branch</button>
+                                <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><KeyRound className="h-3 w-3"/> Reset Password</button>
+
+                                {/* Suspend/Reactivate: toggle between the two, same handler either way */}
+                                {a.status === 'Active' ? (
+                                  <button
+                                    onClick={() => handleStatusChange(String(a.id), 'Suspended')}
+                                    className="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                  >
+                                    <PowerOff className="h-3 w-3"/> Suspend Agent
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleStatusChange(String(a.id), 'Active')}
+                                    className="w-full text-left px-3 py-2 text-xs text-blue-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                  >
+                                    <RefreshCw className="h-3 w-3"/> Reactivate
+                                  </button>
+                                )}
+
+                                {/* Not built yet - stays decorative */}
+                                <div className="h-px bg-white/10 my-1"></div>
+                                <button className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-400/10 rounded-lg flex items-center gap-2"><Trash2 className="h-3 w-3"/> Remove Agent</button>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -454,9 +587,10 @@ export default function Agents() {
         </div>
       </EnterpriseDetailDrawer>
 
-      <AgentOnboardingModal 
+     <AgentOnboardingModal 
         isOpen={isOnboardingModalOpen} 
         onClose={() => setIsOnboardingModalOpen(false)} 
+        onAgentCreated={fetchAgents}
       />
     </div>
   );

@@ -7,16 +7,83 @@ import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { ProvisionUserModal } from '../../AdminDashboard/components/modals/ProvisionUserModal';
 
-import { useState } from 'react';
-import { administrators } from '../../../data/superAdminData';
+import { useState, useEffect, useCallback } from 'react';
+import { adminApi } from '../../../api/admin.api';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
-import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+// Represents the real Admin fields currently returned by the backend.
+type AdminRecord = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string | null;
+  isVerified: boolean;
+  isActive: boolean;
+  joined: string;
+};
+
+// Maps the backend Admin response into the shape used by this page.
+const mapAdminToAdminRecord = (admin: {
+  _id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  department?: string | null;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+}): AdminRecord => ({
+  id: admin._id,
+  name: admin.fullName,
+  email: admin.email,
+  role: admin.role,
+  department: admin.department ?? 'N/A',
+  isVerified: admin.isVerified,
+  isActive: admin.isActive,
+  joined: new Date(admin.createdAt).toLocaleDateString(),
+});
 
 export default function AdminManagement() {
-  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; type: string | null}>({ isOpen: false, type: null });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; type: string | null }>({ isOpen: false, type: null });
   const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
-  const [selectedAdmin, setSelectedAdmin] = useState<typeof administrators[0] | null>(null);
+  // Stores the Admin records loaded from the real backend.
+  const [admins, setAdmins] = useState<AdminRecord[]>([]);
+
+  // Tracks whether the Admin directory is currently loading.
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(true);
+
+  // Stores the currently selected real Admin.
+  const [selectedAdmin, setSelectedAdmin] = useState<AdminRecord | null>(null);
+
+  // Stores the current Admin directory search text.
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Loads the real Admin directory from MongoDB through the Admin API.
+  const fetchAdmins = useCallback(async () => {
+    try {
+      // Show the loading state while the request is running.
+      setIsLoadingAdmins(true);
+
+      // Request all Admin accounts from the backend.
+      const response = await adminApi.getAdmins();
+
+      // Convert the backend records into the page's Admin shape.
+      setAdmins(response.admins.map(mapAdminToAdminRecord));
+    } catch (error) {
+      // Log the failure and prevent stale/mock data from being displayed.
+      console.error('Failed to load admins:', error);
+      setAdmins([]);
+    } finally {
+      // Always finish the loading state after the request completes.
+      setIsLoadingAdmins(false);
+    }
+  }, []);
+
+  // Load the real Admin directory when the page first opens.
+  useEffect(() => {
+    void fetchAdmins();
+  }, [fetchAdmins]);
 
   const userDistribution = [
     { label: 'Active Buyers', value: 45, color: 'bg-emerald-400' },
@@ -26,10 +93,20 @@ export default function AdminManagement() {
     { label: 'Inactive', value: 10, color: 'bg-ink/20' }
   ];
 
+  // Filter the real Admin directory using name or email.
+  const filteredAdmins = admins.filter((admin) => {
+    const query = searchQuery.toLowerCase();
+
+    return (
+      admin.name.toLowerCase().includes(query) ||
+      admin.email.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="space-y-6 pb-12">
-      <DashboardHeader 
-        name="Platform Administration" 
+      <DashboardHeader
+        name="Platform Administration"
         subtitle="Global user growth analytics, verification progress, and administrator activity."
         actions={
           <div className="flex gap-3">
@@ -54,20 +131,20 @@ export default function AdminManagement() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-navy-900/50 p-4 rounded-xl border border-white/5 text-center">
-               <div className="text-3xl font-bold text-blue-400">142.5K</div>
-               <div className="text-xs text-ink/60 mt-1">Total Registered Users</div>
+              <div className="text-3xl font-bold text-blue-400">142.5K</div>
+              <div className="text-xs text-ink/60 mt-1">Total Registered Users</div>
             </div>
             <div className="bg-navy-900/50 p-4 rounded-xl border border-white/5 text-center">
-               <div className="text-3xl font-bold text-emerald-400">84.2K</div>
-               <div className="text-xs text-ink/60 mt-1">Monthly Active (MAU)</div>
+              <div className="text-3xl font-bold text-emerald-400">84.2K</div>
+              <div className="text-xs text-ink/60 mt-1">Monthly Active (MAU)</div>
             </div>
             <div className="bg-navy-900/50 p-4 rounded-xl border border-white/5 text-center">
-               <div className="text-3xl font-bold text-gold-400">12.4K</div>
-               <div className="text-xs text-ink/60 mt-1">New Users (Last 30d)</div>
+              <div className="text-3xl font-bold text-gold-400">12.4K</div>
+              <div className="text-xs text-ink/60 mt-1">New Users (Last 30d)</div>
             </div>
             <div className="bg-navy-900/50 p-4 rounded-xl border border-white/5 text-center">
-               <div className="text-3xl font-bold text-emerald-400">4.8%</div>
-               <div className="text-xs text-ink/60 mt-1">Churn Rate</div>
+              <div className="text-3xl font-bold text-emerald-400">4.8%</div>
+              <div className="text-xs text-ink/60 mt-1">Churn Rate</div>
             </div>
           </div>
           <SegmentedProgressBar title="Global User Distribution" segments={userDistribution} />
@@ -110,7 +187,13 @@ export default function AdminManagement() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard title="Total Admins" value={administrators.length.toString()} trend="System Access" trendColor="text-blue-400" icon={ShieldCheck} />
+        <KPICard
+          title="Total Admins"
+          value={admins.length.toString()}
+          trend="System Access"
+          trendColor="text-blue-400"
+          icon={ShieldCheck}
+        />
         <KPICard title="Admin Actions" value="1,248" trend="Last 24 Hours" trendColor="text-emerald-400" icon={Activity} />
         <KPICard title="Pending KYC" value="60" trend="Awaiting Approval" trendColor="text-gold-400" icon={FileCheck} />
         <KPICard title="Suspended Users" value="214" trend="Platform Wide" trendColor="text-rose-400" icon={ShieldAlert} />
@@ -124,14 +207,21 @@ export default function AdminManagement() {
             <div className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40" />
-                <input type="text" placeholder="Search administrators..." className="h-9 w-full sm:w-64 rounded-lg border border-white/10 bg-navy-900/50 pl-10 pr-4 text-sm text-cream focus:border-gold-400 focus:outline-none focus:ring-1 focus:ring-gold-400" />
+                <input
+                  type="text"
+                  placeholder="Search administrators..."
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="h-9 w-full sm:w-64 rounded-lg border border-white/10 bg-navy-900/50 pl-10 pr-4 text-sm text-cream focus:border-gold-400 focus:outline-none focus:ring-1 focus:ring-gold-400"
+                />
               </div>
               <GhostButton className="h-9 w-9 p-0 flex items-center justify-center shrink-0"><Filter className="h-4 w-4" /></GhostButton>
             </div>
           </div>
           <DataTable
-            data={administrators}
-            keyExtractor={(admin) => admin.id}
+  data={filteredAdmins}
+  isLoading={isLoadingAdmins}
+  keyExtractor={(admin) => admin.id}
             columns={[
               {
                 header: "Admin Details",
@@ -149,7 +239,9 @@ export default function AdminManagement() {
               },
               {
                 header: "Department",
-                render: (admin) => <span className="text-cream text-sm">{admin.dept}</span>
+                render: (admin) => (
+                  <span className="text-cream text-sm">{admin.department}</span>
+                )
               },
               {
                 header: "Role Level",
@@ -162,14 +254,33 @@ export default function AdminManagement() {
               {
                 header: "Status",
                 render: (admin) => (
-                  <span className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 w-max ${admin.status === 'Active' ? 'text-emerald-400 bg-emerald-400/10' : 'text-rose-400 bg-rose-400/10'}`}>
-                    {admin.status === 'Active' ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />} {admin.status}
+                  <span
+                    className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 w-max ${admin.isActive
+                        ? 'text-emerald-400 bg-emerald-400/10'
+                        : 'text-rose-400 bg-rose-400/10'
+                      }`}
+                  >
+                    {admin.isActive ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {admin.isActive ? 'Active' : 'Suspended'}
                   </span>
                 )
               },
               {
-                header: "Last Login",
-                render: (admin) => <span className="text-ink/60 text-xs">{admin.lastLogin}</span>
+                header: "Verification",
+                render: (admin) => (
+                  <span
+                    className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase ${admin.isVerified
+                        ? 'text-emerald-400 bg-emerald-400/10'
+                        : 'text-gold-400 bg-gold-400/10'
+                      }`}
+                  >
+                    {admin.isVerified ? 'Verified' : 'Not Verified'}
+                  </span>
+                )
               },
               {
                 header: <div className="text-right">Actions</div>,
@@ -218,108 +329,92 @@ export default function AdminManagement() {
         }
       >
         {selectedAdmin && (
-          <div className="space-y-8 pb-6">
-            {/* Identity & Organization */}
-            <div className="flex gap-4 items-center">
-              <div className="w-16 h-16 rounded-full bg-blue-400/20 text-blue-400 flex items-center justify-center text-2xl font-bold">
-                {selectedAdmin.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-cream">{selectedAdmin.name}</h3>
-                <p className="text-sm text-ink/60">{selectedAdmin.role}</p>
-                <div className="mt-1 flex gap-2">
-                  <EnterpriseStatusBadge status={selectedAdmin.status} />
-                  <EnterpriseStatusBadge status={selectedAdmin.dept} />
-                </div>
-              </div>
-            </div>
+  <div className="space-y-8 pb-6">
+    {/* Identity and current account state. */}
+    <div className="flex gap-4 items-center">
+      <div className="w-16 h-16 rounded-full bg-blue-400/20 text-blue-400 flex items-center justify-center text-2xl font-bold">
+        {selectedAdmin.name.charAt(0)}
+      </div>
 
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Identity Details</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-ink/60">Email</div>
-                  <div className="text-sm text-cream">{selectedAdmin.email}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-ink/60">Phone</div>
-                  <div className="text-sm text-cream">{selectedAdmin.phone}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-ink/60">Employee ID</div>
-                  <div className="text-sm text-cream">{selectedAdmin.employeeId}</div>
-                </div>
-              </div>
-            </div>
+      <div>
+        <h3 className="text-lg font-bold text-cream">{selectedAdmin.name}</h3>
+        <p className="text-sm text-ink/60">{selectedAdmin.email}</p>
 
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Organization & Access</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-ink/60">Region</div>
-                  <div className="text-sm text-cream">{selectedAdmin.region}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-ink/60">Business Unit</div>
-                  <div className="text-sm text-cream">{selectedAdmin.businessUnit}</div>
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-ink/60 mb-1">Responsibilities</div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedAdmin.responsibilities.map(r => (
-                    <span key={r} className="px-2 py-1 bg-white/5 rounded-md text-xs text-cream">{r}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <EnterpriseStatusBadge
+            status={selectedAdmin.isActive ? 'Active' : 'Suspended'}
+          />
 
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Security Status</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-ink/60 mb-1">MFA Status</div>
-                  <EnterpriseStatusBadge status={selectedAdmin.mfaStatus === 'Enabled' ? 'Optimal' : 'Critical'} />
-                </div>
-                <div>
-                  <div className="text-xs text-ink/60 mb-1">Password Status</div>
-                  <EnterpriseStatusBadge status={selectedAdmin.passwordStatus === 'Valid' ? 'Healthy' : 'Warning'} />
-                </div>
-                <div className="col-span-2">
-                  <div className="text-xs text-ink/60 mb-1">Last Login</div>
-                  <div className="text-sm text-cream">{selectedAdmin.lastLogin} from {selectedAdmin.loginHistory[0]?.location}</div>
-                </div>
-              </div>
-            </div>
+          <EnterpriseStatusBadge
+            status={selectedAdmin.isVerified ? 'Verified' : 'Not Verified'}
+          />
+        </div>
+      </div>
+    </div>
 
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Performance & Queues</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-ink/60">SLA Performance</div>
-                  <div className="text-sm font-bold text-emerald-400">{selectedAdmin.slaPerformance}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-ink/60">Complaints Resolved</div>
-                  <div className="text-sm font-bold text-cream">{selectedAdmin.complaintsResolved}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-ink/60">Verification Queue</div>
-                  <div className="text-sm font-bold text-gold-400">{selectedAdmin.verificationQueue} Pending</div>
-                </div>
-                <div>
-                  <div className="text-xs text-ink/60">Agencies Managed</div>
-                  <div className="text-sm font-bold text-blue-400">{selectedAdmin.agenciesManaged}</div>
-                </div>
-              </div>
-            </div>
+    {/* Real identity information currently available from the backend. */}
+    <div className="space-y-4">
+      <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">
+        Identity Details
+      </h4>
 
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">Administrator Timeline</h4>
-              <ActivityTimeline items={selectedAdmin.timeline} />
-            </div>
-          </div>
-        )}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-xs text-ink/60">Full Name</div>
+          <div className="text-sm text-cream">{selectedAdmin.name}</div>
+        </div>
+
+        <div>
+          <div className="text-xs text-ink/60">Email</div>
+          <div className="text-sm text-cream">{selectedAdmin.email}</div>
+        </div>
+
+        <div>
+          <div className="text-xs text-ink/60">Role</div>
+          <div className="text-sm text-cream">{selectedAdmin.role}</div>
+        </div>
+
+        <div>
+          <div className="text-xs text-ink/60">Department</div>
+          <div className="text-sm text-cream">{selectedAdmin.department}</div>
+        </div>
+
+        <div>
+          <div className="text-xs text-ink/60">Joined</div>
+          <div className="text-sm text-cream">{selectedAdmin.joined}</div>
+        </div>
+
+        <div>
+          <div className="text-xs text-ink/60">Account ID</div>
+          <div className="text-sm text-cream">{selectedAdmin.id}</div>
+        </div>
+      </div>
+    </div>
+
+    {/* Real account status and verification state are intentionally separate. */}
+    <div className="space-y-4">
+      <h4 className="text-sm font-bold text-cream border-b border-white/10 pb-2">
+        Account & Verification
+      </h4>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-xs text-ink/60 mb-1">Account Status</div>
+          <EnterpriseStatusBadge
+            status={selectedAdmin.isActive ? 'Active' : 'Suspended'}
+          />
+        </div>
+
+        <div>
+          <div className="text-xs text-ink/60 mb-1">Verification</div>
+          <EnterpriseStatusBadge
+            status={selectedAdmin.isVerified ? 'Verified' : 'Not Verified'}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       </EnterpriseDetailDrawer>
 
       <ConfirmationModal
@@ -327,32 +422,36 @@ export default function AdminManagement() {
         onClose={() => setConfirmModal({ isOpen: false, type: null })}
         onConfirm={() => setConfirmModal({ isOpen: false, type: null })}
         title={
-          confirmModal.type === 'suspend' ? 'Suspend Administrator' : 
-          confirmModal.type === 'transfer' ? 'Transfer Responsibilities' : 
-          confirmModal.type === 'lock' ? 'Lock Account' : 
-          confirmModal.type === 'reset' ? 'Force Password Reset' : 
-          'Override Decision'
+          confirmModal.type === 'suspend' ? 'Suspend Administrator' :
+            confirmModal.type === 'transfer' ? 'Transfer Responsibilities' :
+              confirmModal.type === 'lock' ? 'Lock Account' :
+                confirmModal.type === 'reset' ? 'Force Password Reset' :
+                  'Override Decision'
         }
         message={
-          confirmModal.type === 'suspend' ? 'Are you sure you want to suspend this Administrator? This will immediately revoke their access.' : 
-          confirmModal.type === 'transfer' ? 'Assign this administrator\'s active verification and assignment queues to an Acting Administrator.' : 
-          confirmModal.type === 'lock' ? 'Lock this account to temporarily disable login without suspending.' : 
-          confirmModal.type === 'reset' ? 'Invalidate the current password and force a reset upon next login.' : 
-          'Force an override on an operational decision. This action will be heavily audited.'
+          confirmModal.type === 'suspend' ? 'Are you sure you want to suspend this Administrator? This will immediately revoke their access.' :
+            confirmModal.type === 'transfer' ? 'Assign this administrator\'s active verification and assignment queues to an Acting Administrator.' :
+              confirmModal.type === 'lock' ? 'Lock this account to temporarily disable login without suspending.' :
+                confirmModal.type === 'reset' ? 'Invalidate the current password and force a reset upon next login.' :
+                  'Force an override on an operational decision. This action will be heavily audited.'
         }
         confirmText={
-          confirmModal.type === 'transfer' ? 'Initiate Transfer' : 
-          confirmModal.type === 'override' ? 'Confirm Override' : 
-          'Confirm Action'
+          confirmModal.type === 'transfer' ? 'Initiate Transfer' :
+            confirmModal.type === 'override' ? 'Confirm Override' :
+              'Confirm Action'
         }
         isDestructive={['suspend', 'lock', 'reset', 'override'].includes(confirmModal.type || '')}
       />
 
       <ProvisionUserModal
-        isOpen={isProvisionModalOpen}
-        onClose={() => setIsProvisionModalOpen(false)}
-        mode="super-admin"
-      />
+  isOpen={isProvisionModalOpen}
+  onClose={() => setIsProvisionModalOpen(false)}
+  mode="super-admin"
+  // Refresh the real Admin list after successful Administrator creation.
+  onAdminCreated={() => {
+    void fetchAdmins();
+  }}
+/>
     </div>
   );
 }

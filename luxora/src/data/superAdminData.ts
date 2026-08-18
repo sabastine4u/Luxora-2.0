@@ -181,7 +181,7 @@ export const agencyCategories = [
 ];
 
 export const internalRoles = [
-  'Tier 1 Support', 'Tier 2 Support', 'Tier 3 Support', 'Compliance Analyst', 'Financial Officer', 'Operations Specialist', 'Auditor'
+  'Manager', 'Procurement Officer', 'Finance Manager', 'Data Analyst', 'Property Manager', 'Service Manager'
 ];
 
 export const permissionTemplates = [

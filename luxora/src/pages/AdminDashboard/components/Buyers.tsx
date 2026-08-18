@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MoreHorizontal, SearchX, Users, XCircle, UserPlus, Activity, UserCheck } from 'lucide-react';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 
@@ -8,12 +8,44 @@ import { DashboardHeader } from '../../../components/dashboard/shared/headers/Da
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
-import { adminBuyers } from '../../../data/adminData';
+import { adminApi } from '../../../api/admin.api';
 import type { AdminBuyer } from '../../../types/admin';
+
+// Defined outside the component, same reasoning as Owners.tsx/Agencies.tsx.
+const mapUserToAdminBuyer = (apiUser: any): AdminBuyer => ({
+  id: apiUser._id,
+  name: apiUser.fullName,
+  email: apiUser.email,
+  saved: 0, // not built yet - depends on the future Favorites module
+  joined: new Date(apiUser.createdAt).toLocaleDateString(),
+  lastActive: 'N/A', // not tracked yet - would need a last-login timestamp on User
+  status: apiUser.isVerified ? 'Verified' : 'Pending',
+});
 
 export default function Buyers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminBuyer | null>(null);
+
+  // Real Buyers fetched from the backend, replacing the hardcoded adminBuyers mock.
+  const [buyers, setBuyers] = useState<AdminBuyer[]>([]);
+  const [isLoadingBuyers, setIsLoadingBuyers] = useState(true);
+
+  const fetchBuyers = useCallback(async () => {
+    try {
+      setIsLoadingBuyers(true);
+      const response = await adminApi.getBuyers();
+      setBuyers(response.buyers.map(mapUserToAdminBuyer));
+    } catch (err) {
+      console.error('Failed to load buyers:', err);
+      setBuyers([]);
+    } finally {
+      setIsLoadingBuyers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchBuyers();
+  }, [fetchBuyers]);
 
   return (
     <div className="space-y-6">
@@ -38,8 +70,11 @@ export default function Buyers() {
             showFilter
           />
 
-          <DataTable
-            data={adminBuyers}
+                    <DataTable
+            data={buyers.filter(b =>
+              b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              b.email.toLowerCase().includes(searchQuery.toLowerCase())
+            )}
             keyExtractor={(buyer) => buyer.id}
             columns={[
               {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { provisioningApi } from '../../../../api/provisioning.api';
 import { Modal } from '../../../../components/ui/Modal';
 import { GoldButton, GhostButton } from '../../../../components/ui/ui';
 import { Mail, User, Building, Briefcase, Hash, Phone, Key, ShieldCheck } from 'lucide-react';
@@ -15,20 +16,38 @@ import type { EnterpriseProvisioningPayload, ProvisioningEntityType } from '../.
 export interface ProvisionUserModalProps {
   isOpen: boolean;
   onClose: () => void;
+
   // Kept for backward compatibility but overridden by enterprise mode
   allowedRoles?: string[];
   defaultRole?: string;
+
+  // Existing optional provisioning callback used elsewhere in the app.
   onProvision?: (payload: EnterpriseProvisioningPayload) => void;
+
+  // Identifies which dashboard is using this modal.
   mode?: 'super-admin' | 'admin' | 'agency';
+
+  // Forces the modal to a specific provisioning type in Admin mode.
   fixedType?: ProvisioningEntityType;
+
+   // Called after an Agency is successfully created so the parent list can refresh.
+  onAgencyCreated?: () => void;
+
+  // Called after an Administrator is successfully created so the parent list can refresh.
+  onAdminCreated?: () => void;
+
+  // Called after Internal Staff is successfully created so the parent list can refresh.
+  onInternalStaffCreated?: () => void;
 }
 
-export function ProvisionUserModal({ isOpen, onClose, onProvision, mode, fixedType }: ProvisionUserModalProps) {
+export function ProvisionUserModal({ isOpen, onClose, onProvision, mode, fixedType, onAgencyCreated,onAdminCreated,
+  onInternalStaffCreated, }: ProvisionUserModalProps) {
   const [selectedType, setSelectedType] = useState<ProvisioningEntityType>('administrator');
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
+  const [error, setError] = useState(''); // was missing before - a real failure would otherwise show nothing on screen
+   const [generatedPassword, setGeneratedPassword] = useState(''); // only set for Agency, which has no password field of its own
   const provisionType = mode === 'admin' ? (fixedType || 'agency') : selectedType;
 
   const getIcon = () => {
@@ -41,28 +60,96 @@ export function ProvisionUserModal({ isOpen, onClose, onProvision, mode, fixedTy
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    setTimeout(() => {
+ // `async` because this now makes a real network request instead of faking
+  // a delay with setTimeout - same change we made to Login/Register earlier.
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();      // stops the browser from doing a full page reload on submit
+    setIsLoading(true);      // shows the "Processing..." state on the button
+    setError('');            // clear any leftover error message from a previous failed attempt
+
+    try {
+      // This one modal handles THREE different account types (Administrator,
+      // Agency, Internal Staff), depending on which tab the user picked.
+      // So instead of one API call, we branch and call whichever real
+      // endpoint matches what's currently selected.
+
+            if (provisionType === 'administrator') {
+        // formData.tempPassword: this form collects the password for the Admin account.
+        await provisioningApi.createAdmin(
+          formData.fullName,
+          formData.email,
+          formData.tempPassword,
+          formData.department
+        );
+
+        // Tell the parent Admin Management page that a new Admin now exists.
+        // The parent will re-fetch the real Admin list from the backend.
+        if (onAdminCreated) {
+          onAdminCreated();
+        }
+
+         } else if (provisionType === 'agency') {
+        // No password is sent here because the backend generates the
+        // temporary password for the new Agency account.
+        const response = await provisioningApi.createAgency(
+          formData.agencyName,
+          formData.contactPerson,
+          formData.email,
+          formData.phone
+        );
+
+        // Store the temporary password so the success screen can display it.
+        setGeneratedPassword(response.temporaryPassword);
+
+        // Tell the parent Admin Agencies page that a new Agency now exists.
+        // The parent will re-fetch the real Agency list from the backend.
+        if (onAgencyCreated) {
+          onAgencyCreated();
+        }
+      } else if (provisionType === 'internal_staff') {
+        // formData.jobTitle matches one of the six approved Internal Staff roles.
+        await provisioningApi.createInternalStaff(
+          formData.fullName,
+          formData.email,
+          formData.tempPassword,
+          formData.jobTitle,
+          formData.department
+        );
+
+        // Tell the parent Internal Staff page that a new staff account now exists.
+        // The parent will re-fetch the real Internal Staff list from the backend.
+        if (onInternalStaffCreated) {
+          onInternalStaffCreated();
+        }
+      }
+      // If we reach this line, the API call above succeeded (didn't throw).
       setIsLoading(false);
-      setIsSuccess(true);
-      
+      setIsSuccess(true); // triggers the green "Entity Provisioned" success screen
+
+      // Optional callback some parent components pass in, unrelated to our API call -
+      // kept as-is from the original code so nothing else in the app breaks.
       if (onProvision) {
         onProvision({
           type: provisionType,
           payload: formData as unknown
         } as EnterpriseProvisioningPayload);
       }
-      
-      setTimeout(() => {
-        setIsSuccess(false);
-        setFormData({});
-        setSelectedType('administrator');
-        onClose();
-      }, 1500);
-    }, 1200);
+
+     // No more auto-close timer - the person needs time to actually copy
+      // that temporary password, and a countdown works against that.
+      // The success screen now just sits there until they close it themselves.
+
+    } catch (err) {
+      // If ANY of the three API calls above threw an error (bad request,
+      // duplicate email, permission denied, etc.), we land here instead.
+      // err.message comes from the ApiError class built in http.js earlier today.
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Failed to provision account. Please try again.'
+      );
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -76,10 +163,32 @@ export function ProvisionUserModal({ isOpen, onClose, onProvision, mode, fixedTy
             <div className="h-16 w-16 rounded-full bg-emerald-400/20 flex items-center justify-center text-emerald-400 mb-6">
               <CheckIcon className="h-8 w-8" />
             </div>
-            <h3 className="text-2xl font-bold text-cream mb-2">Entity Provisioned</h3>
+           <h3 className="text-2xl font-bold text-cream mb-2">Entity Provisioned</h3>
             <p className="text-ink/60">
               The <span className="font-semibold text-cream capitalize">{provisionType.replace('_', ' ')}</span> account has been successfully generated.
             </p>
+            {/* Only Agency generates its own password - Admin/Internal Staff already
+                typed one into the form themselves, so there's nothing new to show them. */}
+          {generatedPassword && (
+              <div className="mt-4 rounded-xl bg-navy-900/50 border border-white/10 p-4 text-left">
+                <p className="text-xs text-ink/60 mb-1">Temporary Password (save this now):</p>
+                <p className="text-sm font-mono text-gold-400">{generatedPassword}</p>
+              </div>
+            )}
+
+            {/* Person closes this whenever they're ready - no forced timer */}
+            <GoldButton
+              onClick={() => {
+                setIsSuccess(false);
+                setFormData({});
+                setGeneratedPassword('');
+                setSelectedType('administrator');
+                onClose();
+              }}
+              className="mt-6 justify-center"
+            >
+              Done
+            </GoldButton>
           </div>
         ) : (
           <>
@@ -93,8 +202,16 @@ export function ProvisionUserModal({ isOpen, onClose, onProvision, mode, fixedTy
               <p className="text-sm text-ink/60">Provision a new enterprise entity into the Luxora network. The recipient will receive secure setup instructions.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
+           <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Shows any real backend error - duplicate email, permission denied, etc. -
+                  instead of silently doing nothing, same bug we fixed on RegisterPage earlier. */}
+              {error && (
+                <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3">
+                  <p className="text-xs font-medium text-red-400">{error}</p>
+                </div>
+              )}
+
               {(!mode || mode === 'super-admin') && (
                 <div className="space-y-1 group border-b border-white/10 pb-6">
                   <label className="text-sm font-bold text-cream block mb-3">What would you like to provision?</label>
@@ -134,8 +251,19 @@ export function ProvisionUserModal({ isOpen, onClose, onProvision, mode, fixedTy
                       <SelectField label="Business Unit" value={formData.businessUnit} options={businessUnits} onChange={(v) => handleChange('businessUnit', v)} />
                       <SelectField label="Department" value={formData.department} options={departments} onChange={(v) => handleChange('department', v)} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <SelectField label="Role" value={formData.role} options={['Super Admin', 'Compliance Admin', 'Support Lead', 'Finance Director']} onChange={(v) => handleChange('role', v)} />
+                   <div className="grid grid-cols-2 gap-4">
+                      {/* Not an interactive dropdown - this form only ever creates an
+                          Admin account (hardcoded on the backend in createAdmin), so
+                          we just display that fact rather than offering fake role
+                          choices that don't correspond to anything real. The
+                          Department/Business Unit/Region fields above already give
+                          enough real information about this account. */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-ink/70">Role</label>
+                        <div className="w-full rounded-xl border border-white/10 bg-navy-900/30 py-2.5 px-4 text-sm text-ink/60">
+                          Admin
+                        </div>
+                      </div>
                       <InputField icon={<Key />} type="password" label="Temporary Password" value={formData.tempPassword} onChange={(v) => handleChange('tempPassword', v)} />
                     </div>
                   </>
