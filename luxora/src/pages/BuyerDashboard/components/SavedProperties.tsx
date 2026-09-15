@@ -1,7 +1,10 @@
+// Use the canonical frontend Property type for the Favorites page.
+import type { Property } from '../../../types';
 import { useState, useMemo } from 'react';
 import { Heart, Scale, Share2, Trash2, Clock, Star, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { properties } from '../../../data/luxoraData';
+// Convert backend Property data into the frontend Property shape.
+import { mapApiPropertyToProperty } from '../../../api/property.mapper';
 import { useFavorites } from '../../../contexts/FavoriteContext';
 import { useSession } from '../../../contexts/SessionContext';
 import { useToast } from '../../../contexts/ToastContext';
@@ -14,7 +17,11 @@ import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { ShareModal } from './modals/ShareModal';
 
 export default function SavedProperties() {
-  const { favoriteProperties: savedProperties, toggleFavorite } = useFavorites();
+  const {
+    favoriteProperties: savedProperties,
+    favoriteRecords,
+    toggleFavorite,
+  } = useFavorites();
   const { toggleCompareProperty } = useSession();
   const navigate = useNavigate();
 
@@ -28,11 +35,14 @@ export default function SavedProperties() {
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
 
-  const baseProps = useMemo(() => {
-    return savedProperties
-      .map((id) => properties.find((p) => p.id === id))
-      .filter((p): p is NonNullable<typeof p> => p !== undefined);
-  }, [savedProperties]);
+  // Convert populated backend Favorite records into the canonical frontend Property shape.
+  const baseProps = useMemo<Property[]>(() => {
+    return favoriteRecords
+      .filter((favorite) => favorite.property !== null)
+      .map((favorite) =>
+        mapApiPropertyToProperty(favorite.property) as Property,
+      );
+  }, [favoriteRecords]);
 
   const metrics = useMemo(() => {
     const total = baseProps.length;
@@ -40,10 +50,10 @@ export default function SavedProperties() {
     if (total > 0) {
       lastSaved = baseProps[total - 1].title;
     }
-    
+
     const premiumCount = baseProps.filter(p => p.verified.includes('Premium')).length;
     const featuredCount = baseProps.filter(p => p.tag === 'Featured').length;
-    
+
     const totalValue = baseProps.reduce((sum, p) => sum + p.priceValue, 0);
     const avgValue = total > 0 ? totalValue / total : 0;
 
@@ -75,15 +85,21 @@ export default function SavedProperties() {
       if (sortBy === 'price_desc') return b.priceValue - a.priceValue;
       if (sortBy === 'alpha') return a.title.localeCompare(b.title);
       if (sortBy === 'oldest') return savedProperties.indexOf(a.id) - savedProperties.indexOf(b.id);
-      return 0; 
+      return 0;
     });
 
     if (sortBy === 'newest') result.reverse();
     return result;
   }, [baseProps, searchQuery, filterType, filterLocation, sortBy, savedProperties]);
 
-  const uniqueTypes = ['All', ...new Set(properties.map((p) => p.type))];
-  const uniqueLocations = ['All', ...new Set(properties.map((p) => p.location.split(',')[0].trim()))];
+  // Build the Property Type filter from the real backend Favorites.
+  const uniqueTypes = ['All', ...new Set(baseProps.map((p) => p.type))];
+
+  // Build the location filter from the real backend Favorites.
+  const uniqueLocations = [
+    'All',
+    ...new Set(baseProps.map((p) => p.location.split(',')[0].trim())),
+  ];
 
   const handleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -159,7 +175,7 @@ export default function SavedProperties() {
       <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 backdrop-blur-md space-y-4">
         <div className="flex items-center justify-between pb-4 border-b border-white/5">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={handleSelectAll}
               className="text-xs font-semibold text-gold-400 hover:text-gold-300 transition-colors"
             >

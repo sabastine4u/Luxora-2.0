@@ -92,7 +92,20 @@ export interface OwnerOffer {
   buyer: { name: string; avatar: string; email: string; phone: string };
   amount: number;
   date: string;
-  status: 'Pending' | 'Accepted' | 'Rejected' | 'Countered';
+  status:
+  | 'Pending'
+  | 'Draft'
+  | 'Submitted'
+  | 'Under Review'
+  | 'Accepted'
+  | 'Rejected'
+  | 'Countered'
+  | 'Counter Offer Received'
+  | 'Withdrawn'
+  | 'Expired';
+  // Store counter-offer information returned by the backend.
+  counterOfferAmount?: number | null;
+  counterOfferDetails?: string;
   lastUpdated: string;
   deposit: number;
   financing: string;

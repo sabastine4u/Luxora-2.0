@@ -1,286 +1,829 @@
-import { useState } from 'react';
-import { FileText, Download, Calendar, Filter, Clock, Star, BarChart3, Archive, Eye } from 'lucide-react';
-import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
-import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
-import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { GhostButton } from '../../../components/ui/ui';
-import { StatusBadge } from './shared/StatusBadge';
-import { ReportPreviewModal } from './modals/ReportPreviewModal';
-import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
-import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
-import type { ManagementReport } from '../../../types';
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  FileText,
+  Search,
+  RefreshCw,
+  Eye,
+  TrendingUp,
+  Building2,
+  Users,
+  Wallet,
+  CalendarDays,
+} from "lucide-react";
 
-export default function Reports() {
-  const [confirmationState, setConfirmationState] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    confirmText: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    description: '',
-    confirmText: 'Confirm',
-    onConfirm: () => {}
-  });
-  const [selectedReport, setSelectedReport] = useState<ManagementReport | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+import { reportApi } from "../../../api/report.api";
+import { ReportPreviewModal } from "./modals/ReportPreviewModal";
 
-  const reportsList: ManagementReport[] = [
-    { id: 'REP-001', name: 'Q3 Enterprise Financials', type: 'Financial', author: 'Sarah Jacobs', date: 'Oct 05, 2025', status: 'Generated' },
-    { id: 'REP-002', name: 'Global Security Audit', type: 'Intelligence', author: 'Musa Bello', date: 'Oct 04, 2025', status: 'Review' },
-    { id: 'REP-003', name: 'Vendor Compliance 2025', type: 'Procurement', author: 'Chidi Okafor', date: 'Oct 01, 2025', status: 'Generated' },
-    { id: 'REP-004', name: 'Workforce Scaling Plan', type: 'HR', author: 'System', date: 'Sep 28, 2025', status: 'Generated' },
-    { id: 'REP-005', name: 'Property Portfolio Yield', type: 'Property', author: 'Aisha Lawal', date: 'Sep 25, 2025', status: 'Generated' },
-  ];
+interface FinancialMetrics {
+  totalGMV: number;
+  totalCommission: number;
+  agencyCommission: number;
+  paidCommission: number;
+  transactionCount: number;
+}
 
-  const scheduledReports = [
-    { title: 'Weekly Performance Digest', time: 'Every Monday, 08:00 AM', desc: 'Sent to Executive Board', icon: Calendar, color: 'text-blue-400' },
-    { title: 'Monthly Financial Summary', time: '1st of Month, 09:00 AM', desc: 'Sent to Finance Committee', icon: DollarSign, color: 'text-emerald-400' },
-    { title: 'Quarterly Audit Log', time: 'Last day of Quarter', desc: 'Sent to Compliance', icon: ShieldAlert, color: 'text-gold-400' },
-  ];
+interface ListingMetrics {
+  total: number;
+  draft: number;
+  pendingReview: number;
+  approved: number;
+  published: number;
+  underOffer: number;
+  sold: number;
+  rented: number;
+  leased: number;
+  archived: number;
+}
 
-  const handleRowClick = (report: ManagementReport) => {
-    setSelectedReport(report);
-    setIsModalOpen(true);
+interface WorkforceDepartment {
+  department: string;
+  count: number;
+}
+
+interface WorkforceMetrics {
+  totalStaff: number;
+  activeStaff: number;
+  inactiveStaff: number;
+  verifiedStaff: number;
+  departmentBreakdown: WorkforceDepartment[];
+}
+
+interface ManagerReportResponse {
+  report: {
+    category: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    metrics:
+    | FinancialMetrics
+    | ListingMetrics
+    | WorkforceMetrics;
   };
+}
 
-  const handleDownload = (e: React.MouseEvent, report: ManagementReport) => {
-    e.stopPropagation();
-    setConfirmationState({
-      isOpen: true,
-      title: 'Download Report',
-      description: `Are you sure you want to download "${report.name}"?`,
-      confirmText: 'Download',
-      onConfirm: () => {
-        // Mock download
-      }
-    });
-  };
+interface ReportDefinition {
+  id: string;
+  name: string;
+  type: string;
+  category:
+  | "financial"
+  | "listing-performance"
+  | "workforce";
+  description: string;
+}
 
+interface KPIProps {
+  title: string;
+  value: string;
+  subtitle: string;
+  icon: ReactNode;
+}
+
+function KPI({
+  title,
+  value,
+  subtitle,
+  icon,
+}: KPIProps) {
   return (
-    <div className="space-y-6">
-      <DashboardHeader
-        name="Enterprise Reports"
-        subtitle="Executive reporting workspace, analytics exports, and scheduled automated insights."
-        actions={
-          <div className="flex gap-3">
-          </div>
-        }
-      />
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-400">
+            {title}
+          </p>
 
-      {/* Reporting Analytics KPIs */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Total Reports Generated"
-          value="1,248"
-          trend="+156 this month"
-          trendColor="text-emerald-400"
-          icon={FileText}
-          footer={<div className="text-xs text-ink/60">Across all departments</div>}
-        />
-        <KPICard
-          title="Scheduled Tasks"
-          value="42"
-          trend="All systems active"
-          trendColor="text-emerald-400"
-          icon={Clock}
-          footer={<div className="text-xs text-ink/60">Automated distributions</div>}
-        />
-        <KPICard
-          title="Executive Downloads"
-          value="315"
-          trend="High engagement"
-          trendColor="text-emerald-400"
-          icon={Download}
-          footer={<div className="text-xs text-ink/60">Past 30 days</div>}
-        />
-        <KPICard
-          title="Export Volume"
-          value="1.2 TB"
-          trend="Storage optimal"
-          trendColor="text-blue-400"
-          icon={Archive}
-          footer={<div className="text-xs text-ink/60">Data warehouse size</div>}
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Reporting Activity Dashboard */}
-            <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
-              <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-gold-400" /> Generation Activity
-              </h3>
-              <div className="flex-1 flex flex-col justify-end space-y-4">
-                <div className="flex items-end gap-2 h-32">
-                  {[40, 65, 45, 80, 55, 90, 75].map((h, i) => (
-                    <div key={i} className="flex-1 bg-navy-900 rounded-t-sm relative group">
-                      <div className="absolute bottom-0 w-full bg-gold-400 rounded-t-sm transition-all duration-300" style={{ height: `${h}%` }}></div>
-                      <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-navy-950 text-cream text-[10px] py-1 px-2 rounded whitespace-nowrap z-10 transition-opacity">
-                        {h} Reports
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-[10px] text-ink/60 font-medium uppercase tracking-wider">
-                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Favorite & Frequent Reports */}
-            <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-              <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
-                <Star className="h-5 w-5 text-yellow-400" /> Frequently Generated
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { name: 'Weekly Financial Consolidation', views: 145 },
-                  { name: 'Enterprise Risk Assessment', views: 98 },
-                  { name: 'Global Headcount & Payroll', views: 82 },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-navy-900/50 hover:bg-white/5 cursor-pointer transition-colors">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-gold-400" />
-                      <span className="text-sm font-medium text-cream">{item.name}</span>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-400">{item.views} Views</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <h3 className="font-heading text-lg font-semibold text-cream">Report Archive</h3>
-              <DataTableToolbar
-                searchValue=""
-                onSearchChange={() => {}}
-                searchPlaceholder="Search reports by ID or name..."
-                actions={
-                  <div className="flex gap-2">
-                    <GhostButton className="px-3 flex items-center gap-2"><Filter className="h-4 w-4" /> Filter</GhostButton>
-                  </div>
-                }
-              />
-            </div>
-
-            <DataTable
-              data={reportsList}
-              keyExtractor={(report) => report.id}
-              columns={[
-                {
-                  header: "Report ID",
-                  render: (report) => <span className="font-mono text-sm text-ink/60">{report.id}</span>
-                },
-                {
-                  header: "Name",
-                  render: (report) => (
-                    <div className="font-semibold text-cream flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-gold-400" /> {report.name}
-                    </div>
-                  )
-                },
-                {
-                  header: "Type",
-                  render: (report) => (
-                    <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-900/50 px-2.5 py-0.5 text-xs text-ink/60">
-                      {report.type}
-                    </span>
-                  )
-                },
-                {
-                  header: "Author",
-                  render: (report) => <span className="text-ink/60">{report.author}</span>
-                },
-                {
-                  header: "Status",
-                  render: (report) => <StatusBadge status={report.status} />
-                },
-                {
-                  header: <div className="text-right">Actions</div>,
-                  className: "text-right",
-                  render: (report) => (
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleRowClick(report); }}
-                        className="text-gold-400 hover:text-gold-300 text-sm font-medium flex items-center gap-1"
-                        title="View Details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={(e) => handleDownload(e, report)}
-                        className="text-ink/60 hover:text-cream text-sm font-medium flex items-center gap-1" 
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )
-                }
-              ]}
-            />
-          </div>
+          <p className="mt-1 text-2xl font-semibold text-white">
+            {value}
+          </p>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
-              <Download className="h-5 w-5 text-blue-400" /> Recent Downloads
-            </h3>
-            <div className="space-y-3">
-              {[
-                { name: 'Q3 Financials.pdf', time: '10 mins ago' },
-                { name: 'Security_Audit.csv', time: '1 hour ago' },
-                { name: 'Workforce_Data.xlsx', time: '2 hours ago' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5">
-                  <div className="flex items-center gap-2 truncate">
-                    <FileText className="h-4 w-4 text-ink/40 shrink-0" />
-                    <span className="text-sm text-cream truncate">{item.name}</span>
-                  </div>
-                  <span className="text-xs text-ink/60 whitespace-nowrap ml-2">{item.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <ActivityTimeline
-              title="Scheduled Tasks"
-              items={scheduledReports}
-            />
-            <GhostButton className="w-full mt-4 flex items-center justify-center gap-2 text-xs">
-              View Calendar <Calendar className="h-3 w-3" />
-            </GhostButton>
-          </div>
+        <div className="rounded-xl bg-white/[0.06] p-3 text-[#D4AF37]">
+          {icon}
         </div>
       </div>
 
-      <ReportPreviewModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        report={selectedReport}
-      />
-      <ConfirmationModal
-        isOpen={confirmationState.isOpen}
-        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationState.onConfirm}
-        title={confirmationState.title}
-        description={confirmationState.description}
-        confirmText={confirmationState.confirmText}
-      />
+      <p className="text-xs text-gray-500">
+        {subtitle}
+      </p>
     </div>
   );
 }
 
-// Ensure icons used in scheduledReports are imported correctly or replace DollarSign/ShieldAlert. 
-// Adding missing imports locally above:
-import { DollarSign, ShieldAlert } from 'lucide-react';
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("en-NG").format(
+    value || 0,
+  );
+}
+
+export default function Reports() {
+  const [financialReport, setFinancialReport] =
+    useState<FinancialMetrics | null>(null);
+
+  const [listingReport, setListingReport] =
+    useState<ListingMetrics | null>(null);
+
+  const [workforceReport, setWorkforceReport] =
+    useState<WorkforceMetrics | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [selectedReport, setSelectedReport] =
+    useState<ReportDefinition | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const reportDefinitions: ReportDefinition[] =
+    useMemo(
+      () => [
+        {
+          id: "MAN-FIN-001",
+          name: "Enterprise Financial Report",
+          type: "Financial",
+          category: "financial",
+          description:
+            "Current transaction value, commission and financial performance across the management scope.",
+        },
+        {
+          id: "MAN-LST-001",
+          name: "Listing Performance Report",
+          type: "Listing Performance",
+          category: "listing-performance",
+          description:
+            "Current property portfolio distribution across listing lifecycle stages.",
+        },
+        {
+          id: "MAN-WRK-001",
+          name: "Workforce Report",
+          type: "Workforce",
+          category: "workforce",
+          description:
+            "Current internal workforce totals, activity status and department coverage.",
+        },
+      ],
+      [],
+    );
+
+  const loadReports = async (
+    isRefresh = false,
+  ) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setError("");
+
+      const [
+        financialResponse,
+        listingResponse,
+        workforceResponse,
+      ] = await Promise.all([
+        reportApi.getManagerReport({
+          category: "financial",
+        }),
+
+        reportApi.getManagerReport({
+          category: "listing-performance",
+        }),
+
+        reportApi.getManagerReport({
+          category: "workforce",
+        }),
+      ]);
+
+      const financialData =
+        financialResponse.data as ManagerReportResponse;
+
+      const listingData =
+        listingResponse.data as ManagerReportResponse;
+
+      const workforceData =
+        workforceResponse.data as ManagerReportResponse;
+
+      setFinancialReport(
+        financialData?.report
+          ?.metrics as FinancialMetrics,
+      );
+
+      setListingReport(
+        listingData?.report
+          ?.metrics as ListingMetrics,
+      );
+
+      setWorkforceReport(
+        workforceData?.report
+          ?.metrics as WorkforceMetrics,
+      );
+    } catch (error: any) {
+      console.error(
+        "Failed to load manager reports:",
+        error,
+      );
+
+      setError(
+        error?.message ||
+        "Failed to load management reports.",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    const initializeReports = async () => {
+      await loadReports();
+    };
+
+    initializeReports();
+  }, []);
+
+  const filteredReports =
+    useMemo(() => {
+      const search =
+        searchTerm.trim().toLowerCase();
+
+      if (!search) {
+        return reportDefinitions;
+      }
+
+      return reportDefinitions.filter(
+        (report) =>
+          `${report.id} ${report.name} ${report.type} ${report.description}`
+            .toLowerCase()
+            .includes(search),
+      );
+    }, [reportDefinitions, searchTerm]);
+
+  const departmentCoverage =
+    workforceReport?.departmentBreakdown || [];
+
+  const previewReport = selectedReport
+    ? {
+      id: selectedReport.id,
+      name: selectedReport.name,
+      type: selectedReport.type,
+      author: "Management",
+      date: new Date().toLocaleDateString(
+        "en-GB",
+        {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        },
+      ),
+      status: "Generated",
+    }
+    : null;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-sm text-gray-400">
+            <FileText size={16} />
+            <span>Management Reports</span>
+          </div>
+
+          <h1 className="text-2xl font-semibold text-white">
+            Reports & Analytics
+          </h1>
+
+          <p className="mt-1 max-w-3xl text-sm text-gray-400">
+            Real-time management reports generated
+            from current Luxora operational data.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => loadReports(true)}
+          disabled={loading || refreshing}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <RefreshCw
+            size={16}
+            className={
+              refreshing ? "animate-spin" : ""
+            }
+          />
+
+          {refreshing
+            ? "Refreshing..."
+            : "Refresh"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
+          <RefreshCw
+            size={28}
+            className="mx-auto animate-spin text-[#D4AF37]"
+          />
+
+          <p className="mt-4 text-sm text-gray-400">
+            Loading management reports...
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <KPI
+              title="Closed Deal Value"
+              value={formatCurrency(
+                financialReport?.totalGMV || 0,
+              )}
+              subtitle="Finalized transaction value"
+              icon={<Wallet size={20} />}
+            />
+
+            <KPI
+              title="Agency Commission"
+              value={formatCurrency(
+                financialReport?.agencyCommission || 0,
+              )}
+              subtitle="Recorded agency commission"
+              icon={<TrendingUp size={20} />}
+            />
+
+            <KPI
+              title="Property Portfolio"
+              value={formatNumber(
+                listingReport?.total || 0,
+              )}
+              subtitle="Properties in current portfolio"
+              icon={<Building2 size={20} />}
+            />
+
+            <KPI
+              title="Active Workforce"
+              value={formatNumber(
+                workforceReport?.activeStaff || 0,
+              )}
+              subtitle={`${formatNumber(
+                workforceReport?.totalStaff || 0,
+              )} total internal staff`}
+              icon={<Users size={20} />}
+            />
+          </div>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <div className="border-b border-white/10 p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    Available Reports
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-400">
+                    Report types currently supported
+                    by the Manager reporting API.
+                  </p>
+                </div>
+
+                <div className="relative w-full lg:w-80">
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                  />
+
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(event) =>
+                      setSearchTerm(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Search reports..."
+                    className="w-full rounded-xl border border-white/10 bg-black/20 py-2.5 pl-9 pr-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[#D4AF37]/50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px]">
+                <thead>
+                  <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-gray-500">
+                    <th className="px-5 py-4 font-medium">
+                      Report
+                    </th>
+
+                    <th className="px-5 py-4 font-medium">
+                      Type
+                    </th>
+
+                    <th className="px-5 py-4 font-medium">
+                      Status
+                    </th>
+
+                    <th className="px-5 py-4 font-medium">
+                      Coverage
+                    </th>
+
+                    <th className="px-5 py-4 text-right font-medium">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredReports.map(
+                    (report) => (
+                      <tr
+                        key={report.id}
+                        className="border-b border-white/5 last:border-b-0"
+                      >
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-white">
+                            {report.name}
+                          </p>
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            {report.id}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-gray-300">
+                          {report.type}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+                            Generated
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-gray-400">
+                          {report.category ===
+                            "financial" &&
+                            "Financial activity"}
+
+                          {report.category ===
+                            "listing-performance" &&
+                            "Property portfolio"}
+
+                          {report.category ===
+                            "workforce" &&
+                            "Internal workforce"}
+                        </td>
+
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedReport(
+                                report,
+                              )
+                            }
+                            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white transition hover:bg-white/[0.08]"
+                          >
+                            <Eye size={15} />
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ),
+                  )}
+
+                  {filteredReports.length ===
+                    0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-5 py-10 text-center text-sm text-gray-500"
+                        >
+                          No reports match your
+                          search.
+                        </td>
+                      </tr>
+                    )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-white">
+                  Property Snapshot
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-400">
+                  Current distribution of the
+                  management property portfolio.
+                </p>
+              </div>
+
+              <Building2
+                size={20}
+                className="text-[#D4AF37]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {[
+                {
+                  label: "Draft",
+                  value:
+                    listingReport?.draft || 0,
+                },
+                {
+                  label: "Published",
+                  value:
+                    listingReport?.published || 0,
+                },
+                {
+                  label: "Under Offer",
+                  value:
+                    listingReport?.underOffer || 0,
+                },
+                {
+                  label: "Sold",
+                  value:
+                    listingReport?.sold || 0,
+                },
+                {
+                  label: "Archived",
+                  value:
+                    listingReport?.archived || 0,
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-white/10 bg-black/10 p-4"
+                >
+                  <p className="text-xs text-gray-500">
+                    {item.label}
+                  </p>
+
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {formatNumber(
+                      item.value,
+                    )}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    Workforce Snapshot
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-400">
+                    Current internal staff activity.
+                  </p>
+                </div>
+
+                <Users
+                  size={20}
+                  className="text-[#D4AF37]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-xs text-gray-500">
+                    Total Staff
+                  </p>
+
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {formatNumber(
+                      workforceReport?.totalStaff ||
+                      0,
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-xs text-gray-500">
+                    Active
+                  </p>
+
+                  <p className="mt-2 text-xl font-semibold text-emerald-300">
+                    {formatNumber(
+                      workforceReport?.activeStaff ||
+                      0,
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-xs text-gray-500">
+                    Inactive
+                  </p>
+
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {formatNumber(
+                      workforceReport?.inactiveStaff ||
+                      0,
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-xs text-gray-500">
+                    Verified
+                  </p>
+
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {formatNumber(
+                      workforceReport?.verifiedStaff ||
+                      0,
+                    )}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    Department Coverage
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-400">
+                    Real workforce distribution by
+                    department.
+                  </p>
+                </div>
+
+                <CalendarDays
+                  size={20}
+                  className="text-[#D4AF37]"
+                />
+              </div>
+
+              <div className="space-y-3">
+                {departmentCoverage.length ===
+                  0 ? (
+                  <p className="py-6 text-center text-sm text-gray-500">
+                    No department data
+                    available.
+                  </p>
+                ) : (
+                  departmentCoverage.map(
+                    (department) => (
+                      <div
+                        key={
+                          department.department
+                        }
+                        className="flex items-center justify-between rounded-xl border border-white/10 bg-black/10 px-4 py-3"
+                      >
+                        <span className="text-sm text-gray-300">
+                          {
+                            department.department
+                          }
+                        </span>
+
+                        <span className="text-sm font-semibold text-white">
+                          {formatNumber(
+                            department.count,
+                          )}
+                        </span>
+                      </div>
+                    ),
+                  )
+                )}
+              </div>
+            </section>
+          </div>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-white">
+                  Financial Snapshot
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-400">
+                  Current financial metrics returned
+                  by the Manager report endpoint.
+                </p>
+              </div>
+
+              <Wallet
+                size={20}
+                className="text-[#D4AF37]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                <p className="text-xs text-gray-500">
+                  Transaction Count
+                </p>
+
+                <p className="mt-2 text-xl font-semibold text-white">
+                  {formatNumber(
+                    financialReport?.transactionCount ||
+                    0,
+                  )}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                <p className="text-xs text-gray-500">
+                  Total Commission
+                </p>
+
+                <p className="mt-2 text-xl font-semibold text-white">
+                  {formatCurrency(
+                    financialReport?.totalCommission ||
+                    0,
+                  )}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                <p className="text-xs text-gray-500">
+                  Agency Commission
+                </p>
+
+                <p className="mt-2 text-xl font-semibold text-white">
+                  {formatCurrency(
+                    financialReport?.agencyCommission ||
+                    0,
+                  )}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                <p className="text-xs text-gray-500">
+                  Paid Commission
+                </p>
+
+                <p className="mt-2 text-xl font-semibold text-white">
+                  {formatCurrency(
+                    financialReport?.paidCommission ||
+                    0,
+                  )}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <div className="flex items-start gap-3">
+              <FileText
+                size={18}
+                className="mt-0.5 text-[#D4AF37]"
+              />
+
+              <div>
+                <p className="text-sm font-medium text-white">
+                  Report scope
+                </p>
+
+                <p className="mt-1 text-sm leading-6 text-gray-500">
+                  These reports are generated from
+                  the current Manager reporting
+                  endpoints and represent live
+                  operational data.
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <ReportPreviewModal
+        isOpen={Boolean(selectedReport)}
+        onClose={() => setSelectedReport(null)}
+        report={previewReport}
+      />
+    </div>
+  );
+}

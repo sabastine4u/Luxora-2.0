@@ -27,6 +27,14 @@ export type PropertyOrigin = 'agent' | 'admin' | 'luxora';
 export type Property = {
   id: string;
   transactionType: TransactionType;
+    // Preserve the backend pricing condition for accurate marketplace display.
+  priceType?: 'fixed' | 'negotiable' | 'price_on_request' | 'auction';
+
+  // Preserve the backend pricing frequency for accurate marketplace display.
+  priceFrequency?: 'total' | 'monthly' | 'yearly' | 'perNight' | 'perPlot' | 'perAcre';
+
+  // Preserve the backend currency used by the Property.
+  currency?: string;
   title: string;
   description?: string;
   location: string;

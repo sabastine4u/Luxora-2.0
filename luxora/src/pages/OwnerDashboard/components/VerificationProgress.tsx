@@ -1,35 +1,332 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ShieldCheck, CheckCircle2, Clock, AlertTriangle, Upload, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { useToast } from '../../../contexts/ToastContext';
-import { mockVerifications } from '../../../data/ownerData';
+import { propertyApi } from '../../../api/property.api';
 import UploadDocumentModal from './modals/UploadDocumentModal';
+
+
+// Export the existing Verification Progress mapper so Overview can reuse its real workflow state.
+export const mapPropertyToVerification = (property: any) => {
+  // Determine the current workflow progress from the real backend state.
+  let progressPercent = 20;
+
+  if (
+    property.assignmentStatus === 'Agency Assigned' ||
+    property.assignmentStatus === 'Agent Assigned'
+  ) {
+    progressPercent = 40;
+  }
+
+  if (property.assignmentStatus === 'Agent Assigned') {
+    progressPercent = 60;
+  }
+
+  if (property.verificationLevel === 'Documents Verified') {
+    progressPercent = 75;
+  }
+
+  if (property.status === 'Published') {
+    progressPercent = 100;
+  }
+
+  // Convert backend document records into the existing checklist format.
+  const documents = (property.documents || []).map((document: any) => ({
+    name: document.name || document.title || 'Document',
+    status:
+      document.status ||
+      (document.verified ? 'verified' : 'pending'),
+  }));
+
+  // Determine whether Agency Assignment has been completed.
+  const agencyAssigned =
+    property.assignmentStatus === 'Agency Assigned' ||
+    property.assignmentStatus === 'Agent Assigned';
+
+  // Determine whether an Agent has been assigned.
+  const agentAssigned =
+    property.assignmentStatus === 'Agent Assigned';
+
+  // Determine whether verification has been completed.
+  const verificationCompleted =
+    property.verificationLevel === 'Documents Verified' ||
+    property.verificationLevel === 'Physical Inspection Completed';
+
+  // Build the existing verification stages from the backend workflow.
+  const stages = [
+    {
+      name: 'Property Submitted',
+      dateCompleted: property.createdAt,
+      officerName: undefined,
+      notes: undefined,
+      status: 'completed',
+    },
+    {
+      name: 'Agency Assignment',
+      dateCompleted: agencyAssigned ? property.assignedAt : undefined,
+      officerName: undefined,
+      notes: undefined,
+      status: agencyAssigned
+        ? 'completed'
+        : property.assignmentStatus === 'Unassigned'
+          ? 'current'
+          : 'pending',
+    },
+    {
+      name: 'Agent Assignment',
+      dateCompleted: agentAssigned ? property.assignedAt : undefined,
+      officerName: property.agent?.user?.fullName,
+      notes: undefined,
+      status: agentAssigned
+        ? 'completed'
+        : agencyAssigned
+          ? 'current'
+          : 'pending',
+    },
+    {
+      name: 'Verification',
+      dateCompleted: verificationCompleted
+        ? property.inspectionCompletedAt || property.updatedAt
+        : undefined,
+      officerName: undefined,
+      notes: undefined,
+      status: verificationCompleted ? 'completed' : 'current',
+    },
+    {
+      name: 'Publication',
+      dateCompleted:
+        property.status === 'Published'
+          ? property.updatedAt
+          : undefined,
+      officerName: undefined,
+      notes: undefined,
+      status:
+        property.status === 'Published'
+          ? 'completed'
+          : 'pending',
+    },
+  ];
+
+  // Build the existing history timeline from real property events.
+  const history = [
+    {
+      title: 'Property Submitted',
+      date: property.createdAt,
+      description: 'Property was submitted to Luxora for processing.',
+    },
+    ...(agencyAssigned
+      ? [
+        {
+          title: 'Agency Assigned',
+          date: property.assignedAt,
+          description: 'An agency has been assigned to this property.',
+        },
+      ]
+      : []),
+    ...(agentAssigned
+      ? [
+        {
+          title: 'Agent Assigned',
+          date: property.assignedAt,
+          description: 'An agent has been assigned to this property.',
+        },
+      ]
+      : []),
+    ...(verificationCompleted
+      ? [
+        {
+          title: 'Verification Completed',
+          date: property.inspectionCompletedAt || property.updatedAt,
+          description: 'The property verification process has been completed.',
+        },
+      ]
+      : []),
+    ...(property.status === 'Published'
+      ? [
+        {
+          title: 'Property Published',
+          date: property.updatedAt,
+          description: 'The property is now published on the marketplace.',
+        },
+      ]
+      : []),
+  ];
+
+  // Return the shape expected by the existing Verification Progress UI.
+  return {
+    id: property._id,
+    name: property.title,
+    image:
+      property.coverImage ||
+      property.images?.[0] ||
+      '',
+    submissionDate: property.createdAt,
+    status:
+      property.status === 'Published'
+        ? 'Published'
+        : property.verificationLevel === 'Documents Verified'
+          ? 'Documents Verified'
+          : property.assignmentStatus !== 'Unassigned'
+            ? 'Under Review'
+            : 'Submitted',
+    progressPercent,
+    estimatedRemaining:
+      progressPercent === 100
+        ? 'Completed'
+        : 'In progress',
+    expectedPublication:
+      property.expectedPublication ||
+      'To be confirmed',
+    officer: {
+      name:
+        property.verificationOfficer?.fullName ||
+        'Luxora Verification Team',
+      avatar:
+        property.verificationOfficer?.avatar ||
+        '',
+    },
+    stages,
+    documents,
+    history,
+  };
+};
 
 export default function VerificationProgress() {
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [selectedId, setSelectedId] = useState(mockVerifications.length > 0 ? mockVerifications[0].id : '');
+
+  // Store the real verification records for the authenticated Owner.
+  const [verifications, setVerifications] = useState<any[]>([]);
+
+  // Store the selected Property ID used by the existing selector.
+  const [selectedId, setSelectedId] = useState('');
+
+  // Track the initial backend loading state.
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Track API failures without breaking the dashboard.
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [isMobileAccordionOpen, setIsMobileAccordionOpen] = useState(false);
-  
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  const selectedProp = useMemo(() => mockVerifications.find(p => p.id === selectedId) || mockVerifications[0], [selectedId]);
+  // Load the authenticated Owner's real Properties from the backend.
+  useEffect(() => {
+    const loadOwnerProperties = async () => {
+      try {
+        // Show the loading state while the API request is running.
+        setIsLoading(true);
 
+        // Clear any previous API error before fetching again.
+        setLoadError(null);
+
+        // Fetch the Owner's real Properties.
+        const response = await propertyApi.getOwnerProperties();
+
+        // The frontend HTTP layer returns the API payload at runtime.
+        const properties = (response as any)?.properties || [];
+
+        // Convert backend Properties into the Verification Progress shape.
+        const mappedVerifications = properties.map(
+          mapPropertyToVerification,
+        );
+
+        // Store the mapped verification records.
+        setVerifications(mappedVerifications);
+
+        // Automatically select the first Property when records are available.
+        setSelectedId((currentId) => {
+          if (
+            currentId &&
+            mappedVerifications.some(
+              (property) => property.id === currentId,
+            )
+          ) {
+            return currentId;
+          }
+
+          return mappedVerifications[0]?.id || '';
+        });
+      } catch (error) {
+        // Convert API failures into a readable dashboard message.
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load verification progress.',
+        );
+      } finally {
+        // Stop the loading state after the request finishes.
+        setIsLoading(false);
+      }
+    };
+
+    // Start the backend request when the component mounts.
+    loadOwnerProperties();
+  }, []);
+
+  // Find the currently selected real Property.
+  const selectedProp = useMemo(
+    () =>
+      verifications.find(
+        (property) => property.id === selectedId,
+      ) || verifications[0],
+    [verifications, selectedId],
+  );
+
+  // Calculate summary statistics from the real backend records.
   const stats = {
-    total: mockVerifications.length,
-    underReview: mockVerifications.filter(v => v.progressPercent > 0 && v.progressPercent < 100).length,
-    verified: mockVerifications.filter(v => v.progressPercent === 100).length,
-    rejected: 0
+    total: verifications.length,
+    underReview: verifications.filter(
+      (verification) =>
+        verification.progressPercent > 0 &&
+        verification.progressPercent < 100,
+    ).length,
+    verified: verifications.filter(
+      (verification) =>
+        verification.progressPercent === 100,
+    ).length,
+    rejected: verifications.filter(
+      (verification) =>
+        verification.status === 'Rejected',
+    ).length,
   };
+
 
   const handleUpload = () => {
     showToast({ type: 'success', title: 'Document Uploaded', description: 'Document has been successfully submitted for review.' });
     setIsUploadModalOpen(false);
   };
 
-  if (mockVerifications.length === 0 || !selectedProp) {
+  // Show a loading state while real backend data is being fetched.
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-8 text-center">
+          <p className="text-sm text-ink/60">
+            Loading verification progress...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show an API error when the verification request fails.
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
+          <p className="text-sm text-rose-400">
+            {loadError}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show the existing empty state when the Owner has no Properties.
+  if (verifications.length === 0 || !selectedProp) {
     return (
       <div className="space-y-6">
         <EmptyState
@@ -37,10 +334,25 @@ export default function VerificationProgress() {
           title="No verification process found."
           description="Submit a property to begin the verification and publishing process."
           actionLabel="Submit Property"
-          onAction={() => navigate('/owner-dashboard?tab=My+Property+Requests&action=submit')}
+          onAction={() =>
+            navigate(
+              '/owner-dashboard?tab=My+Property+Requests&action=submit',
+            )
+          }
         />
       </div>
     );
+  }
+
+  {
+    verifications.map((verification) => (
+      <option
+        key={verification.id}
+        value={verification.id}
+      >
+        {verification.name} ({verification.status})
+      </option>
+    ))
   }
 
   const hasMissingDocs = selectedProp.documents.some(d => d.status === 'rejected');
@@ -76,16 +388,16 @@ export default function VerificationProgress() {
       {/* 2. Property Selector */}
       <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-4">
         <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider mb-3 block">Select Property</label>
-        <select 
+        <select
           className="w-full rounded-xl border border-white/10 bg-navy-900 py-3 px-4 text-cream focus:border-gold-400 focus:outline-none transition-colors"
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
         >
-          {mockVerifications.map(v => (
+          {verifications.map(v => (
             <option key={v.id} value={v.id}>{v.name} ({v.status})</option>
           ))}
         </select>
-        
+
         {/* Selected Property Card */}
         <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl bg-navy-900 border border-white/5">
           <img src={selectedProp.image} alt={selectedProp.name} className="h-20 w-28 rounded-lg object-cover" />
@@ -99,8 +411,14 @@ export default function VerificationProgress() {
           <div className="hidden md:flex flex-col items-center sm:items-end justify-center px-4">
             <div className="text-[10px] text-ink/50 uppercase mb-1">Verification Officer</div>
             <div className="flex items-center gap-2">
-              <img src={selectedProp.officer.avatar} alt="Officer" className="h-8 w-8 rounded-full object-cover" />
-              <span className="text-sm font-semibold text-cream">{selectedProp.officer.name}</span>
+              <img
+                src={selectedProp.officer.avatar}
+                alt="Officer"
+                className="h-8 w-8 rounded-full object-cover"
+              />
+              <span className="text-sm font-semibold text-cream">
+                {selectedProp.officer.name}
+              </span>
             </div>
           </div>
         </div>
@@ -108,10 +426,10 @@ export default function VerificationProgress() {
 
       {/* Main Content Grid: Desktop = 2 cols, Tablet = stacked */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* LEFT COLUMN: Progress & Steps */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* Progress Overview */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -165,18 +483,17 @@ export default function VerificationProgress() {
                   const isCompleted = stage.status === 'completed';
                   const isCurrent = stage.status === 'current';
                   const isRejected = (stage.status as string) === 'rejected';
-                  
+
                   return (
                     <div key={idx} className="relative flex gap-6">
-                      <div className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-navy-800 ${
-                        isCompleted ? 'bg-emerald-500 text-navy-900' :
+                      <div className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-navy-800 ${isCompleted ? 'bg-emerald-500 text-navy-900' :
                         isCurrent ? 'bg-gold-400 text-navy-900' :
-                        isRejected ? 'bg-rose-500 text-navy-900' :
-                        'bg-navy-900 text-ink/30 border-white/10'
-                      }`}>
-                        {isCompleted ? <CheckCircle2 className="h-6 w-6" /> : 
-                         isRejected ? <X className="h-6 w-6" /> : 
-                         <div className={`h-3 w-3 rounded-full ${isCurrent ? 'bg-navy-900' : 'bg-ink/20'}`} />}
+                          isRejected ? 'bg-rose-500 text-navy-900' :
+                            'bg-navy-900 text-ink/30 border-white/10'
+                        }`}>
+                        {isCompleted ? <CheckCircle2 className="h-6 w-6" /> :
+                          isRejected ? <X className="h-6 w-6" /> :
+                            <div className={`h-3 w-3 rounded-full ${isCurrent ? 'bg-navy-900' : 'bg-ink/20'}`} />}
                       </div>
                       <div className="flex-1 pt-1">
                         <h4 className={`font-semibold text-lg ${isCompleted || isCurrent ? 'text-cream' : 'text-ink/50'}`}>{stage.name}</h4>
@@ -198,7 +515,7 @@ export default function VerificationProgress() {
 
         {/* RIGHT COLUMN: Checklist & History */}
         <div className="space-y-8">
-          
+
           {/* Document Checklist */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <h3 className="font-heading text-lg font-bold text-cream mb-4">Document Checklist</h3>
@@ -206,28 +523,26 @@ export default function VerificationProgress() {
               {selectedProp.documents.map((doc, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-navy-900/50 border border-white/5">
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${
-                      doc.status === 'verified' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' :
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${doc.status === 'verified' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' :
                       doc.status === 'rejected' ? 'bg-rose-500/20 border-rose-500 text-rose-400' :
-                      'bg-white/5 border-white/10 text-ink/40'
-                    }`}>
-                      {doc.status === 'verified' ? <Check className="h-3 w-3" /> : 
-                       doc.status === 'rejected' ? <X className="h-3 w-3" /> : 
-                       <Clock className="h-3 w-3" />}
+                        'bg-white/5 border-white/10 text-ink/40'
+                      }`}>
+                      {doc.status === 'verified' ? <Check className="h-3 w-3" /> :
+                        doc.status === 'rejected' ? <X className="h-3 w-3" /> :
+                          <Clock className="h-3 w-3" />}
                     </div>
                     <span className="text-sm font-medium text-cream">{doc.name}</span>
                   </div>
-                  <span className={`text-[10px] uppercase font-semibold tracking-wider ${
-                    doc.status === 'verified' ? 'text-emerald-400' :
+                  <span className={`text-[10px] uppercase font-semibold tracking-wider ${doc.status === 'verified' ? 'text-emerald-400' :
                     doc.status === 'rejected' ? 'text-rose-400' :
-                    'text-yellow-400'
-                  }`}>
+                      'text-yellow-400'
+                    }`}>
                     {doc.status}
                   </span>
                 </div>
               ))}
             </div>
-            
+
             <GhostButton className="w-full mt-6" onClick={() => setIsUploadModalOpen(true)}>
               <Upload className="h-4 w-4 mr-2" /> Upload Document
             </GhostButton>
@@ -235,7 +550,7 @@ export default function VerificationProgress() {
 
           {/* Verification History (Timeline) */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <div 
+            <div
               className="flex items-center justify-between cursor-pointer lg:cursor-auto"
               onClick={() => setIsMobileAccordionOpen(!isMobileAccordionOpen)}
             >
@@ -244,7 +559,7 @@ export default function VerificationProgress() {
                 {isMobileAccordionOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </div>
             </div>
-            
+
             <div className={`mt-6 ${!isMobileAccordionOpen ? 'hidden lg:block' : 'block'}`}>
               <div className="relative border-l-2 border-white/5 ml-2 space-y-6">
                 {selectedProp.history.map((event, idx) => (
@@ -261,11 +576,11 @@ export default function VerificationProgress() {
 
         </div>
       </div>
-      
-      <UploadDocumentModal 
-        isOpen={isUploadModalOpen} 
-        onClose={() => setIsUploadModalOpen(false)} 
-        onUpload={handleUpload} 
+
+      <UploadDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={handleUpload}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Home, Phone } from 'lucide-react';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout';
@@ -7,16 +7,44 @@ import { ROUTES } from '../../../constants/routes';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { useToast } from '../../../contexts/ToastContext';
-import { mockViewings } from '../../../data/buyerData';
+import { bookingApi } from '../../../api/booking.api';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { RescheduleViewingModal } from './modals/RescheduleViewingModal';
 import type { ViewingRequest } from '../../../types';
 
+
+
+
+// Describe the Booking shape returned by the backend.
+interface BackendBooking {
+  _id: string;
+  viewingDate: string;
+  viewingTime: string;
+  message: string;
+  status: string;
+  property: {
+    _id: string;
+    title: string;
+    propertyType?: string;
+    city?: string;
+    state?: string;
+    area?: string;
+    address?: string;
+    coverImage?: string | null;
+    images?: string[];
+  };
+}
 export default function ViewingRequests() {
   const { showToast } = useToast();
   const navigate = useNavigate();
+
+  // Store the viewing requests retrieved from the backend.
+  const [viewings, setViewings] = useState<ViewingRequest[]>([]);
+
+  // Track whether the viewing requests are currently being loaded.
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterType, setFilterType] = useState('All');
@@ -27,14 +55,73 @@ export default function ViewingRequests() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  // Load the authenticated Buyer's viewing requests from the backend.
+  useEffect(() => {
+    const loadViewingRequests = async () => {
+      try {
+        // Request the Buyer's viewing requests from the API.
+        const response = await bookingApi.getMyBookings();
+
+        // Inspect the exact response returned by the booking API.
+        console.log('MY BOOKINGS RESPONSE:', response);
+
+        // Read the bookings from the API response data.
+        const bookings: BackendBooking[] =
+          (response as any).data?.bookings ?? [];
+
+        // Convert backend bookings into the shape already used by this UI.
+        const mappedViewings: ViewingRequest[] = bookings.map((booking) => ({
+          id: booking._id,
+          propertyTitle: booking.property?.title || 'Property',
+          propertyType: booking.property?.propertyType || 'Unknown',
+          location: [
+            booking.property?.area,
+            booking.property?.city,
+            booking.property?.state,
+          ]
+            .filter(Boolean)
+            .join(', ') || booking.property?.address || 'Location unavailable',
+          agent: 'Assigned Agent',
+          date: booking.viewingDate.split('T')[0],
+          time: booking.viewingTime,
+          status: booking.status as ViewingRequest['status'],
+          image:
+            booking.property?.coverImage ||
+            booking.property?.images?.[0] ||
+            '',
+          meetingPoint:
+            booking.property?.address || 'Property address',
+          instructions: 'Please arrive at the scheduled viewing time.',
+          agentNotes: '',
+          specialRequests: booking.message || '',
+          summary: booking.property?.title || 'Property viewing request',
+        }));
+
+        // Store the converted requests for the existing table and filters.
+        setViewings(mappedViewings);
+      } catch (error) {
+        // Log the API failure so we can diagnose it without breaking the dashboard.
+        console.error('Failed to load viewing requests:', error);
+
+        // Keep the dashboard empty when the request fails.
+        setViewings([]);
+      } finally {
+        // Stop the loading state after the API request finishes.
+        setIsLoading(false);
+      }
+    };
+
+    // Load the Buyer's viewing requests when the component mounts.
+    loadViewingRequests();
+  }, []);
 
   const filteredAndSortedViewings = useMemo(() => {
-    let result = [...mockViewings];
+    let result = [...viewings];
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(v => 
-        v.propertyTitle.toLowerCase().includes(q) || 
-        v.agent.toLowerCase().includes(q) || 
+      result = result.filter(v =>
+        v.propertyTitle.toLowerCase().includes(q) ||
+        v.agent.toLowerCase().includes(q) ||
         v.location.toLowerCase().includes(q)
       );
     }
@@ -57,28 +144,116 @@ export default function ViewingRequests() {
         return a.date.localeCompare(b.date);
       }
       if (sortBy === 'completed') {
-         if (a.status === 'Completed' && b.status !== 'Completed') return -1;
-         if (a.status !== 'Completed' && b.status === 'Completed') return 1;
-         return 0;
+        if (a.status === 'Completed' && b.status !== 'Completed') return -1;
+        if (a.status !== 'Completed' && b.status === 'Completed') return 1;
+        return 0;
       }
       return 0;
     });
     return result;
-  }, [searchQuery, filterStatus, filterType, filterDate, sortBy]);
+  }, [viewings, searchQuery, filterStatus, filterType, filterDate, sortBy]);
 
   const uniqueStatuses = ['All', 'Pending', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'];
-  const uniqueTypes = ['All', ...new Set(mockViewings.map(v => v.propertyType))];
+  // Build the property-type filter from the Buyer's real viewing requests.
+  const uniqueTypes = ['All', ...new Set(viewings.map((v) => v.propertyType))];
   const uniqueDates = ['All', 'Upcoming', 'Past'];
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleRescheduleSubmit = (_date: string, _time: string, _notes: string) => {
-    showToast({ type: 'success', title: 'Request Rescheduled', description: 'Your viewing reschedule request has been sent to the agent.' });
-    setIsDrawerOpen(false);
+  const handleRescheduleSubmit = async (
+    date: string,
+    time: string,
+    _notes: string,
+  ) => {
+    try {
+      // Reschedule the selected viewing request through the backend.
+      await bookingApi.rescheduleBooking(selectedViewing!.id, {
+        viewingDate: date,
+        viewingTime: time,
+      });
+
+      // Update the local request so the table immediately reflects the new schedule.
+      setViewings((current) =>
+        current.map((viewing) =>
+          viewing.id === selectedViewing!.id
+            ? {
+              ...viewing,
+              date,
+              time,
+              status: 'Rescheduled',
+            }
+            : viewing,
+        ),
+      );
+
+      // Keep the selected viewing details synchronized with the updated data.
+      setSelectedViewing((current) =>
+        current
+          ? {
+            ...current,
+            date,
+            time,
+            status: 'Rescheduled',
+          }
+          : current,
+      );
+
+      // Close the reschedule modal and details drawer after a successful update.
+      setIsRescheduleOpen(false);
+      setIsDrawerOpen(false);
+
+      // Confirm the successful reschedule to the Buyer.
+      showToast({
+        type: 'success',
+        title: 'Viewing Rescheduled',
+        description: 'Your viewing has been rescheduled successfully.',
+      });
+    } catch (error) {
+      // Log the backend failure for debugging.
+      console.error('Failed to reschedule viewing:', error);
+
+      // Tell the Buyer that the reschedule could not be completed.
+      showToast({
+        type: 'error',
+        title: 'Reschedule Failed',
+        description: 'We could not reschedule this viewing. Please try again.',
+      });
+    }
   };
 
-  const handleCancelConfirm = () => {
-    showToast({ type: 'success', title: 'Viewing Cancelled', description: 'Your viewing has been cancelled.' });
-    setIsDrawerOpen(false);
+  const handleCancelConfirm = async () => {
+    try {
+      // Cancel the selected viewing request through the backend.
+      await bookingApi.cancelBooking(selectedViewing!.id);
+
+      // Update the local request so the table immediately shows Cancelled.
+      setViewings((current) =>
+        current.map((viewing) =>
+          viewing.id === selectedViewing!.id
+            ? { ...viewing, status: 'Cancelled' }
+            : viewing,
+        ),
+      );
+
+      // Close both the confirmation modal and details drawer.
+      setIsCancelOpen(false);
+      setIsDrawerOpen(false);
+
+      // Confirm the cancellation to the Buyer.
+      showToast({
+        type: 'success',
+        title: 'Viewing Cancelled',
+        description: 'Your viewing has been cancelled.',
+      });
+    } catch (error) {
+      // Log the cancellation failure for debugging.
+      console.error('Failed to cancel viewing:', error);
+
+      // Tell the Buyer that the cancellation could not be completed.
+      showToast({
+        type: 'error',
+        title: 'Cancellation Failed',
+        description: 'We could not cancel this viewing. Please try again.',
+      });
+    }
   };
 
   return (
@@ -127,7 +302,13 @@ export default function ViewingRequests() {
         />
       </div>
 
-      {filteredAndSortedViewings.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
+          <div className="flex items-center justify-center py-12 text-sm text-ink/60">
+            Loading viewing requests...
+          </div>
+        </div>
+      ) : filteredAndSortedViewings.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
           <EmptyState
             icon={<Calendar className="h-12 w-12 text-gold-400" />}
@@ -164,8 +345,8 @@ export default function ViewingRequests() {
                 header: "Schedule",
                 render: (viewing) => (
                   <div className="flex flex-col gap-1 text-xs">
-                    <span className="flex items-center gap-1 text-cream"><Calendar className="h-3 w-3 text-gold-400"/> {viewing.date}</span>
-                    <span className="flex items-center gap-1 text-cream"><Clock className="h-3 w-3 text-gold-400"/> {viewing.time}</span>
+                    <span className="flex items-center gap-1 text-cream"><Calendar className="h-3 w-3 text-gold-400" /> {viewing.date}</span>
+                    <span className="flex items-center gap-1 text-cream"><Clock className="h-3 w-3 text-gold-400" /> {viewing.time}</span>
                   </div>
                 )
               },
@@ -177,8 +358,8 @@ export default function ViewingRequests() {
                 header: <div className="text-right">Actions</div>,
                 className: "text-right",
                 render: (viewing) => (
-                  <button 
-                    onClick={() => { setSelectedViewing(viewing); setIsDrawerOpen(true); }} 
+                  <button
+                    onClick={() => { setSelectedViewing(viewing); setIsDrawerOpen(true); }}
                     className="inline-flex h-8 items-center justify-center rounded-lg border border-white/10 px-3 text-xs font-semibold hover:bg-white/5 hover:text-gold-400 transition-colors"
                   >
                     View Details
@@ -198,20 +379,20 @@ export default function ViewingRequests() {
           subtitle={`Property: ${selectedViewing.propertyTitle}`}
           footerActions={
             <>
-              <GoldButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}><Home className="h-4 w-4 mr-2"/> View Property</GoldButton>
-              <GhostButton size="sm" onClick={() => { setIsDrawerOpen(false); navigate(ROUTES.BUYER_DASHBOARD); }}><Phone className="h-4 w-4 mr-2"/> Contact Agent</GhostButton>
+              <GoldButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}><Home className="h-4 w-4 mr-2" /> View Property</GoldButton>
+              <GhostButton size="sm" onClick={() => { setIsDrawerOpen(false); navigate(ROUTES.BUYER_DASHBOARD); }}><Phone className="h-4 w-4 mr-2" /> Contact Agent</GhostButton>
               {selectedViewing.status !== 'Completed' && selectedViewing.status !== 'Cancelled' && (
-                 <>
-                   <GhostButton size="sm" className="text-purple-400 hover:text-purple-300 border-purple-400/30" onClick={() => setIsRescheduleOpen(true)}>Reschedule</GhostButton>
-                   <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30" onClick={() => setIsCancelOpen(true)}>Cancel</GhostButton>
-                 </>
+                <>
+                  <GhostButton size="sm" className="text-purple-400 hover:text-purple-300 border-purple-400/30" onClick={() => setIsRescheduleOpen(true)}>Reschedule</GhostButton>
+                  <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30" onClick={() => setIsCancelOpen(true)}>Cancel</GhostButton>
+                </>
               )}
             </>
           }
         >
           <div className="space-y-6">
             <div className="rounded-xl overflow-hidden">
-               <img src={selectedViewing.image} alt={selectedViewing.propertyTitle} className="w-full h-48 object-cover" />
+              <img src={selectedViewing.image} alt={selectedViewing.propertyTitle} className="w-full h-48 object-cover" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -231,8 +412,15 @@ export default function ViewingRequests() {
               </div>
             </div>
 
+            <div className="bg-navy-900/50 rounded-xl p-3 border border-white/5 flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold">
+                Status
+              </span>
+
+              <EnterpriseStatusBadge status={selectedViewing.status} />
+            </div>
             <div>
-              <h4 className="font-semibold text-gold-400 mb-1 flex items-center gap-2"><MapPin className="h-4 w-4"/> Meeting Point</h4>
+              <h4 className="font-semibold text-gold-400 mb-1 flex items-center gap-2"><MapPin className="h-4 w-4" /> Meeting Point</h4>
               <p className="text-sm text-cream/80">{selectedViewing.meetingPoint}</p>
             </div>
 
@@ -259,7 +447,7 @@ export default function ViewingRequests() {
         </EnterpriseDetailDrawer>
       )}
 
-      <RescheduleViewingModal 
+      <RescheduleViewingModal
         isOpen={isRescheduleOpen}
         onClose={() => setIsRescheduleOpen(false)}
         onSubmit={handleRescheduleSubmit}

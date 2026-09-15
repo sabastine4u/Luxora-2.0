@@ -1,187 +1,870 @@
-import { Target, TrendingUp, Award, AlertTriangle, Activity } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  TrendingUp,
+  Award,
+  AlertTriangle,
+  Activity,
+  Building2,
+  CircleDollarSign,
+  HandCoins,
+  Users,
+  MessageSquareWarning,
+  Eye,
+  FileText,
+  CheckCircle2,
+} from 'lucide-react';
+
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
+import { managementApi } from '../../../api/management.api';
+
+interface PerformanceSummary {
+  totalProperties: number;
+  liveProperties: number;
+  finalizedProperties: number;
+
+  totalOffers: number;
+  acceptedOffers: number;
+
+  totalInquiries: number;
+  totalViewings: number;
+
+  closedDealValue: number;
+
+  commissionPool: number;
+  agencyCommission: number;
+  recordedCommissionDeals: number;
+
+  activeTeamMembers: number;
+  inactiveTeamMembers: number;
+
+  complaintResolutionRate: number | null;
+}
+
+interface PerformanceFunnel {
+  inquiries: number;
+  viewings: number;
+  offers: number;
+  closedDeals: number;
+  acceptedOffers: number;
+
+  offerAcceptanceRate: number | null;
+  closingRate: number | null;
+}
+
+interface PropertyDistributionItem {
+  _id: string;
+  count: number;
+}
+
+interface MonthlyTrendItem {
+  month: string;
+  year: number;
+
+  dealValue: number;
+  commissionPool: number;
+  agencyAmount: number;
+  deals: number;
+}
+
+interface ServiceHealth {
+  totalComplaints: number;
+  resolvedComplaints: number;
+  complaintResolutionRate: number | null;
+}
+
+interface ManagementPerformanceData {
+  summary: PerformanceSummary;
+  funnel: PerformanceFunnel;
+  propertyDistribution: PropertyDistributionItem[];
+  monthlyTrend: MonthlyTrendItem[];
+  serviceHealth: ServiceHealth;
+}
+
+const formatCurrency = (
+  value: number,
+  maximumFractionDigits = 0,
+) => {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  }).format(value);
+};
+
+const formatNumber = (value: number) => {
+  return new Intl.NumberFormat('en-NG').format(value);
+};
 
 export default function Performance() {
-  const departmentScores = [
-    { name: 'Finance', score: 'A+', efficiency: 98, progress: 95, color: 'bg-emerald-400' },
-    { name: 'Intelligence', score: 'A', efficiency: 92, progress: 88, color: 'bg-emerald-400' },
-    { name: 'Procurement', score: 'B+', efficiency: 85, progress: 82, color: 'bg-blue-400' },
-    { name: 'Property', score: 'B', efficiency: 78, progress: 75, color: 'bg-yellow-400' },
-  ];
+  const [performance, setPerformance] =
+    useState<ManagementPerformanceData | null>(null);
 
-  const executiveHighlights = [
-    { title: 'Q3 Goal Achieved: Cost Reduction', time: 'Oct 01, 2025', desc: '15% reduction in operating costs across all sectors', icon: Award, color: 'text-gold-400' },
-    { title: 'New Performance Benchmark Set', time: 'Sep 28, 2025', desc: 'Intelligence dept exceeded processing KPIs by 22%', icon: Target, color: 'text-emerald-400' },
-    { title: 'Efficiency Warning: Logistics', time: 'Sep 15, 2025', desc: 'Delivery SLAs dropped below 90% threshold', icon: AlertTriangle, color: 'text-rose-400' },
-  ];
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const goalBreakdown = [
-    { label: 'Revenue Targets', value: 95, status: 'On Track' },
-    { label: 'Client Satisfaction', value: 88, status: 'On Track' },
-    { label: 'Operational Scaling', value: 72, status: 'At Risk' },
-    { label: 'Talent Acquisition', value: 65, status: 'Behind' },
-  ];
+  useEffect(() => {
+    const loadPerformance = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response =
+          await managementApi.getPerformance();
+
+        /*
+         * The Manager Performance controller returns:
+         *
+         * {
+         *   success: true,
+         *   message: "...",
+         *   data: {...}
+         * }
+         *
+         * Depending on the current http helper's unwrap behavior,
+         * support both shapes safely.
+         */
+        const payload =
+          response?.data ?? response;
+
+        setPerformance(payload);
+      } catch (err) {
+        console.error(
+          'Failed to load management performance:',
+          err,
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to load management performance.',
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPerformance();
+  }, []);
+
+  const summary = performance?.summary;
+  const funnel = performance?.funnel;
+  const serviceHealth = performance?.serviceHealth;
+
+  const propertyDistribution =
+    performance?.propertyDistribution ?? [];
+
+  const monthlyTrend =
+    performance?.monthlyTrend ?? [];
+
+  const maxMonthlyDealValue = useMemo(() => {
+    if (!monthlyTrend.length) return 0;
+
+    return Math.max(
+      ...monthlyTrend.map(
+        (item) => item.dealValue,
+      ),
+    );
+  }, [monthlyTrend]);
+
+  const maxPropertyCount = useMemo(() => {
+    if (!propertyDistribution.length) {
+      return 1;
+    }
+
+    return Math.max(
+      ...propertyDistribution.map(
+        (item) => item.count,
+      ),
+      1,
+    );
+  }, [propertyDistribution]);
 
   return (
     <div className="space-y-6">
       <DashboardHeader
         name="Enterprise Performance"
-        subtitle="Quarterly scorecards, executive insights, and organizational productivity."
-        actions={
-          <div className="flex gap-3">
-          </div>
-        }
+        subtitle="Monitor real enterprise transactions, portfolio activity, service health, and workforce capacity."
+        actions={<div className="flex gap-3" />}
       />
 
-      {/* Quarterly Executive Dashboard (KPIs) */}
+      {error && (
+        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/5 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+
+            <div>
+              <p className="text-sm font-semibold text-cream">
+                Unable to load performance data
+              </p>
+
+              <p className="mt-1 text-xs text-ink/60">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Executive KPIs */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Overall Efficiency"
-          value="92.4%"
-          trend="+1.2% this quarter"
+          title="Closed Deal Value"
+          value={
+            isLoading
+              ? '—'
+              : formatCurrency(
+                  summary?.closedDealValue ?? 0,
+                )
+          }
+          trend={
+            isLoading
+              ? 'Loading...'
+              : `${summary?.finalizedProperties ?? 0} finalized deal${
+                  (summary?.finalizedProperties ?? 0) === 1
+                    ? ''
+                    : 's'
+                }`
+          }
           trendColor="text-emerald-400"
-          icon={Activity}
-          footer={<div className="text-xs text-ink/60">Across all departments</div>}
+          icon={CircleDollarSign}
+          footer={
+            <div className="text-xs text-ink/60">
+              Finalized transaction value
+            </div>
+          }
         />
+
         <KPICard
-          title="Goal Achievement"
-          value="88%"
-          trend="4/5 targets met"
-          trendColor="text-emerald-400"
-          icon={Target}
-          footer={<div className="text-xs text-ink/60">Q3 Enterprise Goals</div>}
+          title="Agency Commission"
+          value={
+            isLoading
+              ? '—'
+              : formatCurrency(
+                  summary?.agencyCommission ?? 0,
+                )
+          }
+          trend={
+            isLoading
+              ? 'Loading...'
+              : `${summary?.recordedCommissionDeals ?? 0} recorded deal${
+                  (summary?.recordedCommissionDeals ?? 0) === 1
+                    ? ''
+                    : 's'
+                }`
+          }
+          trendColor="text-gold-400"
+          icon={HandCoins}
+          footer={
+            <div className="text-xs text-ink/60">
+              Commission attributed to Luxora
+            </div>
+          }
         />
+
         <KPICard
-          title="Productivity Index"
-          value="A-"
-          trend="Top quartile"
+          title="Live Properties"
+          value={
+            isLoading
+              ? '—'
+              : String(
+                  summary?.liveProperties ?? 0,
+                )
+          }
+          trend={
+            isLoading
+              ? 'Loading...'
+              : `${summary?.totalProperties ?? 0} total properties`
+          }
           trendColor="text-blue-400"
-          icon={Award}
-          footer={<div className="text-xs text-ink/60">Industry benchmark</div>}
+          icon={Building2}
+          footer={
+            <div className="text-xs text-ink/60">
+              Published and under-offer inventory
+            </div>
+          }
         />
+
         <KPICard
-          title="Performance Risks"
-          value="3"
-          trend="-2 from last month"
-          trendColor="text-emerald-400"
-          icon={AlertTriangle}
-          footer={<div className="text-xs text-ink/60">Requiring executive attention</div>}
+          title="Team Capacity"
+          value={
+            isLoading
+              ? '—'
+              : String(
+                  summary?.activeTeamMembers ?? 0,
+                )
+          }
+          trend={
+            isLoading
+              ? 'Loading...'
+              : `${summary?.inactiveTeamMembers ?? 0} inactive`
+          }
+          trendColor={
+            (summary?.inactiveTeamMembers ?? 0) > 0
+              ? 'text-yellow-400'
+              : 'text-emerald-400'
+          }
+          icon={Users}
+          footer={
+            <div className="text-xs text-ink/60">
+              Active operational staff
+            </div>
+          }
         />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Column (2/3) */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Executive Performance Insights (Monthly Summary) */}
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col md:flex-row gap-6 items-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gold-400/10 text-gold-400 border border-gold-400/20 shrink-0">
-              <TrendingUp className="h-10 w-10" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-heading text-lg font-bold text-cream mb-2">Monthly Executive Summary</h3>
-              <p className="text-sm text-ink/80 leading-relaxed mb-4">
-                Enterprise productivity is operating at peak levels. Finance and Intelligence have achieved their Q3 targets early. Property Management requires additional resources to meet upcoming Q4 scaling goals. Overall trajectory remains highly positive.
-              </p>
-              <div className="flex gap-4">
-                <span className="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">Growth: +12%</span>
-                <span className="text-xs font-semibold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">Retention: 98%</span>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left side */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Performance Snapshot */}
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-gold-400/20 bg-gold-400/10 text-gold-400">
+                <TrendingUp className="h-10 w-10" />
+              </div>
+
+              <div className="flex-1">
+                <h3 className="mb-2 font-heading text-lg font-bold text-cream">
+                  Enterprise Performance Snapshot
+                </h3>
+
+                <p className="text-sm leading-relaxed text-ink/70">
+                  The current enterprise pipeline contains{' '}
+                  <span className="font-semibold text-cream">
+                    {isLoading
+                      ? '—'
+                      : formatNumber(
+                          summary?.totalOffers ?? 0,
+                        )}
+                  </span>{' '}
+                  offers and{' '}
+                  <span className="font-semibold text-cream">
+                    {isLoading
+                      ? '—'
+                      : formatNumber(
+                          summary?.finalizedProperties ?? 0,
+                        )}
+                  </span>{' '}
+                  finalized transaction
+                  {(
+                    summary?.finalizedProperties ?? 0
+                  ) === 1
+                    ? ''
+                    : 's'}
+                  . The current recorded closed value is{' '}
+                  <span className="font-semibold text-gold-400">
+                    {isLoading
+                      ? '—'
+                      : formatCurrency(
+                          summary?.closedDealValue ?? 0,
+                        )}
+                  </span>
+                  .
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+                    {isLoading
+                      ? '—'
+                      : `${summary?.acceptedOffers ?? 0} accepted offer${
+                          (summary?.acceptedOffers ?? 0) === 1
+                            ? ''
+                            : 's'
+                        }`}
+                  </span>
+
+                  <span className="rounded-full bg-blue-400/10 px-3 py-1 text-xs font-semibold text-blue-400">
+                    {isLoading
+                      ? '—'
+                      : `${summary?.totalViewings ?? 0} viewing${
+                          (summary?.totalViewings ?? 0) === 1
+                            ? ''
+                            : 's'
+                        }`}
+                  </span>
+
+                  <span className="rounded-full bg-gold-400/10 px-3 py-1 text-xs font-semibold text-gold-400">
+                    {isLoading
+                      ? '—'
+                      : `${summary?.totalInquiries ?? 0} inquir${
+                          (summary?.totalInquiries ?? 0) === 1
+                            ? 'y'
+                            : 'ies'
+                        }`}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Department Efficiency Comparison & Organization Scorecards */}
-            <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading text-lg font-semibold text-cream">Department Scorecards</h3>
+          {/* Enterprise Funnel */}
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="font-heading text-lg font-semibold text-cream">
+                  Enterprise Transaction Funnel
+                </h3>
+
+                <p className="mt-1 text-xs text-ink/50">
+                  Real activity recorded across the platform.
+                </p>
               </div>
-              <div className="space-y-4 flex-1">
-                {departmentScores.map((dept, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-cream">{dept.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold ${dept.color}`}>{dept.score}</span>
-                        <span className="text-xs text-ink/60 w-12 text-right">{dept.efficiency}%</span>
-                      </div>
-                    </div>
-                    <div className="h-1.5 w-full bg-navy-950 rounded-full overflow-hidden border border-white/5">
-                      <div className={`h-full ${dept.color}`} style={{ width: `${dept.efficiency}%` }}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+
+              <Activity className="h-5 w-5 text-gold-400" />
             </div>
 
-            {/* Goal Achievement Breakdown */}
-            <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
-              <h3 className="font-heading text-lg font-semibold text-cream mb-4">Goal Achievement</h3>
-              <div className="space-y-4 flex-1">
-                {goalBreakdown.map((goal, i) => (
-                  <div key={i} className="p-3 bg-navy-900/50 rounded-xl border border-white/5 flex flex-col gap-2 hover:bg-white/5 transition-colors cursor-pointer">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-cream">{goal.label}</span>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                        goal.status === 'On Track' ? 'bg-emerald-400/10 text-emerald-400' :
-                        goal.status === 'At Risk' ? 'bg-yellow-400/10 text-yellow-400' :
-                        'bg-rose-400/10 text-rose-400'
-                      }`}>
-                        {goal.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="h-1.5 flex-1 bg-navy-950 rounded-full overflow-hidden">
-                        <div className={`h-full ${
-                          goal.status === 'On Track' ? 'bg-emerald-400' :
-                          goal.status === 'At Risk' ? 'bg-yellow-400' :
-                          'bg-rose-400'
-                        }`} style={{ width: `${goal.value}%` }}></div>
-                      </div>
-                      <span className="text-xs font-bold text-cream w-8 text-right">{goal.value}%</span>
-                    </div>
-                  </div>
-                ))}
+            {isLoading ? (
+              <div className="grid gap-4 md:grid-cols-5">
+                {Array.from({ length: 5 }).map(
+                  (_, index) => (
+                    <div
+                      key={index}
+                      className="h-24 animate-pulse rounded-xl bg-navy-900/50"
+                    />
+                  ),
+                )}
               </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-5">
+                {[
+                  {
+                    label: 'Inquiries',
+                    value: funnel?.inquiries ?? 0,
+                    icon: MessageSquareWarning,
+                    valueClass: 'text-blue-400',
+                  },
+                  {
+                    label: 'Viewings',
+                    value: funnel?.viewings ?? 0,
+                    icon: Eye,
+                    valueClass: 'text-purple-400',
+                  },
+                  {
+                    label: 'Offers',
+                    value: funnel?.offers ?? 0,
+                    icon: FileText,
+                    valueClass: 'text-gold-400',
+                  },
+                  {
+                    label: 'Accepted',
+                    value:
+                      funnel?.acceptedOffers ?? 0,
+                    icon: CheckCircle2,
+                    valueClass: 'text-emerald-400',
+                  },
+                  {
+                    label: 'Closed Deals',
+                    value:
+                      funnel?.closedDeals ?? 0,
+                    icon: Award,
+                    valueClass: 'text-cream',
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-white/5 bg-navy-900/50 p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-xs text-ink/50">
+                          {item.label}
+                        </span>
+
+                        <Icon
+                          className={`h-4 w-4 ${item.valueClass}`}
+                        />
+                      </div>
+
+                      <div
+                        className={`text-2xl font-bold ${item.valueClass}`}
+                      >
+                        {formatNumber(item.value)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {!isLoading && (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-ink/60">
+                      Offer Acceptance Rate
+                    </span>
+
+                    <span className="text-sm font-bold text-emerald-400">
+                      {funnel?.offerAcceptanceRate ===
+                      null
+                        ? '—'
+                        : `${funnel?.offerAcceptanceRate}%`}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-navy-950">
+                    <div
+                      className="h-full bg-emerald-400"
+                      style={{
+                        width: `${Math.min(
+                          funnel?.offerAcceptanceRate ??
+                            0,
+                          100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-ink/60">
+                      Offer → Closed Rate
+                    </span>
+
+                    <span className="text-sm font-bold text-gold-400">
+                      {funnel?.closingRate ===
+                      null
+                        ? '—'
+                        : `${funnel?.closingRate}%`}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-navy-950">
+                    <div
+                      className="h-full bg-gold-400"
+                      style={{
+                        width: `${Math.min(
+                          funnel?.closingRate ??
+                            0,
+                          100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Six Month Trend */}
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="font-heading text-lg font-semibold text-cream">
+                  Six-Month Transaction Trend
+                </h3>
+
+                <p className="mt-1 text-xs text-ink/50">
+                  Recorded deal value and completed transaction count.
+                </p>
+              </div>
+
+              <CircleDollarSign className="h-5 w-5 text-gold-400" />
             </div>
+
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 6 }).map(
+                  (_, index) => (
+                    <div
+                      key={index}
+                      className="h-10 animate-pulse rounded-lg bg-navy-900/50"
+                    />
+                  ),
+                )}
+              </div>
+            ) : monthlyTrend.length === 0 ? (
+              <div className="py-10 text-center text-sm text-ink/50">
+                No transaction trend data available.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {monthlyTrend.map((month) => {
+                  const width =
+                    maxMonthlyDealValue > 0
+                      ? (month.dealValue /
+                          maxMonthlyDealValue) *
+                        100
+                      : 0;
+
+                  return (
+                    <div
+                      key={`${month.month}-${month.year}`}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="w-16 shrink-0">
+                          <span className="text-xs font-medium text-cream">
+                            {month.month}
+                          </span>
+
+                          <span className="ml-1 text-[10px] text-ink/40">
+                            {month.year}
+                          </span>
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="h-2 overflow-hidden rounded-full bg-navy-950">
+                            <div
+                              className="h-full rounded-full bg-gold-400 transition-all"
+                              style={{
+                                width: `${width}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="w-32 text-right">
+                          <div className="text-xs font-semibold text-cream">
+                            {formatCurrency(
+                              month.dealValue,
+                            )}
+                          </div>
+
+                          <div className="text-[10px] text-ink/40">
+                            {month.deals}{' '}
+                            {month.deals === 1
+                              ? 'deal'
+                              : 'deals'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Sidebar */}
         <div className="space-y-6">
-          {/* Productivity Distribution */}
+          {/* Portfolio Distribution */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <h3 className="font-heading text-lg font-semibold text-cream mb-4">Productivity Distribution</h3>
-            <div className="flex items-center justify-center py-6">
-              <div className="relative h-32 w-32 rounded-full border-[12px] border-navy-900 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border-[12px] border-emerald-400/20 pointer-events-none"></div>
-                <div className="absolute inset-0 rounded-full border-[12px] border-transparent border-t-emerald-400 border-r-emerald-400 pointer-events-none" style={{ transform: 'rotate(45deg)' }}></div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-cream">78%</div>
-                  <div className="text-[10px] text-ink/60 uppercase">Optimal</div>
-                </div>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-heading text-lg font-semibold text-cream">
+                  Portfolio Distribution
+                </h3>
+
+                <p className="mt-1 text-xs text-ink/50">
+                  Current property statuses.
+                </p>
               </div>
+
+              <Building2 className="h-5 w-5 text-gold-400" />
             </div>
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div className="text-center">
-                <div className="text-xs text-ink/60 mb-1">Strained</div>
-                <div className="text-sm font-semibold text-yellow-400">15%</div>
+
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map(
+                  (_, index) => (
+                    <div
+                      key={index}
+                      className="space-y-2 animate-pulse"
+                    >
+                      <div className="h-3 w-1/2 rounded bg-navy-700" />
+                      <div className="h-1.5 rounded bg-navy-700" />
+                    </div>
+                  ),
+                )}
               </div>
-              <div className="text-center">
-                <div className="text-xs text-ink/60 mb-1">Critical</div>
-                <div className="text-sm font-semibold text-rose-400">7%</div>
+            ) : propertyDistribution.length === 0 ? (
+              <div className="py-8 text-center text-sm text-ink/50">
+                No property distribution data available.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {propertyDistribution.map(
+                  (item) => {
+                    const percentage =
+                      summary &&
+                      summary.totalProperties > 0
+                        ? Math.round(
+                            (item.count /
+                              summary.totalProperties) *
+                              100,
+                          )
+                        : 0;
+
+                    return (
+                      <div
+                        key={item._id}
+                        className="space-y-2"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="capitalize text-ink/60">
+                            {item._id}
+                          </span>
+
+                          <span className="font-semibold text-cream">
+                            {item.count}
+                          </span>
+                        </div>
+
+                        <div className="h-1.5 overflow-hidden rounded-full bg-navy-950">
+                          <div
+                            className="h-full bg-blue-400"
+                            style={{
+                              width: `${Math.min(
+                                percentage,
+                                100,
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Service Health */}
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <MessageSquareWarning className="h-5 w-5 text-gold-400" />
+
+              <h3 className="font-heading text-lg font-semibold text-cream">
+                Service Health
+              </h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg p-2 hover:bg-white/5">
+                <span className="text-sm text-ink/70">
+                  Total Complaints
+                </span>
+
+                <span className="text-sm font-semibold text-cream">
+                  {isLoading
+                    ? '—'
+                    : formatNumber(
+                        serviceHealth?.totalComplaints ??
+                          0,
+                      )}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg p-2 hover:bg-white/5">
+                <span className="text-sm text-ink/70">
+                  Resolved
+                </span>
+
+                <span className="text-sm font-semibold text-emerald-400">
+                  {isLoading
+                    ? '—'
+                    : formatNumber(
+                        serviceHealth?.resolvedComplaints ??
+                          0,
+                      )}
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-emerald-400/10 bg-emerald-400/5 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-ink/60">
+                    Resolution Rate
+                  </span>
+
+                  <span className="text-lg font-bold text-emerald-400">
+                    {isLoading
+                      ? '—'
+                      : serviceHealth?.complaintResolutionRate ===
+                        null
+                      ? '—'
+                      : `${serviceHealth?.complaintResolutionRate}%`}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Performance Highlights Timeline */}
+          {/* Workforce Status */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <ActivityTimeline
-              title="Executive Highlights"
-              items={executiveHighlights}
-            />
+            <div className="mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-400" />
+
+              <h3 className="font-heading text-lg font-semibold text-cream">
+                Workforce Status
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border border-white/5 bg-navy-900/50 p-3">
+                <span className="text-xs text-ink/60">
+                  Active Staff
+                </span>
+
+                <span className="text-sm font-bold text-emerald-400">
+                  {isLoading
+                    ? '—'
+                    : summary?.activeTeamMembers ??
+                      0}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-white/5 bg-navy-900/50 p-3">
+                <span className="text-xs text-ink/60">
+                  Inactive Staff
+                </span>
+
+                <span className="text-sm font-bold text-rose-400">
+                  {isLoading
+                    ? '—'
+                    : summary?.inactiveTeamMembers ??
+                      0}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Commission Snapshot */}
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <HandCoins className="h-5 w-5 text-gold-400" />
+
+              <h3 className="font-heading text-lg font-semibold text-cream">
+                Commission Snapshot
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <p className="mb-1 text-xs text-ink/40">
+                  Commission Pool
+                </p>
+
+                <p className="text-lg font-bold text-cream">
+                  {isLoading
+                    ? '—'
+                    : formatCurrency(
+                        summary?.commissionPool ??
+                          0,
+                      )}
+                </p>
+              </div>
+
+              <div>
+                <p className="mb-1 text-xs text-ink/40">
+                  Agency Commission
+                </p>
+
+                <p className="text-lg font-bold text-gold-400">
+                  {isLoading
+                    ? '—'
+                    : formatCurrency(
+                        summary?.agencyCommission ??
+                          0,
+                      )}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

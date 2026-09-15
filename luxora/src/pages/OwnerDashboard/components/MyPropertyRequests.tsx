@@ -8,11 +8,125 @@ import { DataTableToolbar } from '../../../components/dashboard/shared/filters/D
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { useToast } from '../../../contexts/ToastContext';
-import { mockRequests } from '../../../data/ownerData';
+import { propertyApi } from '../../../api/property.api';
 import type { PropertyRequest } from '../../../types/owner';
 import ConfirmationModal from './modals/ConfirmationModal';
 import UploadDocumentModal from './modals/UploadDocumentModal';
 import PropertySubmissionModal from './modals/PropertySubmissionModal';
+
+
+// MyPropertyRequests.tsx
+export const mapOwnerPropertyToRequest = (property: any): PropertyRequest => {
+  // Use the property's first image when available, otherwise use a safe empty image value.
+  const image = property.coverImage || property.images?.[0] || '';
+
+  // Build the display location from the property's city and state.
+  const location = [property.city, property.state]
+    .filter(Boolean)
+    .join(', ');
+
+  // Determine the Owner-facing status from the property's real workflow state.
+  let status = 'Draft';
+
+  if (property.status === 'Published') {
+    status = 'Published';
+  } else if (property.verificationLevel === 'Documents Verified') {
+    status = 'Documents Verified';
+  } else if (property.assignmentStatus !== 'Unassigned') {
+    status = 'Submitted';
+  } else if (property.status !== 'Draft') {
+    status = 'Submitted';
+  }
+
+  // Estimate progress from the current workflow state.
+  let progress = 20;
+
+  if (property.assignmentStatus === 'Agency Assigned') {
+    progress = 40;
+  } else if (property.assignmentStatus === 'Agent Assigned') {
+    progress = 60;
+  }
+
+  if (property.verificationLevel === 'Documents Verified') {
+    progress = 75;
+  }
+
+  if (property.status === 'Published') {
+    progress = 100;
+  }
+
+  // Convert the backend agent object into the format expected by the existing UI.
+  const agent = property.agent
+    ? {
+      name: property.agent.user?.fullName || 'Assigned Agent',
+      avatar: property.agent.user?.avatar || '',
+    }
+    : {
+      name: 'Unassigned',
+      avatar: '',
+    };
+
+  return {
+    id: property._id,
+    name: property.title,
+    type: property.propertyType || property.propertySubType || 'Property',
+    location,
+    image,
+    submissionDate: property.createdAt,
+    lastUpdated: property.updatedAt,
+    status,
+    progress,
+    agent,
+
+    // Build the existing timeline UI from the real property workflow.
+    timeline: [
+      {
+        stage: 'Property Submitted',
+        date: property.createdAt,
+        status: 'completed',
+      },
+      {
+        stage: 'Agency Assignment',
+        date: property.assignedAt,
+        status:
+          property.assignmentStatus === 'Agency Assigned' ||
+            property.assignmentStatus === 'Agent Assigned'
+            ? 'completed'
+            : 'current',
+      },
+      {
+        stage: 'Agent Assignment',
+        date: property.assignedAt,
+        status:
+          property.assignmentStatus === 'Agent Assigned'
+            ? 'completed'
+            : 'pending',
+      },
+      {
+        stage: 'Verification',
+        date: property.inspectionCompletedAt,
+        status:
+          property.verificationLevel === 'Documents Verified'
+            ? 'completed'
+            : 'pending',
+      },
+      {
+        stage: 'Publication',
+        date: property.status === 'Published' ? property.updatedAt : undefined,
+        status: property.status === 'Published' ? 'completed' : 'pending',
+      },
+    ],
+
+    // The backend currently returns an empty documents array for this property.
+    documents: (property.documents || []).map((document: any) => ({
+      name: document.name || document.title || 'Document',
+      status: document.status || 'pending',
+      type: document.type,
+    })),
+
+    notes: property.description || undefined,
+  };
+};
 
 export default function MyPropertyRequests() {
   const { showToast } = useToast();
@@ -22,9 +136,14 @@ export default function MyPropertyRequests() {
   const [typeFilter, setTypeFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('Newest');
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [selectedReq, setSelectedReq] = useState<PropertyRequest | null>(null);
-  
+
+  // Store the authenticated owner's real property requests.
+  const [requests, setRequests] = useState<PropertyRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Modals state
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -42,19 +161,76 @@ export default function MyPropertyRequests() {
     }
   }, [searchParams, setSearchParams]);
 
+  useEffect(() => {
+    // Load the authenticated owner's property requests from the backend.
+    const loadOwnerProperties = async () => {
+      try {
+        // Show the loading state while the API request is running.
+        setIsLoading(true);
+
+        // Clear any previous API error before making a fresh request.
+        setLoadError(null);
+
+        // Fetch the owner's properties from the API.
+        const response = await propertyApi.getOwnerProperties();
+
+        // The HTTP client unwraps the Axios response at runtime,
+        // so access the returned property collection through the expected payload shape.
+        const properties = (response as any)?.properties || [];
+
+        // Convert the backend properties into the format used by the existing UI.
+        const mappedRequests = properties.map(mapOwnerPropertyToRequest);
+
+        // Store the real owner property requests in component state.
+        setRequests(mappedRequests);
+
+        // Log the mapped result while we verify the integration.
+        console.log('Mapped owner requests:', mappedRequests);
+
+        // The mapper will be added in the next step.
+        // For now, keep the returned properties ready for inspection.
+      } catch (error) {
+        // Convert the API failure into a readable message for the UI.
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load your property requests.',
+        );
+      } finally {
+        // Stop the loading state whether the request succeeds or fails.
+        setIsLoading(false);
+      }
+    };
+
+    // Start loading the owner's properties when this component mounts.
+    loadOwnerProperties();
+  }, []);
+
   const filteredRequests = useMemo(() => {
-    return mockRequests.filter(req => {
-      const matchSearch = req.name.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === 'All' || req.status === statusFilter;
-      const matchType = typeFilter === 'All' || req.type === typeFilter;
-      return matchSearch && matchStatus && matchType;
-    }).sort((a, b) => {
-      if (sortOrder === 'Newest') return new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime();
-      if (sortOrder === 'Oldest') return new Date(a.submissionDate).getTime() - new Date(b.submissionDate).getTime();
-      if (sortOrder === 'Recently Updated') return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
-      return 0;
-    });
-  }, [search, statusFilter, typeFilter, sortOrder]);
+    return requests
+      .filter(req => {
+        const matchSearch = req.name.toLowerCase().includes(search.toLowerCase());
+        const matchStatus = statusFilter === 'All' || req.status === statusFilter;
+        const matchType = typeFilter === 'All' || req.type === typeFilter;
+
+        return matchSearch && matchStatus && matchType;
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'Newest') {
+          return new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime();
+        }
+
+        if (sortOrder === 'Oldest') {
+          return new Date(a.submissionDate).getTime() - new Date(b.submissionDate).getTime();
+        }
+
+        if (sortOrder === 'Recently Updated') {
+          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+        }
+
+        return 0;
+      });
+  }, [requests, search, statusFilter, typeFilter, sortOrder]);
 
   const handlePropertySubmit = () => {
     setIsSubmissionModalOpen(false);
@@ -78,7 +254,7 @@ export default function MyPropertyRequests() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-heading text-2xl font-bold text-cream">Property Requests <span className="text-sm font-normal text-gold-400 ml-2">({mockRequests.length} Total)</span></h2>
+          <h2 className="font-heading text-2xl font-bold text-cream">Property Requests <span className="text-sm font-normal text-gold-400 ml-2">({requests.length} Total)</span></h2>
           <p className="text-sm text-ink/60">Track every property you have submitted for verification and publication.</p>
         </div>
         <GoldButton className="flex items-center gap-2" onClick={() => setIsSubmissionModalOpen(true)}>
@@ -93,7 +269,7 @@ export default function MyPropertyRequests() {
         searchPlaceholder="Search property name..."
         actions={
           <>
-            <select 
+            <select
               className="rounded-xl border border-white/10 bg-navy-900/50 py-2 px-4 text-sm text-cream focus:outline-none"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
@@ -104,7 +280,7 @@ export default function MyPropertyRequests() {
               <option value="Documents Verified">Documents Verified</option>
               <option value="Published">Published</option>
             </select>
-            <select 
+            <select
               className="rounded-xl border border-white/10 bg-navy-900/50 py-2 px-4 text-sm text-cream focus:outline-none"
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
@@ -114,7 +290,7 @@ export default function MyPropertyRequests() {
               <option value="Villa">Villa</option>
               <option value="Penthouse">Penthouse</option>
             </select>
-            <select 
+            <select
               className="rounded-xl border border-white/10 bg-navy-900/50 py-2 px-4 text-sm text-cream focus:outline-none"
               value={sortOrder}
               onChange={e => setSortOrder(e.target.value)}
@@ -128,7 +304,17 @@ export default function MyPropertyRequests() {
       />
 
       {/* Main Content */}
-      {filteredRequests.length === 0 ? (
+      {isLoading ? (
+        // Show a simple loading message while owner properties are being fetched.
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-8 text-center">
+          <p className="text-sm text-ink/60">Loading your property requests...</p>
+        </div>
+      ) : loadError ? (
+        // Show the API error without breaking the rest of the dashboard.
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
+          <p className="text-sm text-rose-400">{loadError}</p>
+        </div>
+      ) : filteredRequests.length === 0 ? (
         <EmptyState
           icon={<Building2 className="h-8 w-8 text-gold-400" />}
           title="No property requests found."
@@ -220,7 +406,7 @@ export default function MyPropertyRequests() {
                     <EnterpriseStatusBadge status={req.status} />
                   </div>
                 </div>
-                
+
                 <div className="mb-4">
                   <div className="flex justify-between text-xs text-ink/50 mb-1">
                     <span>Progress</span>

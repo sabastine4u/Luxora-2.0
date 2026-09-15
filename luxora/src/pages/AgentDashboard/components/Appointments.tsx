@@ -1,5 +1,19 @@
-import { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, MapPin, User, Video, AlertCircle, TrendingUp, Navigation, CalendarDays, PieChart, ListTodo, Route, CalendarClock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin,
+  User,
+  Video,
+  AlertCircle,
+  TrendingUp,
+  Navigation,
+  CalendarDays,
+  PieChart,
+  ListTodo,
+  Route,
+  CalendarClock,
+} from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
@@ -8,48 +22,383 @@ import { EnterpriseStatusBadge } from '../../../components/enterprise/Enterprise
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { AppointmentDetailModal } from './modals/AppointmentDetailModal';
 import { useToast } from '../../../contexts/ToastContext';
-import { appointments as MOCK_APPOINTMENTS } from '../../../data/agentData';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
+import { EmptyState } from '../../../components/layout/EmptyState';
+import { agentApi } from '../../../api/agent.api';
+
+interface AppointmentType extends Record<string, unknown> {
+  id: string;
+  inquiryId: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  propertyId: string | null;
+  title: string;
+  propertyType: string;
+  transactionType: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  date: string;
+  time: string;
+  location: string;
+  status: string;
+  appointmentStatus:
+    | 'Scheduled'
+    | 'Completed'
+    | 'Cancelled';
+  priority: string;
+  source: string;
+  message: string;
+
+  notes: {
+    text: string;
+    addedBy?: string;
+    addedAt?: string;
+  }[];
+
+  activities: {
+    action: string;
+    description?: string;
+    performedBy?: string;
+    createdAt?: string;
+  }[];
+
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function Appointments() {
   const { showToast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAppt, setSelectedAppt] = useState<Record<string, unknown> | null>(null);
-  const [activeWorkflow, setActiveWorkflow] = useState<{ title: string, type: string, data?: Record<string, unknown> } | null>(null);
 
-  const handleAction = (title: string, type: string, data?: Record<string, unknown>) => {
-    setActiveWorkflow({ title, type, data });
+  // Store the current appointment search text.
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Store real appointments returned by the backend.
+  const [appointments, setAppointments] = useState<
+    AppointmentType[]
+  >([]);
+
+  // Track whether the initial appointment request is still running.
+  const [loading, setLoading] = useState(true);
+
+  // Store the appointment currently opened in the details modal.
+  const [selectedAppt, setSelectedAppt] =
+    useState<AppointmentType | null>(null);
+
+  // Keep the existing workflow drawer functionality.
+  const [activeWorkflow, setActiveWorkflow] =
+    useState<{
+      title: string;
+      type: string;
+      data?: Record<string, unknown>;
+    } | null>(null);
+
+  // Load real appointments for the authenticated Agent.
+  useEffect(() => {
+    const loadAppointments = async () => {
+      try {
+        // Request scheduled viewing appointments from the backend.
+        const response =
+          await agentApi.getMyAppointments();
+
+        // Read the unwrapped appointment collection returned by the HTTP client.
+        const appointmentRecords =
+          response.appointments || [];
+
+        // Convert backend appointments into the shape expected by this page.
+        const mappedAppointments: AppointmentType[] =
+          appointmentRecords.map(
+            (appointment: any) => ({
+              // Stable appointment identifier.
+              id: appointment.id,
+
+              // Existing Inquiry identifier behind this appointment.
+              inquiryId: appointment.inquiryId,
+
+              // Client information.
+              clientName:
+                appointment.clientName ||
+                'Unknown Client',
+              clientEmail:
+                appointment.clientEmail || '',
+              clientPhone:
+                appointment.clientPhone || '',
+
+              // Property information.
+              propertyId:
+                appointment.propertyId || null,
+              title:
+                appointment.title ||
+                'Property Viewing',
+              propertyType:
+                appointment.propertyType ||
+                'Unknown',
+              transactionType:
+                appointment.transactionType ||
+                'Unknown',
+
+              // Stored appointment schedule.
+              scheduledDate:
+                appointment.scheduledDate || '',
+              scheduledTime:
+                appointment.scheduledTime || '',
+
+              // Already formatted display values from the backend.
+              date:
+                appointment.date ||
+                'Date unavailable',
+              time:
+                appointment.time ||
+                'Time unavailable',
+
+              // Appointment location.
+              location:
+                appointment.location ||
+                'Location unavailable',
+
+              // Existing Inquiry/Lead status.
+              status:
+                appointment.status || 'Scheduled',
+
+              // IMPORTANT:
+              // Keep the actual appointment lifecycle status
+              // separately from the Lead status.
+              appointmentStatus:
+                appointment.appointmentStatus ||
+                'Scheduled',
+
+              // Backend does not currently store appointment priority,
+              // so use a neutral display fallback.
+              priority:
+                appointment.priority ||
+                'Standard',
+
+              // Preserve the Inquiry source and message.
+              source:
+                appointment.source || 'Unknown',
+              message:
+                appointment.message || '',
+
+              // Notes returned by backend use addedAt.
+              notes:
+                appointment.notes || [],
+
+              // Preserve Inquiry activity history.
+              activities:
+                appointment.activities || [],
+
+              // Preserve timestamps.
+              createdAt:
+                appointment.createdAt || '',
+              updatedAt:
+                appointment.updatedAt || '',
+            }),
+          );
+
+        // Replace the previous appointment collection with real backend data.
+        setAppointments(mappedAppointments);
+      } catch (error) {
+        // Keep the existing page usable if the appointment request fails.
+        console.error(
+          'Failed to load Agent appointments:',
+          error,
+        );
+
+        showToast({
+          type: 'error',
+          title:
+            'Unable to load appointments',
+          description:
+            'We could not retrieve your scheduled appointments.',
+        });
+      } finally {
+        // End loading state whether the request succeeds or fails.
+        setLoading(false);
+      }
+    };
+
+    loadAppointments();
+  }, [showToast]);
+
+  // Preserve the existing workflow button functionality.
+  const handleAction = (
+    title: string,
+    type: string,
+    data?: Record<string, unknown>,
+  ) => {
+    setActiveWorkflow({
+      title,
+      type,
+      data,
+    });
   };
 
+  // Preserve the existing workflow confirmation functionality.
   const executeWorkflow = () => {
-    showToast({ type: 'success', title: 'Action Initiated', description: `Executing: ${activeWorkflow?.title}. Integration pending.` });
+    showToast({
+      type: 'success',
+      title: 'Action Initiated',
+      description: `Executing: ${activeWorkflow?.title}. Integration pending.`,
+    });
+
     setActiveWorkflow(null);
   };
 
-  const filteredAppts = MOCK_APPOINTMENTS.filter(a => 
-    a.clientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    a.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter the real appointments using the existing search field.
+  const filteredAppts =
+    appointments.filter(
+      (appointment) =>
+        appointment.clientName
+          .toLowerCase()
+          .includes(
+            searchQuery.toLowerCase(),
+          ) ||
+        appointment.title
+          .toLowerCase()
+          .includes(
+            searchQuery.toLowerCase(),
+          ) ||
+        appointment.location
+          .toLowerCase()
+          .includes(
+            searchQuery.toLowerCase(),
+          ),
+    );
 
-  const handleViewAppt = (appt: Record<string, unknown>) => {
+  // Open the existing appointment details modal.
+  const handleViewAppt = (
+    appt: AppointmentType,
+  ) => {
     setSelectedAppt(appt);
   };
 
+  /*
+   * Keep the appointment list synchronized after
+   * Complete, Cancel, or Reschedule actions from
+   * AppointmentDetailModal.
+   */
+  const handleAppointmentUpdated = (
+    updates: Partial<AppointmentType>,
+  ) => {
+    setAppointments(
+      (currentAppointments) =>
+        currentAppointments.map(
+          (appointment) => {
+            if (
+              appointment.id !==
+              selectedAppt?.id
+            ) {
+              return appointment;
+            }
+
+            const updatedAppointment =
+              {
+                ...appointment,
+                ...updates,
+              };
+
+            /*
+             * Keep the formatted table date synchronized
+             * when the appointment is rescheduled.
+             */
+            if (
+              updates.scheduledDate
+            ) {
+              const parsedDate =
+                new Date(
+                  updates.scheduledDate,
+                );
+
+              if (
+                !Number.isNaN(
+                  parsedDate.getTime(),
+                )
+              ) {
+                updatedAppointment.date =
+                  parsedDate.toLocaleDateString(
+                    'en-GB',
+                    {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    },
+                  );
+              }
+            }
+
+            /*
+             * The backend already gives us the display
+             * time string, so use the new scheduled time
+             * when one was supplied.
+             */
+            if (
+              updates.scheduledTime
+            ) {
+              updatedAppointment.time =
+                updates.scheduledTime;
+            }
+
+            return updatedAppointment;
+          },
+        ),
+    );
+  };
+
+  // Existing appointment preparation checklist.
   const prepChecklist = [
-    { task: 'Review Tony Elumelu property comps', completed: false },
-    { task: 'Send virtual link to Sarah Smith', completed: true },
-    { task: 'Print Aliko Dangote contracts', completed: false },
+    {
+      task:
+        'Review Tony Elumelu property comps',
+      completed: false,
+    },
+    {
+      task:
+        'Send virtual link to Sarah Smith',
+      completed: true,
+    },
+    {
+      task:
+        'Print Aliko Dangote contracts',
+      completed: false,
+    },
   ];
 
+  // Existing conflict alerts panel.
   const conflictAlerts = [
-    { title: 'Tight Travel Buffer', desc: 'Only 15 mins between Victoria Island and Lekki Phase 1.', severity: 'Medium' },
+    {
+      title: 'Tight Travel Buffer',
+      desc:
+        'Only 15 mins between Victoria Island and Lekki Phase 1.',
+      severity: 'Medium',
+    },
   ];
 
+  // Existing daily route planner.
   const dailyRoute = [
-    { time: '10:00 AM', location: 'Victoria Island Office', type: 'Start' },
-    { time: '11:30 AM', location: 'Skyline Penthouse (Viewing)', type: 'Stop 1' },
-    { time: '02:00 PM', location: 'Lekki Phase 1 Villa (Viewing)', type: 'Stop 2' },
-    { time: '04:00 PM', location: 'Victoria Island Office', type: 'End' },
+    {
+      time: '10:00 AM',
+      location:
+        'Victoria Island Office',
+      type: 'Start',
+    },
+    {
+      time: '11:30 AM',
+      location:
+        'Skyline Penthouse (Viewing)',
+      type: 'Stop 1',
+    },
+    {
+      time: '02:00 PM',
+      location:
+        'Lekki Phase 1 Villa (Viewing)',
+      type: 'Stop 2',
+    },
+    {
+      time: '04:00 PM',
+      location:
+        'Victoria Island Office',
+      type: 'End',
+    },
   ];
 
   return (
@@ -59,11 +408,30 @@ export default function Appointments() {
         subtitle="Optimize your daily route, prepare for meetings, and maximize schedule efficiency."
         actions={
           <div className="flex gap-3">
-            <GhostButton className="flex items-center gap-2" onClick={() => handleAction('Sync Calendar', 'sync_calendar')}>
-              <CalendarDays className="h-4 w-4" /> Sync Calendar
+            <GhostButton
+              className="flex items-center gap-2"
+              onClick={() =>
+                handleAction(
+                  'Sync Calendar',
+                  'sync_calendar',
+                )
+              }
+            >
+              <CalendarDays className="h-4 w-4" />
+              Sync Calendar
             </GhostButton>
-            <GoldButton className="flex items-center gap-2" onClick={() => handleAction('New Event', 'new_event')}>
-              <CalendarIcon className="h-4 w-4" /> New Event
+
+            <GoldButton
+              className="flex items-center gap-2"
+              onClick={() =>
+                handleAction(
+                  'New Event',
+                  'new_event',
+                )
+              }
+            >
+              <CalendarIcon className="h-4 w-4" />
+              New Event
             </GoldButton>
           </div>
         }
@@ -76,58 +444,104 @@ export default function Appointments() {
             <div className="p-2 bg-blue-400/20 rounded-xl">
               <CalendarClock className="h-6 w-6 text-blue-400" />
             </div>
-            <h4 className="font-bold text-cream text-lg">Daily Schedule Optimizer</h4>
+
+            <h4 className="font-bold text-cream text-lg">
+              Daily Schedule Optimizer
+            </h4>
           </div>
+
           <p className="text-sm text-ink/80 leading-relaxed mb-4">
-            Your schedule today is <strong className="text-blue-400">75% booked</strong>. 
-            You have a <strong className="text-orange-400">tight travel buffer</strong> between your 11:30 AM and 2:00 PM viewings. 
-            Consider moving your admin tasks to the 4:00 PM block for maximum productivity.
+            Your schedule today is{' '}
+            <strong className="text-blue-400">
+              75% booked
+            </strong>
+            . You have a{' '}
+            <strong className="text-orange-400">
+              tight travel buffer
+            </strong>{' '}
+            between your 11:30 AM and 2:00 PM viewings.
+            Consider moving your admin tasks to the 4:00 PM
+            block for maximum productivity.
           </p>
+
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/10">
             <div>
-              <div className="text-xs text-ink/60 mb-1">Total Meetings</div>
-              <div className="text-lg font-bold text-cream">3</div>
+              <div className="text-xs text-ink/60 mb-1">
+                Total Meetings
+              </div>
+              <div className="text-lg font-bold text-cream">
+                3
+              </div>
             </div>
+
             <div>
-              <div className="text-xs text-ink/60 mb-1">Est. Travel Time</div>
-              <div className="text-lg font-bold text-blue-400">1.5h</div>
+              <div className="text-xs text-ink/60 mb-1">
+                Est. Travel Time
+              </div>
+              <div className="text-lg font-bold text-blue-400">
+                1.5h
+              </div>
             </div>
+
             <div>
-              <div className="text-xs text-ink/60 mb-1">Focus Time</div>
-              <div className="text-lg font-bold text-emerald-400">2h</div>
+              <div className="text-xs text-ink/60 mb-1">
+                Focus Time
+              </div>
+              <div className="text-lg font-bold text-emerald-400">
+                2h
+              </div>
             </div>
           </div>
         </div>
-        
+
         <div className="md:col-span-1 rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full justify-between">
           <div>
             <h3 className="text-sm font-semibold text-ink/60 mb-4 flex items-center gap-2">
-              <PieChart className="h-4 w-4 text-purple-400" /> Weekly Schedule Heatmap
+              <PieChart className="h-4 w-4 text-purple-400" />
+              Weekly Schedule Heatmap
             </h3>
+
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-cream font-medium">Mornings (High Energy)</span>
-                  <span className="text-emerald-400">60% Booked</span>
+                  <span className="text-cream font-medium">
+                    Mornings (High Energy)
+                  </span>
+                  <span className="text-emerald-400">
+                    60% Booked
+                  </span>
                 </div>
+
                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-400 w-[60%] rounded-full"></div>
                 </div>
               </div>
+
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-cream font-medium">Afternoons (Meetings)</span>
-                  <span className="text-blue-400">85% Booked</span>
+                  <span className="text-cream font-medium">
+                    Afternoons (Meetings)
+                  </span>
+                  <span className="text-blue-400">
+                    85% Booked
+                  </span>
                 </div>
+
                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-400 w-[85%] rounded-full"></div>
                 </div>
               </div>
+
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-cream font-medium">Evenings (Admin/Follow-up)</span>
-                  <span className="text-gold-400">30% Booked</span>
+                  <span className="text-cream font-medium">
+                    Evenings (Admin/Follow-up)
+                  </span>
+                  <span className="text-gold-400">
+                    30% Booked
+                  </span>
                 </div>
+
                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                   <div className="h-full bg-gold-400 w-[30%] rounded-full"></div>
                 </div>
@@ -137,25 +551,52 @@ export default function Appointments() {
         </div>
 
         <div className="md:col-span-1 rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
-          <h3 className="text-sm font-semibold text-ink/60 mb-4 text-center">Appointment Completion Summary</h3>
+          <h3 className="text-sm font-semibold text-ink/60 mb-4 text-center">
+            Appointment Completion Summary
+          </h3>
+
           <div className="flex-1 flex flex-col justify-center gap-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-ink/60">Success / Showed</span>
-              <span className="text-sm font-medium text-emerald-400">92%</span>
+              <span className="text-sm text-ink/60">
+                Success / Showed
+              </span>
+
+              <span className="text-sm font-medium text-emerald-400">
+                92%
+              </span>
             </div>
-            <div className="w-full bg-white/5 rounded-full h-1.5"><div className="bg-emerald-400 h-1.5 rounded-full w-[92%]"></div></div>
-            
+
+            <div className="w-full bg-white/5 rounded-full h-1.5">
+              <div className="bg-emerald-400 h-1.5 rounded-full w-[92%]"></div>
+            </div>
+
             <div className="flex items-center justify-between">
-              <span className="text-sm text-ink/60">Rescheduled</span>
-              <span className="text-sm font-medium text-blue-400">5%</span>
+              <span className="text-sm text-ink/60">
+                Rescheduled
+              </span>
+
+              <span className="text-sm font-medium text-blue-400">
+                5%
+              </span>
             </div>
-            <div className="w-full bg-white/5 rounded-full h-1.5"><div className="bg-blue-400 h-1.5 rounded-full w-[5%]"></div></div>
-            
+
+            <div className="w-full bg-white/5 rounded-full h-1.5">
+              <div className="bg-blue-400 h-1.5 rounded-full w-[5%]"></div>
+            </div>
+
             <div className="flex items-center justify-between">
-              <span className="text-sm text-ink/60">No-Show</span>
-              <span className="text-sm font-medium text-rose-400">3%</span>
+              <span className="text-sm text-ink/60">
+                No-Show
+              </span>
+
+              <span className="text-sm font-medium text-rose-400">
+                3%
+              </span>
             </div>
-            <div className="w-full bg-white/5 rounded-full h-1.5"><div className="bg-rose-400 h-1.5 rounded-full w-[3%]"></div></div>
+
+            <div className="w-full bg-white/5 rounded-full h-1.5">
+              <div className="bg-rose-400 h-1.5 rounded-full w-[3%]"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -169,6 +610,7 @@ export default function Appointments() {
           trendColor="text-blue-400"
           icon={CalendarIcon}
         />
+
         <KPICard
           title="Avg Travel Time"
           value="2.5h/day"
@@ -176,6 +618,7 @@ export default function Appointments() {
           trendColor="text-orange-400"
           icon={Route}
         />
+
         <KPICard
           title="High Priority"
           value="5"
@@ -183,6 +626,7 @@ export default function Appointments() {
           trendColor="text-gold-400"
           icon={AlertCircle}
         />
+
         <KPICard
           title="Meeting Conversion"
           value="24%"
@@ -201,168 +645,358 @@ export default function Appointments() {
             searchPlaceholder="Search by client or title..."
           />
 
-          <DataTable keyExtractor={(item: Record<string, unknown>, index: number) => (item.id as string) || String(index)}
-            columns={[
-              {
-                header: 'Time / Date',
-                render: (appt: Record<string, unknown>) => (
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gold-400/20 flex items-center justify-center text-gold-400">
-                      <Clock className="h-5 w-5" />
+          {loading ? (
+            // Keep the appointment table area visually stable while data loads.
+            <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-8 text-center">
+              <div className="text-sm text-ink/60">
+                Loading appointments...
+              </div>
+            </div>
+          ) : filteredAppts.length > 0 ? (
+            <DataTable
+              keyExtractor={(
+                item: AppointmentType,
+              ) => item.id}
+              columns={[
+                {
+                  header: 'Time / Date',
+                  render: (
+                    appt: AppointmentType,
+                  ) => (
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-gold-400/20 flex items-center justify-center text-gold-400">
+                        <Clock className="h-5 w-5" />
+                      </div>
+
+                      <div>
+                        <div className="font-semibold text-cream">
+                          {appt.date}
+                        </div>
+
+                        {appt.time !==
+                          'Time unavailable' && (
+                          <div className="text-xs text-ink/60">
+                            {appt.time}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  ),
+                },
+
+                {
+                  header: 'Client & Details',
+                  render: (
+                    appt: AppointmentType,
+                  ) => (
                     <div>
-                      <div className="font-semibold text-cream">{appt.date as string}</div>
-                      {appt.time !== 'N/A' && <div className="text-xs text-ink/60">{appt.time as string}</div>}
+                      <div className="font-medium text-cream flex items-center gap-1.5 mb-1">
+                        <User className="h-3.5 w-3.5 text-gold-400" />
+
+                        {appt.clientName}
+                      </div>
+
+                      <div className="text-xs text-ink/60">
+                        {appt.title}
+                      </div>
                     </div>
-                  </div>
-                )
-              },
-              {
-                header: 'Client & Details',
-                render: (appt: Record<string, unknown>) => (
-                  <div>
-                    <div className="font-medium text-cream flex items-center gap-1.5 mb-1">
-                      <User className="h-3.5 w-3.5 text-gold-400" /> {appt.clientName as string}
+                  ),
+                },
+
+                {
+                  header: 'Type / Location',
+                  render: (
+                    appt: AppointmentType,
+                  ) => (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1 text-sm text-cream">
+                        {appt.location ===
+                        'Virtual' ? (
+                          <Video className="h-3.5 w-3.5 text-blue-400" />
+                        ) : (
+                          <MapPin className="h-3.5 w-3.5 text-emerald-400" />
+                        )}
+
+                        {appt.location}
+                      </div>
+
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-white/5 text-ink/60 border border-white/10 uppercase tracking-wider">
+                        {appt.location ===
+                        'Virtual'
+                          ? 'Virtual'
+                          : 'Viewing'}
+                      </span>
                     </div>
-                    <div className="text-xs text-ink/60">{appt.title as string}</div>
-                  </div>
-                )
-              },
-              {
-                header: 'Type / Location',
-                render: (appt: Record<string, unknown>) => (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1 text-sm text-cream">
-                      {appt.location === 'Virtual' ? <Video className="h-3.5 w-3.5 text-blue-400" /> : <MapPin className="h-3.5 w-3.5 text-emerald-400" />}
-                      {appt.location as string}
-                    </div>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-white/5 text-ink/60 border border-white/10 uppercase tracking-wider">
-                      {appt.type as string}
+                  ),
+                },
+
+                {
+                  header: 'Priority',
+                  render: (
+                    appt: AppointmentType,
+                  ) => (
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                        appt.priority ===
+                        'High'
+                          ? 'bg-orange-400/10 text-orange-400 border border-orange-400/20'
+                          : 'bg-white/5 text-ink/60 border border-white/10'
+                      }`}
+                    >
+                      {appt.priority}
                     </span>
-                  </div>
-                )
-              },
-              {
-                header: 'Priority',
-                render: (appt: Record<string, unknown>) => (
-                  <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                    appt.priority === 'High' ? 'bg-orange-400/10 text-orange-400 border border-orange-400/20' : 'bg-white/5 text-ink/60 border border-white/10'
-                  }`}>
-                    {appt.priority as string}
-                  </span>
-                )
-              },
-              {
-                header: 'Status',
-                render: (appt: Record<string, unknown>) => <EnterpriseStatusBadge status={appt.status as string} />
-              },
-              {
-                header: 'Actions',
-                render: (appt: Record<string, unknown>) => (
-                  <GhostButton 
-                    onClick={() => handleViewAppt(appt)}
-                    className="h-8 px-3 text-xs"
-                  >
-                    View Details
-                  </GhostButton>
-                )
+                  ),
+                },
+
+                {
+                  header: 'Status',
+                  render: (
+                    appt: AppointmentType,
+                  ) => (
+                    <EnterpriseStatusBadge
+                      status={
+                        appt.appointmentStatus
+                      }
+                    />
+                  ),
+                },
+
+                {
+                  header: 'Actions',
+                  render: (
+                    appt: AppointmentType,
+                  ) => (
+                    <GhostButton
+                      onClick={() =>
+                        handleViewAppt(
+                          appt,
+                        )
+                      }
+                      className="h-8 px-3 text-xs"
+                    >
+                      View Details
+                    </GhostButton>
+                  ),
+                },
+              ]}
+              data={filteredAppts}
+              onRowClick={(
+                appt: AppointmentType,
+              ) =>
+                handleViewAppt(appt)
               }
-            ]}
-            data={filteredAppts}
-            onRowClick={(appt) => handleViewAppt(appt)}
-          />
+            />
+          ) : (
+            <EmptyState
+              icon={
+                <CalendarIcon className="h-8 w-8 text-gold-400" />
+              }
+              title="No appointments scheduled."
+              description="Scheduled property viewings will appear here."
+            />
+          )}
         </div>
 
         {/* Schedule Analytics & Planning */}
         <div className="space-y-6 lg:col-span-1">
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-orange-400" /> Time Conflict Alerts
+              <AlertCircle className="h-4 w-4 text-orange-400" />
+              Time Conflict Alerts
             </h3>
-            <div className="space-y-3">
-              {conflictAlerts.map((alert, idx) => (
-                <div key={idx} className="bg-orange-500/10 p-3 rounded-xl border border-orange-500/30">
-                  <div className="text-xs font-bold text-orange-400 mb-1">{alert.title}</div>
-                  <div className="text-[10px] text-ink/80">{alert.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
-              <ListTodo className="h-4 w-4 text-emerald-400" /> Appointment Prep
-            </h3>
             <div className="space-y-3">
-              {prepChecklist.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <input type="checkbox" checked={item.completed} readOnly className="mt-0.5 accent-gold-400 bg-white/5 border-white/10" />
-                  <span className={`text-xs ${item.completed ? 'text-ink/40 line-through' : 'text-cream'}`}>{item.task}</span>
-                </div>
-              ))}
-            </div>
-            <GoldButton className="w-full text-xs py-2 mt-4" onClick={() => handleAction('Generate Agendas', 'generate_agendas')}>Generate Agendas</GoldButton>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
-              <Navigation className="h-4 w-4 text-blue-400" /> Daily Route Planner
-            </h3>
-            <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-              {dailyRoute.map((stop, idx) => (
-                <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                  <div className="flex items-center justify-center w-4 h-4 rounded-full border-2 border-emerald-400 bg-navy-900 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10" />
-                  <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-xl border border-white/5 bg-navy-900/50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-cream text-xs">{stop.time}</span>
-                      <span className="text-[10px] text-ink/60 px-1.5 py-0.5 bg-white/5 rounded">{stop.type}</span>
+              {conflictAlerts.map(
+                (alert, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-orange-500/10 p-3 rounded-xl border border-orange-500/30"
+                  >
+                    <div className="text-xs font-bold text-orange-400 mb-1">
+                      {alert.title}
                     </div>
-                    <div className="text-[10px] text-ink/80">{stop.location}</div>
+
+                    <div className="text-[10px] text-ink/80">
+                      {alert.desc}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ),
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
+              <ListTodo className="h-4 w-4 text-emerald-400" />
+              Appointment Prep
+            </h3>
+
+            <div className="space-y-3">
+              {prepChecklist.map(
+                (item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      readOnly
+                      className="mt-0.5 accent-gold-400 bg-white/5 border-white/10"
+                    />
+
+                    <span
+                      className={`text-xs ${
+                        item.completed
+                          ? 'text-ink/40 line-through'
+                          : 'text-cream'
+                      }`}
+                    >
+                      {item.task}
+                    </span>
+                  </div>
+                ),
+              )}
+            </div>
+
+            <GoldButton
+              className="w-full text-xs py-2 mt-4"
+              onClick={() =>
+                handleAction(
+                  'Generate Agendas',
+                  'generate_agendas',
+                )
+              }
+            >
+              Generate Agendas
+            </GoldButton>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
+              <Navigation className="h-4 w-4 text-blue-400" />
+              Daily Route Planner
+            </h3>
+
+            <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
+              {dailyRoute.map(
+                (stop, idx) => (
+                  <div
+                    key={idx}
+                    className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
+                  >
+                    <div className="flex items-center justify-center w-4 h-4 rounded-full border-2 border-emerald-400 bg-navy-900 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10" />
+
+                    <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-xl border border-white/5 bg-navy-900/50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-cream text-xs">
+                          {stop.time}
+                        </span>
+
+                        <span className="text-[10px] text-ink/60 px-1.5 py-0.5 bg-white/5 rounded">
+                          {stop.type}
+                        </span>
+                      </div>
+
+                      <div className="text-[10px] text-ink/80">
+                        {stop.location}
+                      </div>
+                    </div>
+                  </div>
+                ),
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <AppointmentDetailModal 
-        isOpen={!!selectedAppt} 
-        onClose={() => setSelectedAppt(null)} 
-        appointment={selectedAppt} 
+      <AppointmentDetailModal
+        isOpen={!!selectedAppt}
+        onClose={() =>
+          setSelectedAppt(null)
+        }
+        appointment={selectedAppt}
+        onUpdated={(
+          updates,
+        ) => {
+          handleAppointmentUpdated(
+            updates,
+          );
+        }}
       />
 
       <EnterpriseDetailDrawer
         isOpen={!!activeWorkflow}
-        onClose={() => setActiveWorkflow(null)}
-        title={activeWorkflow?.title || 'Workflow'}
+        onClose={() =>
+          setActiveWorkflow(null)
+        }
+        title={
+          activeWorkflow?.title ||
+          'Workflow'
+        }
         footerActions={
-          <GoldButton onClick={executeWorkflow} className="w-full justify-center">Confirm Action</GoldButton>
+          <GoldButton
+            onClick={executeWorkflow}
+            className="w-full justify-center"
+          >
+            Confirm Action
+          </GoldButton>
         }
       >
         <div className="space-y-6">
           <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
-            <h4 className="text-sm font-semibold text-cream mb-2">Workflow Details</h4>
+            <h4 className="text-sm font-semibold text-cream mb-2">
+              Workflow Details
+            </h4>
+
             <p className="text-sm text-ink/60 leading-relaxed">
-              You are about to execute the <strong>{activeWorkflow?.type}</strong> workflow. 
-              Please review the action details below and confirm to integrate with the backend system.
+              You are about to execute the{' '}
+              <strong>
+                {activeWorkflow?.type}
+              </strong>{' '}
+              workflow. Please review the
+              action details below and confirm
+              to integrate with the backend
+              system.
             </p>
           </div>
+
           {activeWorkflow?.data && (
             <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
-              <h4 className="text-sm font-semibold text-cream mb-4">Context Data</h4>
+              <h4 className="text-sm font-semibold text-cream mb-4">
+                Context Data
+              </h4>
+
               <div className="space-y-2 text-sm text-ink/80">
-                {Object.entries(activeWorkflow.data).map(([key, value]) => {
-                  if (typeof value === 'string' || typeof value === 'number') {
-                    return (
-                      <div key={key} className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="capitalize">{key}</span>
-                        <span className="font-medium text-cream">{value}</span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
+                {Object.entries(
+                  activeWorkflow.data,
+                ).map(
+                  ([key, value]) => {
+                    if (
+                      typeof value ===
+                        'string' ||
+                      typeof value ===
+                        'number'
+                    ) {
+                      return (
+                        <div
+                          key={key}
+                          className="flex justify-between border-b border-white/5 pb-2"
+                        >
+                          <span className="capitalize">
+                            {key}
+                          </span>
+
+                          <span className="font-medium text-cream">
+                            {value}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  },
+                )}
               </div>
             </div>
           )}

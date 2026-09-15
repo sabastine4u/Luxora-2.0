@@ -1,29 +1,62 @@
-import { useMemo } from 'react';
-import { properties } from '../../../data/luxoraData';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from '../../../contexts/SessionContext';
 import { useFavorites } from '../../../contexts/FavoriteContext';
 import { PropertyCard } from '../../../components/property/PropertyCard';
+// Fetch published Properties from the Luxora backend.
+import { propertyApi } from '../../../api/property.api';
+import { mapApiPropertiesToProperties } from '../../../api/property.mapper.js';
+import type { Property } from '../../../types';
 import { EmptyState } from '../../../components/layout';
 import { ROUTES } from '../../../constants/routes';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 
+
 export default function RecommendedProperties() {
+  // Store published Properties loaded from the Luxora backend.
+  const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
   const { recentlyViewed } = useSession();
+
+  // Load published Properties from the Luxora backend for recommendations.
+  useEffect(() => {
+    const loadProperties = async () => {
+      try {
+        // Fetch the published Property collection from the backend.
+        const response = await propertyApi.getProperties();
+        // Map the backend Property collection returned inside the Axios response payload.
+        const mappedProperties = mapApiPropertiesToProperties(
+          response.data?.properties || response.data || [],
+        );
+
+        // Store the mapped backend Properties using the project's canonical Property type.
+        setAvailableProperties(mappedProperties as Property[]);
+      } catch (error) {
+        // Keep the recommendation page usable if the backend request fails.
+        console.error('Failed to load properties for recommendations:', error);
+        setAvailableProperties([]);
+      }
+    };
+
+    void loadProperties();
+  }, []);
   const { favoriteProperties: savedProperties } = useFavorites();
   const navigate = useNavigate();
 
   const recommendedProps = useMemo(() => {
     // 1. Exclude saved and recently viewed
     const excludeIds = new Set([...savedProperties, ...recentlyViewed]);
-    const candidates = properties.filter(p => !excludeIds.has(p.id));
+    // Only recommend real Properties loaded from the backend.
+    const candidates = availableProperties.filter(
+      (p) => !excludeIds.has(p.id),
+    );
 
     // Derive preferred location and category from saved and viewed properties
     // This mocks a recommendation engine based on user history
     const interactedIds = [...savedProperties, ...recentlyViewed];
     const interactedProps = interactedIds
-      .map(id => properties.find(p => p.id === id))
-      .filter((p): p is NonNullable<typeof p> => p !== undefined);
+      .map((id) => availableProperties.find((p) => p.id === id))
+      .filter((p): p is Property => p !== undefined);
+
 
     let preferredLocation = 'Lekki'; // fallback mock
     let preferredType = 'Villa';
@@ -33,14 +66,14 @@ export default function RecommendedProperties() {
     if (interactedProps.length > 0) {
       // Find most frequent location
       const locations = interactedProps.map(p => p.location);
-      preferredLocation = locations.sort((a,b) =>
-        locations.filter(v => v===a).length - locations.filter(v => v===b).length
+      preferredLocation = locations.sort((a, b) =>
+        locations.filter(v => v === a).length - locations.filter(v => v === b).length
       ).pop() || 'Lekki';
 
       // Find most frequent type
       const types = interactedProps.map(p => p.type);
-      preferredType = types.sort((a,b) =>
-        types.filter(v => v===a).length - types.filter(v => v===b).length
+      preferredType = types.sort((a, b) =>
+        types.filter(v => v === a).length - types.filter(v => v === b).length
       ).pop() || 'Villa';
 
       // Find price range
@@ -53,22 +86,22 @@ export default function RecommendedProperties() {
     // Score properties
     const scored = candidates.map(p => {
       let score = 0;
-      
+
       // 1. Same preferred location
       if (p.location.includes(preferredLocation)) score += 40;
-      
+
       // 2. Same property category
       if (p.type === preferredType) score += 30;
-      
+
       // 3. Similar price range
       if (p.priceValue >= minPrice && p.priceValue <= maxPrice) score += 20;
-      
+
       // 4. Verified properties first
       if (p.verified.length > 0) score += 10;
-      
+
       // 5. Highest rated properties (mocking rating using price as a minor tiebreaker)
-      score += (p.priceValue % 10); 
-      
+      score += (p.priceValue % 10);
+
       return { property: p, score };
     });
 
@@ -85,9 +118,9 @@ export default function RecommendedProperties() {
         if (finalProps.length === 6) break;
       }
     }
-    
+
     return finalProps;
-  }, [savedProperties, recentlyViewed]);
+  }, [savedProperties, recentlyViewed, availableProperties]);
 
   if (recommendedProps.length === 0) {
     return (

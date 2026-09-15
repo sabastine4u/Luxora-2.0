@@ -126,10 +126,7 @@ export function ListingTable({
             />
           )
         }] : []),
-        {
-          header: "Listing ID",
-          render: (item: AdminListing) => <span className="font-medium text-cream">{item.id}</span>
-        },
+       
         {
           header: "Property / Owner",
           render: (item: AdminListing) => (

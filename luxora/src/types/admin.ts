@@ -74,12 +74,36 @@ export interface AdminVerification {
 
 export interface AdminComplaint {
   id: string;
+  ticketId?: string;
+
   type: string;
+
   user: string;
   target: string;
+  targetType?: string;
+
   status: string;
   priority: string;
+
   date: string;
+
+  description?: string;
+
+  assignedTo?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
+
+  resolutionSummary?: string;
+  internalNotes?: string;
+
+  resolvedAt?: string | null;
+  closedAt?: string | null;
+  escalatedAt?: string | null;
+
+  updatedAt?: string;
 }
 
 export interface AdminTransaction {

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Bed, Bath, Maximize, Heart, MapPin, BadgeCheck, Scale, AlertTriangle, Share2, Car, Calendar, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { type properties } from '../../data/luxoraData';
+import type { Property } from '../../types';
 import { useSession } from '../../contexts/SessionContext';
 import { useFavorites } from '../../contexts/FavoriteContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -9,18 +9,62 @@ import { ROUTES } from '../../constants/routes';
 import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
 
 export interface PropertyCardProps {
-  property: (typeof properties)[number];
+  // Use the canonical frontend Property type instead of the legacy mock-data type.
+  property: Property;
+
+  // Preserve the existing card presentation variants.
   variant?: 'grid' | 'list';
 }
 
 const formatVerification = (v: string) => {
-  switch(v.toLowerCase()) {
+  switch (v.toLowerCase()) {
     case 'documents': return 'Documents Verified';
     case 'inspection': return 'Physical Inspection';
     case 'premium': return 'Premium Verified';
     case 'agent': return 'Agent Verified';
     default: return v;
   }
+};
+
+// Build the human-readable pricing period shown beneath the Property price.
+const getPricePeriodLabel = (property: Property) => {
+  // Show total pricing for Properties sold or otherwise advertised as a total amount.
+  if (property.priceFrequency === 'total') {
+    return 'Total price';
+  }
+
+  // Show monthly pricing when the backend explicitly says the price is monthly.
+  if (property.priceFrequency === 'monthly') {
+    return 'Per month';
+  }
+
+  // Show yearly pricing when the backend explicitly says the price is yearly.
+  if (property.priceFrequency === 'yearly') {
+    return 'Per year';
+  }
+
+  // Show per-night pricing for short-let style listings.
+  if (property.priceFrequency === 'perNight') {
+    return 'Per night';
+  }
+
+  // Show per-plot pricing for land listings.
+  if (property.priceFrequency === 'perPlot') {
+    return 'Per plot';
+  }
+
+  // Show per-acre pricing for land listings.
+  if (property.priceFrequency === 'perAcre') {
+    return 'Per acre';
+  }
+
+  // Fall back to the existing compatibility field when no frequency is available.
+  if (property.monthly && property.monthly !== 'Price details available') {
+    return `From ${property.monthly}/month`;
+  }
+
+  // Use a neutral fallback rather than claiming the price is monthly.
+  return 'Price details available';
 };
 
 export const PropertyCard = memo(function PropertyCard({ property: p, variant = 'grid' }: PropertyCardProps) {
@@ -67,18 +111,28 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
   const isList = variant === 'list';
 
   return (
-    <div 
+    <div
       onClick={handleViewDetails}
       className={`group relative flex overflow-hidden cursor-pointer rounded-3xl border border-white/10 bg-navy-800/50 transition-all duration-500 hover:-translate-y-1.5 hover:border-gold-400/40 hover:shadow-[0_20px_40px_-15px_rgba(212,175,55,0.15)] h-full ${isList ? 'flex-col sm:flex-row' : 'flex-col'}`}
     >
       {/* Image */}
       <div className={`relative overflow-hidden shrink-0 ${isList ? 'h-64 sm:h-auto sm:w-72 xl:w-80' : 'aspect-[4/3] w-full'}`}>
-        <img
-          src={p.image}
-          alt={p.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
-        />
+        {/* Render the Property image when one exists, otherwise show a neutral fallback. */}
+        {p.image ? (
+          <img
+            src={p.image}
+            alt={p.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
+          />
+        ) : (
+          <div
+            className="flex h-full w-full items-center justify-center bg-navy-900/80 text-sm text-ink/40"
+            aria-label="Property image unavailable"
+          >
+            Image unavailable
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-navy-900 via-navy-900/20 to-transparent opacity-90 transition-opacity duration-500 group-hover:opacity-100" />
 
         {/* Tag */}
@@ -94,24 +148,22 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
             onClick={handleSaveClick}
             title={saved ? "Remove from saved" : "Save property"}
             aria-label={saved ? "Remove from saved" : "Save property"}
-            className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110 ${
-              saved
-                ? 'bg-gold-400 text-navy-900 shadow-lux'
-                : 'bg-navy-900/80 text-cream hover:bg-gold-400/20 hover:text-gold-300 border border-white/10 hover:border-gold-400/30'
-            }`}
+            className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110 ${saved
+              ? 'bg-gold-400 text-navy-900 shadow-lux'
+              : 'bg-navy-900/80 text-cream hover:bg-gold-400/20 hover:text-gold-300 border border-white/10 hover:border-gold-400/30'
+              }`}
           >
             <Heart className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
           </button>
-          
+
           <button
             onClick={handleCompareClick}
             title={compared ? "Remove from compare" : "Add to compare"}
             aria-label={compared ? "Remove from compare" : "Add to compare"}
-            className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110 ${
-              compared
-                ? 'bg-gold-400 text-navy-900 shadow-lux'
-                : 'bg-navy-900/80 text-cream hover:bg-gold-400/20 hover:text-gold-300 border border-white/10 hover:border-gold-400/30'
-            }`}
+            className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110 ${compared
+              ? 'bg-gold-400 text-navy-900 shadow-lux'
+              : 'bg-navy-900/80 text-cream hover:bg-gold-400/20 hover:text-gold-300 border border-white/10 hover:border-gold-400/30'
+              }`}
           >
             <Scale className="h-4 w-4" />
           </button>
@@ -164,10 +216,17 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
         {/* Price */}
         <div className="mt-auto flex items-end justify-between border-t border-white/5 pt-5 mt-6">
           <div>
-            <div className="font-heading text-2xl font-bold text-cream tracking-tight group-hover:text-gold-400 transition-colors duration-300">{p.price}</div>
-            <div className="text-sm font-medium text-ink/50 mt-0.5 group-hover:text-gold-300/80 transition-colors duration-300">From {p.monthly}/month</div>
+            {/* Display the actual backend price without assuming every listing is monthly. */}
+            <div className="font-heading text-2xl font-bold text-cream tracking-tight group-hover:text-gold-400 transition-colors duration-300">
+              {p.price}
+            </div>
+
+            {/* Display the correct price frequency for this Property. */}
+            <div className="text-sm font-medium text-ink/50 mt-0.5 group-hover:text-gold-300/80 transition-colors duration-300">
+              {getPricePeriodLabel(p)}
+            </div>
           </div>
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
             aria-label={`View details for ${p.title}`}
             className="rounded-full bg-gold-400/10 border border-gold-400/30 px-5 py-2.5 text-sm font-semibold text-gold-300 transition-all duration-300 hover:bg-gold-400 hover:text-navy-900 hover:shadow-lux"
@@ -178,7 +237,7 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
 
         {/* Agent */}
         <div className="mt-6 flex items-center gap-3 border-t border-white/5 pt-5">
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(p.agent.name)));
@@ -186,7 +245,26 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
             className="relative shrink-0 transition-transform duration-300 hover:scale-105 focus:outline-none"
             aria-label={`View ${p.agent.name}'s profile`}
           >
-            <img src={p.agent.avatar} alt={p.agent.name} className="h-11 w-11 rounded-full object-cover border-2 border-transparent transition-colors duration-300 group-hover:border-gold-400/50" />
+            {/* Render the Agent avatar when available, otherwise show an initials fallback. */}
+            {p.agent.avatar ? (
+              <img
+                src={p.agent.avatar}
+                alt={p.agent.name}
+                className="h-11 w-11 rounded-full object-cover border-2 border-transparent transition-colors duration-300 group-hover:border-gold-400/50"
+              />
+            ) : (
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/10 bg-navy-900 text-sm font-semibold text-gold-300"
+                aria-label={`${p.agent.name} avatar`}
+              >
+                {p.agent.name
+                  .split(' ')
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </div>
+            )}
             {p.agent.verified && (
               <div className="absolute -bottom-1 -right-1 rounded-full bg-navy-900 p-0.5 border border-white/10" title="Verified Agent">
                 <BadgeCheck className="h-3.5 w-3.5 text-gold-400" />
@@ -194,7 +272,7 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
             )}
           </button>
           <div className="min-w-0 flex-1">
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(p.agent.name)));
@@ -203,7 +281,7 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
             >
               {p.agent.name}
             </button>
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(ROUTES.AGENCY_DETAILS.replace(':slug', agencyNameToSlug(p.agent.agency)));
@@ -213,7 +291,7 @@ export const PropertyCard = memo(function PropertyCard({ property: p, variant = 
               {p.agent.agency}
             </button>
           </div>
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); openReportListingModal(p.id); }}
             className="text-ink/30 hover:text-rose-400 transition-colors p-2 rounded-full hover:bg-rose-400/10"
             title="Report Listing"

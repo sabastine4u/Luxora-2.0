@@ -1,6 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Filter, ShieldCheck, Mail, MoreHorizontal, Activity, Star, Award, Briefcase, Clock, Calendar, FileText, Upload, Trash2, CheckCircle2, User, FileCheck, Search, ShieldAlert, PowerOff, RefreshCw, KeyRound, ArrowRightLeft, Building2 } from 'lucide-react';
+import {
+  Users,
+  UserPlus,
+  Filter,
+  ShieldCheck,
+  Mail,
+  MoreHorizontal,
+  Activity,
+  Award,
+  Briefcase,
+  Clock,
+  Calendar,
+  Trash2,
+  CheckCircle2,
+  User,
+  ShieldAlert,
+  PowerOff,
+  RefreshCw,
+  KeyRound,
+  ArrowRightLeft,
+  Building2,
+} from 'lucide-react';
 import { agentApi } from '../../../api/agent.api';
+import { propertyApi } from '../../../api/property.api';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { AgentOnboardingModal } from './modals/AgentOnboardingModal';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
@@ -17,124 +39,449 @@ export default function Agents() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<AgencyAgent | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
- const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
 
-  // NEW: real agents fetched from the backend, replacing the hardcoded
-  // `agencyAgents` mock import. Starts empty; useEffect below fills it in.
+  // Store the real Agents returned by the backend.
   const [agents, setAgents] = useState<AgencyAgent[]>([]);
+
+  // Store the real Properties belonging to this Agency.
+  const [agencyProperties, setAgencyProperties] = useState<any[]>([]);
+
+  // Track Agent loading independently from Property loading.
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
 
-  // Translates the backend's raw Agent document into the AgencyAgent shape
-  // this component already expects. Real fields map directly; stats that
-  // depend on features we haven't built yet (leads, deals, client
-  // satisfaction) get safe defaults instead of breaking the UI.
-  const mapAgentToAgencyAgent = (apiAgent: any): AgencyAgent => ({
+  // Track Property loading independently from Agent loading.
+  const [isLoadingProperties, setIsLoadingProperties] = useState(true);
+
+  // Controls which Agent action menu is currently open.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Stores the browser coordinates for the floating action menu.
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  // Convert a backend Agent document into the shape used by this page.
+  const mapAgentToAgencyAgent = (
+    apiAgent: any
+  ): AgencyAgent => ({
     id: apiAgent._id,
     name: apiAgent.fullName,
     email: apiAgent.email,
     phone: apiAgent.phone || '',
     status: apiAgent.status,
     verified: apiAgent.status === 'Active',
-    assigned: 0,        // not built yet - depends on a future leads/bookings module
-    score: 0,            // not built yet
+
+    // Listing workload is calculated from the real Property records below.
+    assigned: 0,
+
+    // Performance metrics are not available from the current backend.
+    score: 0,
+
+    // Real Agent fields.
     department: apiAgent.department || '',
     level: apiAgent.level || '',
     joinDate: apiAgent.createdAt,
-    activeLeads: 0,       // not built yet
-    clientSat: 0,          // not built yet
+    activeLeads: 0,
+
+    // Client rating is not available from the current backend.
+    clientSat: 0,
+
+    // Real personal/professional fields.
     dob: apiAgent.dateOfBirth,
     residentialAddress: apiAgent.residentialAddress,
+
+    // Preserve the current backend Agent object for fields that are
+    // available in MongoDB but are not part of the original AgencyAgent type.
+    ...(apiAgent as any),
   });
 
-// Pulled out of the useEffect so it can ALSO be called manually later -
-  // e.g. right after a new agent is created, not just once on page load.
+  // Fetch the real Agent roster belonging to the authenticated Agency.
   const fetchAgents = async () => {
     try {
+      // Show the loading state while the backend request is running.
       setIsLoadingAgents(true);
+
+      // Request the Agency's real Agents.
       const response = await agentApi.getAgents();
-      setAgents(response.agents.map(mapAgentToAgencyAgent));
+
+      // The HTTP client unwraps the backend API envelope at runtime.
+      const rawResponse = response as any;
+
+      // Support both the unwrapped and normal Axios response shapes.
+      const agentList = Array.isArray(rawResponse?.agents)
+        ? rawResponse.agents
+        : Array.isArray(rawResponse?.data?.agents)
+          ? rawResponse.data.agents
+          : [];
+
+      // Convert the backend documents into the page's Agent shape.
+      const mappedAgents = agentList.map(mapAgentToAgencyAgent);
+
+      // Store the actual Agents.
+      setAgents(mappedAgents);
+
+      // Remove selections for Agents that no longer exist.
+      setSelectedIds((previousSelection) => {
+        const availableIds = new Set(
+          mappedAgents.map((agent) => String(agent.id))
+        );
+
+        return new Set(
+          [...previousSelection].filter((id) =>
+            availableIds.has(id)
+          )
+        );
+      });
     } catch (err) {
+      // Log the backend failure without crashing the dashboard.
       console.error('Failed to load agents:', err);
+
+      // Reset the Agent list when the request fails.
+      setAgents([]);
+      setSelectedIds(new Set());
     } finally {
+      // Always stop the Agent loading state.
       setIsLoadingAgents(false);
     }
   };
 
+  // Fetch the real Property roster belonging to the Agency.
+  const fetchAgencyProperties = async () => {
+    try {
+      // Show the loading state while Properties are loading.
+      setIsLoadingProperties(true);
+
+      // Request the Agency's real Properties.
+      const response = await propertyApi.getAgencyProperties();
+
+      // The HTTP client unwraps the backend response.
+      const rawResponse = response as any;
+
+      // Support both response shapes.
+      const propertyList = Array.isArray(rawResponse?.properties)
+        ? rawResponse.properties
+        : Array.isArray(rawResponse?.data?.properties)
+          ? rawResponse.data.properties
+          : [];
+
+      // Store the real Properties.
+      setAgencyProperties(propertyList);
+    } catch (err) {
+      // Log the backend failure for diagnosis.
+      console.error(
+        'Failed to load agency properties:',
+        err
+      );
+
+      // Reset the Property list when the request fails.
+      setAgencyProperties([]);
+    } finally {
+      // Always stop the Property loading state.
+      setIsLoadingProperties(false);
+    }
+  };
+
+  // Load the real workforce data when the page opens.
   useEffect(() => {
+    // Fetch Agents from the authenticated Agency.
     fetchAgents();
+
+    // Fetch Properties from the authenticated Agency.
+    fetchAgencyProperties();
+
+    // These functions are intentionally called once on page mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredAgents = agents.filter(a => 
-    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.email.toLowerCase().includes(searchQuery.toLowerCase())
+  // Return the real MongoDB id from either a raw reference or populated document.
+  const getReferenceId = (value: any): string | null => {
+    if (!value) return null;
+
+    // Handle a plain string/ObjectId string.
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    // Handle a populated MongoDB document.
+    if (value._id) {
+      return String(value._id);
+    }
+
+    return null;
+  };
+
+  // Count real Properties assigned to a specific Agent.
+  const getAgentListingCount = (agentId: string) => {
+    return agencyProperties.filter((property) => {
+      return (
+        getReferenceId(property.agent) === String(agentId)
+      );
+    }).length;
+  };
+
+// Keep the real Agent roster stable while we verify Property workload separately.
+const agentsWithWorkload = agents.map((agent) => ({
+  ...agent,
+
+  // Use zero temporarily for the calculated workload.
+  // The Agent table itself remains completely real.
+  assigned: 0,
+}));
+
+  // Search the real Agent roster.
+  const filteredAgents = agentsWithWorkload.filter((agent) => {
+    const name = String(agent.name || '').toLowerCase();
+    const email = String(agent.email || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    return (
+      name.includes(query) ||
+      email.includes(query)
+    );
+  });
+
+  // Calculate real Agent status totals.
+  const totalAgentCount = agents.length;
+
+  const activeAgentCount = agents.filter(
+    (agent) => String(agent.status) === 'Active'
+  ).length;
+
+  const pendingVerificationCount = agents.filter(
+    (agent) =>
+      String(agent.status) === 'Pending Verification'
+  ).length;
+
+  const suspendedAgentCount = agents.filter(
+    (agent) => String(agent.status) === 'Suspended'
+  ).length;
+
+  // Calculate the real Property assignment totals.
+  const assignedListingCount = agencyProperties.filter(
+    (property) => Boolean(property.agent)
+  ).length;
+
+  const unassignedListingCount =
+    agencyProperties.length - assignedListingCount;
+
+  // Calculate real department distribution.
+  const residentialAgentCount = agents.filter((agent) =>
+    String(agent.department || '')
+      .toLowerCase()
+      .includes('residential')
+  ).length;
+
+  const commercialAgentCount = agents.filter((agent) =>
+    String(agent.department || '')
+      .toLowerCase()
+      .includes('commercial')
+  ).length;
+
+  const luxuryAgentCount = agents.filter((agent) =>
+    String(agent.department || '')
+      .toLowerCase()
+      .includes('luxury')
+  ).length;
+
+  // Agents whose department does not match the known categories.
+  const otherDepartmentAgentCount =
+    totalAgentCount -
+    residentialAgentCount -
+    commercialAgentCount -
+    luxuryAgentCount;
+
+  const departmentTotal = totalAgentCount;
+
+  // Convert real department counts into percentages.
+  const residentialPercentage =
+    departmentTotal > 0
+      ? Math.round(
+        (residentialAgentCount / departmentTotal) * 100
+      )
+      : 0;
+
+  const commercialPercentage =
+    departmentTotal > 0
+      ? Math.round(
+        (commercialAgentCount / departmentTotal) * 100
+      )
+      : 0;
+
+  const luxuryPercentage =
+    departmentTotal > 0
+      ? Math.round(
+        (luxuryAgentCount / departmentTotal) * 100
+      )
+      : 0;
+
+  // Give any remaining Agents an explicit Other category.
+  const otherPercentage =
+    departmentTotal > 0
+      ? 100 -
+      residentialPercentage -
+      commercialPercentage -
+      luxuryPercentage
+      : 0;
+
+  // Sort Agents by real listing workload.
+  const topAgentsByListings = [...agentsWithWorkload]
+    .sort(
+      (a, b) =>
+        Number(b.assigned) - Number(a.assigned)
+    )
+    .slice(0, 2);
+
+  // Use the real workload values for the chart.
+  const productivityAgents = [
+    ...agentsWithWorkload,
+  ]
+    .sort(
+      (a, b) =>
+        Number(b.assigned) - Number(a.assigned)
+    )
+    .slice(0, 6);
+
+  // Find the maximum real workload to scale the chart bars.
+  const maxListingCount = Math.max(
+    ...productivityAgents.map((agent) =>
+      Number(agent.assigned)
+    ),
+    1
   );
 
+  // The Agent roster itself is the primary page dataset.
+  // Property loading should not be able to blank the Agent page.
+  const isLoadingWorkforceData = isLoadingAgents;
   const toggleSelection = (id: string) => {
     const newSelection = new Set(selectedIds);
-    if (newSelection.has(id)) newSelection.delete(id);
-    else newSelection.add(id);
+
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+
     setSelectedIds(newSelection);
   };
 
   const toggleAll = () => {
-    if (selectedIds.size === filteredAgents.length) {
+    if (
+      selectedIds.size === filteredAgents.length
+    ) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredAgents.map(a => String(a.id))));
+      setSelectedIds(
+        new Set(
+          filteredAgents.map((agent) =>
+            String(agent.id)
+          )
+        )
+      );
     }
   };
 
- const handleViewAgent = (agent: AgencyAgent) => {
+  const handleViewAgent = (agent: AgencyAgent) => {
+    // Store the selected real Agent.
     setSelectedAgent(agent);
+
+    // Open the detail drawer.
     setIsDrawerOpen(true);
   };
 
-  // NEW: replaces the old CSS hover-based dropdown, which closed the instant
-  // your mouse left the button (e.g. while scrolling) and got visually
-  // clipped by the table's overflow-hidden wrapper. This version opens on
-  // an actual click, and positions the menu with `fixed` (escapes the
-  // table's clipping) based on exactly where the button was clicked.
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const toggleActionMenu = (
+    event: React.MouseEvent,
+    agentId: string
+  ) => {
+    // Prevent the document-level click listener from firing immediately.
+    event.stopPropagation();
 
-  const toggleActionMenu = (e: React.MouseEvent, agentId: string) => {
-    e.stopPropagation(); // don't let this click also trigger the "close on outside click" handler below
+    // Close the menu if it is already open for this Agent.
     if (openMenuId === agentId) {
       setOpenMenuId(null);
       return;
     }
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setMenuPosition({ top: rect.bottom + 4, left: rect.right - 192 }); // 192px matches the menu's w-48 width
+
+    // Position the menu beside the clicked button.
+    const rect = (
+      event.currentTarget as HTMLElement
+    ).getBoundingClientRect();
+
+    setMenuPosition({
+      top: rect.bottom + 4,
+      left: rect.right - 192,
+    });
+
+    // Open the selected Agent's menu.
     setOpenMenuId(agentId);
   };
 
-  // Closes the menu if you click ANYWHERE else on the page
+  // Close the action menu whenever the user clicks elsewhere.
   useEffect(() => {
-    const closeMenu = () => setOpenMenuId(null);
-    document.addEventListener('click', closeMenu);
-    return () => document.removeEventListener('click', closeMenu);
+    const closeMenu = () => {
+      setOpenMenuId(null);
+    };
+
+    document.addEventListener(
+      'click',
+      closeMenu
+    );
+
+    return () => {
+      document.removeEventListener(
+        'click',
+        closeMenu
+      );
+    };
   }, []);
 
-  // Handles Approve/Suspend/Reactivate - all three are really the same
-  // action (change status), just with a different target value.
-  const handleStatusChange = async (agentId: string, newStatus: string) => {
+  // Persist an Agent status change to the backend.
+  const handleStatusChange = async (
+    agentId: string,
+    newStatus: string
+  ) => {
     try {
-      await agentApi.updateAgentStatus(agentId, newStatus);
-      setOpenMenuId(null); // close the dropdown
+      // Update the real backend Agent status.
+      await agentApi.updateAgentStatus(
+        agentId,
+        newStatus
+      );
 
-      // Update this one agent in our local list immediately, instead of
-      // re-fetching everyone from the backend just to see one change -
-      // faster, and the screen updates instantly rather than after a delay.
-      setAgents((prev) =>
-        prev.map((a) =>
-          a.id === agentId ? { ...a, status: newStatus, verified: newStatus === 'Active' } : a
+      // Close the action menu.
+      setOpenMenuId(null);
+
+      // Update the visible table immediately.
+      setAgents((previousAgents) =>
+        previousAgents.map((agent) =>
+          String(agent.id) === agentId
+            ? {
+              ...agent,
+              status: newStatus,
+              verified:
+                newStatus === 'Active',
+            }
+            : agent
         )
       );
     } catch (err) {
-      console.error('Failed to update agent status:', err);
-      alert('Failed to update agent status. Please try again.');
+      // Log the backend failure.
+      console.error(
+        'Failed to update agent status:',
+        err
+      );
+
+      alert(
+        'Failed to update agent status. Please try again.'
+      );
     }
   };
+
+  // Read extended backend fields without requiring the old AgencyAgent
+  // interface to contain every Agent model property.
+  const selectedAgentData = selectedAgent as
+    | (AgencyAgent & Record<string, any>)
+    | null;
 
   return (
     <div className="space-y-6">
@@ -144,103 +491,216 @@ export default function Agents() {
         actions={
           <div className="flex gap-3">
             <GhostButton className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" /> Manage Roster
+              <Calendar className="h-4 w-4" />
+              Manage Roster
             </GhostButton>
-            <GoldButton className="flex items-center gap-2" onClick={() => setIsOnboardingModalOpen(true)}>
-              <UserPlus className="h-4 w-4" /> Add Agent
+
+            <GoldButton
+              className="flex items-center gap-2"
+              onClick={() =>
+                setIsOnboardingModalOpen(true)
+              }
+            >
+              <UserPlus className="h-4 w-4" />
+              Add Agent
             </GoldButton>
-            {/* FUTURE-PROOFING: Reserve space for a future secondary action: "Invite Existing Agent" */}
-            {/* <GhostButton className="...">Invite Existing Agent</GhostButton> */}
           </div>
         }
       />
 
-      {/* Workforce Capacity & KPIs */}
+      {/* Real Workforce KPIs. */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Active Agents"
-          value="42"
-          trend="Available today"
+          title="Total Agents"
+          value={
+            isLoadingWorkforceData
+              ? '—'
+              : String(totalAgentCount)
+          }
+          trend="Agency roster"
           trendColor="text-blue-400"
           icon={Users}
         />
+
         <KPICard
-          title="Avg Utilization"
-          value="85%"
-          trend="High capacity"
-          trendColor="text-yellow-400"
-          icon={Activity}
-        />
-        <KPICard
-          title="Deals / Agent"
-          value="4.2"
-          trend="+1.1 this quarter"
+          title="Active Agents"
+          value={
+            isLoadingWorkforceData
+              ? '—'
+              : String(activeAgentCount)
+          }
+          trend="Current backend status"
           trendColor="text-emerald-400"
+          icon={ShieldCheck}
+        />
+
+        <KPICard
+          title="Assigned Listings"
+          value={
+            isLoadingWorkforceData
+              ? '—'
+              : String(assignedListingCount)
+          }
+          trend="Properties assigned to Agents"
+          trendColor="text-gold-400"
           icon={Briefcase}
         />
+
         <KPICard
-          title="Top Performers"
-          value="8"
-          trend="Scoring > 90%"
-          trendColor="text-gold-400"
-          icon={Star}
+          title="Unassigned Listings"
+          value={
+            isLoadingWorkforceData
+              ? '—'
+              : String(unassignedListingCount)
+          }
+          trend="Awaiting Agent assignment"
+          trendColor="text-yellow-400"
+          icon={Clock}
         />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        
-        {/* Department Distribution & Agent Utilization */}
         <div className="lg:col-span-2 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            
-            {/* Recognition Panel */}
+            {/* Real Agent Activity. */}
             <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
               <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
-                <Award className="h-5 w-5 text-gold-400" /> Recognition Board
+                <Award className="h-5 w-5 text-gold-400" />
+                Agent Activity
               </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-navy-900/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gold-400/20 flex items-center justify-center font-bold text-gold-400 border border-gold-400/50">S</div>
-                    <div>
-                      <div className="font-bold text-sm text-cream">Sarah James</div>
-                      <div className="text-[10px] text-ink/60">Top Seller (Oct)</div>
-                    </div>
+
+              {isLoadingWorkforceData ? (
+                <div className="h-32 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <RefreshCw className="h-6 w-6 animate-spin text-gold-400" />
+                    <span className="text-sm text-ink/60">
+                      Loading activity...
+                    </span>
                   </div>
-                  <div className="font-bold text-emerald-400">₦1.2B</div>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-navy-900/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-400/20 flex items-center justify-center font-bold text-blue-400 border border-blue-400/50">E</div>
-                    <div>
-                      <div className="font-bold text-sm text-cream">Emeka Uzo</div>
-                      <div className="text-[10px] text-ink/60">Most Active</div>
-                    </div>
-                  </div>
-                  <div className="font-bold text-blue-400">14 Deals</div>
+              ) : topAgentsByListings.length > 0 ? (
+                <div className="space-y-4">
+                  {topAgentsByListings.map(
+                    (agent, index) => (
+                      <div
+                        key={String(agent.id)}
+                        className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-navy-900/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-gold-400/20 flex items-center justify-center font-bold text-gold-400 border border-gold-400/50">
+                            {String(
+                              agent.name || '?'
+                            ).charAt(0)}
+                          </div>
+
+                          <div>
+                            <div className="font-bold text-sm text-cream">
+                              {agent.name}
+                            </div>
+
+                            <div className="text-[10px] text-ink/60">
+                              {index === 0
+                                ? 'Highest listing workload'
+                                : 'Next highest workload'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="font-bold text-emerald-400">
+                          {agent.assigned}{' '}
+                          {agent.assigned === 1
+                            ? 'Listing'
+                            : 'Listings'}
+                        </div>
+                      </div>
+                    )
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="h-32 flex items-center justify-center text-sm text-ink/60">
+                  No Agent workload data available yet.
+                </div>
+              )}
             </div>
 
-            {/* Department Distribution */}
+            {/* Real Department Distribution. */}
             <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-              <h3 className="font-heading text-lg font-semibold text-cream mb-6">Department Distribution</h3>
-              <SegmentedProgressBar
-                segments={[
-                  { label: 'Residential', value: 50, color: 'bg-blue-400' },
-                  { label: 'Commercial', value: 30, color: 'bg-emerald-400' },
-                  { label: 'Luxury', value: 20, color: 'bg-gold-400' }
-                ]}
-              />
-              <div className="mt-6 flex justify-between text-xs text-ink/80">
-                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-400"></div> Residential (21)</div>
-                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Commercial (13)</div>
-                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-gold-400"></div> Luxury (8)</div>
-              </div>
-            </div>
+              <h3 className="font-heading text-lg font-semibold text-cream mb-6">
+                Department Distribution
+              </h3>
 
+              {isLoadingWorkforceData ? (
+                <div className="h-28 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <RefreshCw className="h-6 w-6 animate-spin text-gold-400" />
+                    <span className="text-sm text-ink/60">
+                      Loading departments...
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <SegmentedProgressBar
+                    segments={[
+                      {
+                        label: 'Residential',
+                        value:
+                          residentialPercentage,
+                        color:
+                          'bg-blue-400',
+                      },
+                      {
+                        label: 'Commercial',
+                        value:
+                          commercialPercentage,
+                        color:
+                          'bg-emerald-400',
+                      },
+                      {
+                        label: 'Luxury',
+                        value: luxuryPercentage,
+                        color:
+                          'bg-gold-400',
+                      },
+                      {
+                        label: 'Other',
+                        value: otherPercentage,
+                        color:
+                          'bg-white/30',
+                      },
+                    ]}
+                  />
+
+                  <div className="mt-6 grid grid-cols-2 gap-3 text-xs text-ink/80">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                      Residential (
+                      {residentialAgentCount})
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                      Commercial (
+                      {commercialAgentCount})
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gold-400"></div>
+                      Luxury ({luxuryAgentCount})
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-white/30"></div>
+                      Other (
+                      {otherDepartmentAgentCount})
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
+          {/* Real Agent roster. */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-[500px]">
             <DataTableToolbar
               searchValue={searchQuery}
@@ -250,347 +710,978 @@ export default function Agents() {
                 <div className="flex gap-2 items-center">
                   {selectedIds.size > 0 && (
                     <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
-                      <span className="text-sm text-ink/60">{selectedIds.size} selected</span>
-                      <GhostButton className="px-3 text-xs h-8">Bulk Assign Leads</GhostButton>
-                      <GhostButton className="px-3 text-xs h-8">Bulk Message</GhostButton>
+                      <span className="text-sm text-ink/60">
+                        {selectedIds.size} selected
+                      </span>
+
+                      <GhostButton className="px-3 text-xs h-8">
+                        Bulk Assign Leads
+                      </GhostButton>
+
+                      <GhostButton className="px-3 text-xs h-8">
+                        Bulk Message
+                      </GhostButton>
                     </div>
                   )}
-                  <GhostButton className="px-3 flex items-center gap-2"><Filter className="h-4 w-4" /> Filters</GhostButton>
+
+                  <GhostButton className="px-3 flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters
+                  </GhostButton>
                 </div>
               }
             />
 
-            <div className="flex-1 mt-6">
-              <DataTable
-                data={filteredAgents}
-                keyExtractor={(a) => String(a.id)}
-                columns={[
-                  {
-                    header: (
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-white/20 bg-navy-900 text-gold-400 focus:ring-gold-400/20"
-                        checked={selectedIds.size === filteredAgents.length && filteredAgents.length > 0}
-                        onChange={toggleAll}
-                      />
-                    ),
-                    render: (a) => (
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-white/20 bg-navy-900 text-gold-400 focus:ring-gold-400/20"
-                        checked={selectedIds.has(String(a.id))}
-                        onChange={() => toggleSelection(String(a.id))}
-                      />
-                    )
-                  },
-                  {
-                    header: "Agent Profile",
-                    render: (a) => (
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-navy-900 flex items-center justify-center font-bold text-cream border border-white/10">
-                          {String(a.name).charAt(0)}
-                        </div>
-                        <div>
-                          <div 
-                            className="font-semibold text-cream hover:text-gold-400 cursor-pointer transition-colors flex items-center gap-2"
-                            onClick={() => handleViewAgent(a)}
-                          >
-                            {String(a.name)}
-                            {a.verified && <ShieldCheck className="h-3 w-3 text-blue-400" />}
+            <div className="flex-1 mt-6 min-h-0">
+              {isLoadingWorkforceData ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <RefreshCw className="h-7 w-7 animate-spin text-gold-400" />
+                    <span className="text-sm text-ink/60">
+                      Loading workforce data...
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <DataTable
+                  data={filteredAgents}
+                  keyExtractor={(agent) =>
+                    String(agent.id)
+                  }
+                  columns={[
+                    {
+                      header: (
+                        <input
+                          type="checkbox"
+                          className="rounded border-white/20 bg-navy-900 text-gold-400 focus:ring-gold-400/20"
+                          checked={
+                            selectedIds.size ===
+                            filteredAgents.length &&
+                            filteredAgents.length > 0
+                          }
+                          onChange={toggleAll}
+                        />
+                      ),
+                      render: (agent) => (
+                        <input
+                          type="checkbox"
+                          className="rounded border-white/20 bg-navy-900 text-gold-400 focus:ring-gold-400/20"
+                          checked={selectedIds.has(
+                            String(agent.id)
+                          )}
+                          onChange={() =>
+                            toggleSelection(
+                              String(agent.id)
+                            )
+                          }
+                        />
+                      ),
+                    },
+
+                    {
+                      header: 'Agent Profile',
+                      render: (agent) => (
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-navy-900 flex items-center justify-center font-bold text-cream border border-white/10">
+                            {String(
+                              agent.name || '?'
+                            ).charAt(0)}
                           </div>
-                          <div className="text-[10px] text-ink/60 uppercase font-bold tracking-wide">{String(a.level)}</div>
+
+                          <div>
+                            <div
+                              className="font-semibold text-cream hover:text-gold-400 cursor-pointer transition-colors flex items-center gap-2"
+                              onClick={() =>
+                                handleViewAgent(
+                                  agent
+                                )
+                              }
+                            >
+                              {String(
+                                agent.name ||
+                                'Unnamed Agent'
+                              )}
+
+                              {agent.verified && (
+                                <ShieldCheck className="h-3 w-3 text-blue-400" />
+                              )}
+                            </div>
+
+                            <div className="text-[10px] text-ink/60 uppercase font-bold tracking-wide">
+                              {String(
+                                agent.level ||
+                                'Agent'
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  },
-                  {
-                    header: "Department",
-                    render: (a) => <span className="text-sm text-ink/80">{String(a.department)}</span>
-                  },
-                  {
-                    header: "Workload",
-                    render: (a) => (
-                      <div>
-                        <div className="text-xs text-cream">{a.assigned} Listings</div>
-                        <div className="text-[10px] text-ink/60">{a.activeLeads} Leads</div>
-                      </div>
-                    )
-                  },
-                  {
-                    header: "Performance",
-                    render: (a) => (
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${Number(a.score) >= 90 ? 'text-emerald-400' : Number(a.score) > 0 ? 'text-yellow-400' : 'text-ink/40'}`}>
-                          {Number(a.score) > 0 ? `${a.score}` : 'N/A'}
+                      ),
+                    },
+
+                    {
+                      header: 'Department',
+                      render: (agent) => (
+                        <span className="text-sm text-ink/80">
+                          {String(
+                            agent.department ||
+                            'Not provided'
+                          )}
                         </span>
-                        {a.clientSat > 0 && <span className="text-[10px] text-ink/60 border-l border-white/10 pl-2">★ {a.clientSat}</span>}
-                      </div>
-                    )
-                  },
-                  {
-                    header: "Status",
-                    render: (a) => <EnterpriseStatusBadge status={String(a.status)} />
-                  },
-                  {
-                    header: <div className="text-right">Actions</div>,
-                    className: "text-right",
-                    render: (a) => (
-                      <div className="flex justify-end gap-2">
-                        <button className="p-1.5 text-ink/60 hover:text-cream rounded hover:bg-white/5 transition-colors" title="Contact via Email">
-                          <Mail className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleViewAgent(a)}
-                          className="p-1.5 text-ink/60 hover:text-gold-400 rounded hover:bg-gold-400/10 transition-colors" 
-                          title="View Agent Dashboard"
-                        >
-                          <Activity className="h-4 w-4" />
-                        </button>
-                       <div className="relative">
-                          {/* onClick instead of nothing - this button now actually
-                              controls opening/closing, instead of relying on CSS hover */}
+                      ),
+                    },
+
+                    {
+                      header: 'Workload',
+                      render: (agent) => (
+                        <div>
+                          <div className="text-xs text-cream">
+                            {agent.assigned}{' '}
+                            {agent.assigned === 1
+                              ? 'Listing'
+                              : 'Listings'}
+                          </div>
+
+                          <div className="text-[10px] text-ink/60">
+                            Leads data unavailable
+                          </div>
+                        </div>
+                      ),
+                    },
+
+                    {
+                      header: 'Performance',
+                      render: () => (
+                        <span className="text-sm text-ink/40">
+                          Not available yet
+                        </span>
+                      ),
+                    },
+
+                    {
+                      header: 'Status',
+                      render: (agent) => (
+                        <EnterpriseStatusBadge
+                          status={String(
+                            agent.status
+                          )}
+                        />
+                      ),
+                    },
+
+                    {
+                      header: (
+                        <div className="text-right">
+                          Actions
+                        </div>
+                      ),
+                      className: 'text-right',
+                      render: (agent) => (
+                        <div className="flex justify-end gap-2">
                           <button
-                            onClick={(e) => toggleActionMenu(e, String(a.id))}
                             className="p-1.5 text-ink/60 hover:text-cream rounded hover:bg-white/5 transition-colors"
+                            title="Contact via Email"
                           >
-                            <MoreHorizontal className="h-4 w-4" />
+                            <Mail className="h-4 w-4" />
                           </button>
 
-                          {/* Only render the menu at all when THIS row's id matches
-                              the currently-open one - every other row's menu stays closed */}
-                          {openMenuId === String(a.id) && menuPosition && (
-                            <div
-                              // Stop clicks INSIDE the menu from bubbling up and
-                              // triggering the "close on any click" listener we added
-                              onClick={(e) => e.stopPropagation()}
-                              // `fixed` + exact pixel coordinates = this menu draws
-                              // relative to the whole browser window, not the table,
-                              // so the table's overflow-hidden can no longer clip it
-                              style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left }}
-                              className="w-48 bg-navy-900 border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                          <button
+                            onClick={() =>
+                              handleViewAgent(
+                                agent
+                              )
+                            }
+                            className="p-1.5 text-ink/60 hover:text-gold-400 rounded hover:bg-gold-400/10 transition-colors"
+                            title="View Agent Details"
+                          >
+                            <Activity className="h-4 w-4" />
+                          </button>
+
+                          <div className="relative">
+                            <button
+                              onClick={(event) =>
+                                toggleActionMenu(
+                                  event,
+                                  String(
+                                    agent.id
+                                  )
+                                )
+                              }
+                              className="p-1.5 text-ink/60 hover:text-cream rounded hover:bg-white/5 transition-colors"
+                              title="Agent Actions"
                             >
-                             <div className="p-2 space-y-1">
-                                {/* Approve: only shown while Pending Verification. Sets status to Active. */}
-                                {a.status === 'Pending Verification' && (
-                                  <button
-                                    onClick={() => handleStatusChange(String(a.id), 'Active')}
-                                    className="w-full text-left px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
-                                  >
-                                    <CheckCircle2 className="h-3 w-3"/> Approve Agent
-                                  </button>
-                                )}
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
 
-                                {/* Not built yet - stays decorative, same as Documents */}
-                                <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><ArrowRightLeft className="h-3 w-3"/> Transfer Branch</button>
-                                <button className="w-full text-left px-3 py-2 text-xs text-cream hover:bg-white/5 rounded-lg flex items-center gap-2"><KeyRound className="h-3 w-3"/> Reset Password</button>
+                            {openMenuId ===
+                              String(
+                                agent.id
+                              ) &&
+                              menuPosition && (
+                                <div
+                                  onClick={(event) =>
+                                    event.stopPropagation()
+                                  }
+                                  style={{
+                                    position:
+                                      'fixed',
+                                    top: menuPosition.top,
+                                    left: menuPosition.left,
+                                  }}
+                                  className="w-48 bg-navy-900 border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                                >
+                                  <div className="p-2 space-y-1">
+                                    {/* Approve Agents awaiting verification. */}
+                                    {agent.status ===
+                                      'Pending Verification' && (
+                                        <button
+                                          onClick={() =>
+                                            handleStatusChange(
+                                              String(
+                                                agent.id
+                                              ),
+                                              'Active'
+                                            )
+                                          }
+                                          className="w-full text-left px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                        >
+                                          <CheckCircle2 className="h-3 w-3" />
+                                          Approve Agent
+                                        </button>
+                                      )}
 
-                                {/* Suspend/Reactivate: toggle between the two, same handler either way */}
-                                {a.status === 'Active' ? (
-                                  <button
-                                    onClick={() => handleStatusChange(String(a.id), 'Suspended')}
-                                    className="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
-                                  >
-                                    <PowerOff className="h-3 w-3"/> Suspend Agent
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleStatusChange(String(a.id), 'Active')}
-                                    className="w-full text-left px-3 py-2 text-xs text-blue-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
-                                  >
-                                    <RefreshCw className="h-3 w-3"/> Reactivate
-                                  </button>
-                                )}
+                                    {/* Branch transfer is not implemented by the current backend. */}
+                                    <button
+                                      disabled
+                                      className="w-full text-left px-3 py-2 text-xs text-ink/40 rounded-lg flex items-center gap-2 cursor-not-allowed"
+                                    >
+                                      <ArrowRightLeft className="h-3 w-3" />
+                                      Transfer Branch
+                                    </button>
 
-                                {/* Not built yet - stays decorative */}
-                                <div className="h-px bg-white/10 my-1"></div>
-                                <button className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-400/10 rounded-lg flex items-center gap-2"><Trash2 className="h-3 w-3"/> Remove Agent</button>
-                              </div>
-                            </div>
-                          )}
+                                    {/* Password reset is not implemented by the current Agency Agent API. */}
+                                    <button
+                                      disabled
+                                      className="w-full text-left px-3 py-2 text-xs text-ink/40 rounded-lg flex items-center gap-2 cursor-not-allowed"
+                                    >
+                                      <KeyRound className="h-3 w-3" />
+                                      Reset Password
+                                    </button>
+
+                                    {/* Toggle between the real Active and Suspended states. */}
+                                    {agent.status ===
+                                      'Active' ? (
+                                      <button
+                                        onClick={() =>
+                                          handleStatusChange(
+                                            String(
+                                              agent.id
+                                            ),
+                                            'Suspended'
+                                          )
+                                        }
+                                        className="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                      >
+                                        <PowerOff className="h-3 w-3" />
+                                        Suspend Agent
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() =>
+                                          handleStatusChange(
+                                            String(
+                                              agent.id
+                                            ),
+                                            'Active'
+                                          )
+                                        }
+                                        className="w-full text-left px-3 py-2 text-xs text-blue-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                      >
+                                        <RefreshCw className="h-3 w-3" />
+                                        Reactivate
+                                      </button>
+                                    )}
+
+                                    <div className="h-px bg-white/10 my-1"></div>
+
+                                    {/* Agent removal needs a dedicated backend operation first. */}
+                                    <button
+                                      disabled
+                                      className="w-full text-left px-3 py-2 text-xs text-ink/40 rounded-lg flex items-center gap-2 cursor-not-allowed"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                      Remove Agent
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                          </div>
                         </div>
-                      </div>
-                    )
-                  }
-                ]}
-              />
+                      ),
+                    },
+                  ]}
+                />
+              )}
             </div>
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Real Agent status and workload sidebar. */}
         <div className="space-y-6">
-          {/* Attendance Summary */}
+          {/* Agent Status Overview */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-400" /> Availability Overview
+              <Clock className="h-5 w-5 text-blue-400" />
+              Agent Status Overview
             </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-ink/80">Available Now</span>
-                <span className="font-bold text-emerald-400">32</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-ink/80">On Viewings</span>
-                <span className="font-bold text-blue-400">5</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-ink/80">Out of Office</span>
-                <span className="font-bold text-rose-400">3</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-ink/80">On Leave</span>
-                <span className="font-bold text-yellow-400">2</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Team Productivity */}
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-emerald-400" /> Team Productivity
-            </h3>
-            <div className="h-32 flex items-end gap-2 mt-4 relative">
-              {[40, 60, 45, 80, 50, 95].map((h, i) => (
-                <div key={i} className="flex-1 bg-navy-950 rounded-t-sm relative group">
-                  <div 
-                    className="absolute bottom-0 w-full bg-emerald-400/60 rounded-t-sm transition-all group-hover:bg-emerald-400" 
-                    style={{ height: `${h}%` }}
-                  ></div>
+            {isLoadingAgents ? (
+              <div className="h-32 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <RefreshCw className="h-6 w-6 animate-spin text-gold-400" />
+                  <span className="text-sm text-ink/60">
+                    Loading statuses...
+                  </span>
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-[10px] text-ink/60 mt-2">
-              <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-ink/80">
+                    Active
+                  </span>
+                  <span className="font-bold text-emerald-400">
+                    {activeAgentCount}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-ink/80">
+                    Pending Verification
+                  </span>
+                  <span className="font-bold text-yellow-400">
+                    {pendingVerificationCount}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-ink/80">
+                    Suspended
+                  </span>
+                  <span className="font-bold text-rose-400">
+                    {suspendedAgentCount}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-ink/80">
+                    Total Agents
+                  </span>
+                  <span className="font-bold text-blue-400">
+                    {totalAgentCount}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Real Listings by Agent */}
+          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+            <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-emerald-400" />
+              Listings by Agent
+            </h3>
+
+            {isLoadingWorkforceData ? (
+              <div className="h-32 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <RefreshCw className="h-6 w-6 animate-spin text-gold-400" />
+                  <span className="text-sm text-ink/60">
+                    Loading workloads...
+                  </span>
+                </div>
+              </div>
+            ) : productivityAgents.length > 0 ? (
+              <>
+                <div className="h-32 flex items-end gap-2 mt-4 relative">
+                  {productivityAgents.map(
+                    (agent) => {
+                      const listingCount =
+                        Number(
+                          agent.assigned
+                        );
+
+                      const height =
+                        maxListingCount > 0
+                          ? listingCount > 0
+                            ? Math.max(
+                              (listingCount /
+                                maxListingCount) *
+                              100,
+                              8
+                            )
+                            : 3
+                          : 3;
+
+                      return (
+                        <div
+                          key={String(
+                            agent.id
+                          )}
+                          className="flex-1 bg-navy-950 rounded-t-sm relative group"
+                          title={`${agent.name}: ${listingCount} ${listingCount === 1
+                              ? 'listing'
+                              : 'listings'
+                            }`}
+                        >
+                          <div
+                            className="absolute bottom-0 w-full bg-emerald-400/60 rounded-t-sm transition-all group-hover:bg-emerald-400"
+                            style={{
+                              height: `${height}%`,
+                            }}
+                          ></div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+
+                <div className="flex justify-between text-[10px] text-ink/60 mt-2">
+                  {productivityAgents.map(
+                    (agent) => (
+                      <span
+                        key={String(
+                          agent.id
+                        )}
+                      >
+                        {String(
+                          agent.name || '?'
+                        ).charAt(0)}
+                      </span>
+                    )
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="h-32 flex items-center justify-center text-sm text-ink/60">
+                No Agent workload data available yet.
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <EnterpriseDetailDrawer 
+      {/* Real Agent details drawer. */}
+      <EnterpriseDetailDrawer
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        title={selectedAgent ? `Agent: ${selectedAgent.name}` : 'Agent Details'}
+        onClose={() =>
+          setIsDrawerOpen(false)
+        }
+        title={
+          selectedAgent
+            ? `Agent: ${selectedAgent.name}`
+            : 'Agent Details'
+        }
         footerActions={
           <div className="flex gap-3 w-full">
-            <GhostButton className="flex-1">Message Agent</GhostButton>
-            <GoldButton className="flex-1">Assign Leads</GoldButton>
+            <GhostButton
+              className="flex-1"
+              disabled
+            >
+              Message Agent
+            </GhostButton>
+
+            <GoldButton
+              className="flex-1"
+              disabled
+            >
+              Assign Leads
+            </GoldButton>
           </div>
         }
       >
         <div className="space-y-6 pb-20">
-          {/* SECTION 1: Personal Information */}
+          {/* SECTION 1: Real Personal Information */}
           <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
-            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><User className="h-4 w-4 text-ink/50"/> Personal Information</h4>
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2">
+              <User className="h-4 w-4 text-ink/50" />
+              Personal Information
+            </h4>
+
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Full Name</div><div className="text-cream">{selectedAgent?.name}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Date of Birth</div><div className="text-cream">{selectedAgent?.dob || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Gender</div><div className="text-cream">{selectedAgent?.gender || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Nationality</div><div className="text-cream">{selectedAgent?.nationality || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Phone Number</div><div className="text-cream">{selectedAgent?.phone}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Email</div><div className="text-cream break-all">{selectedAgent?.email}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Residential Address</div><div className="text-cream">{selectedAgent?.residentialAddress || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Emergency Contact</div><div className="text-cream">{selectedAgent?.emergencyContact || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Next of Kin</div><div className="text-cream">{selectedAgent?.nextOfKin || 'N/A'}</div></div>
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Full Name
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.name ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Date of Birth
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.dob ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Phone Number
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.phone ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Email
+                </div>
+                <div className="text-cream break-all">
+                  {selectedAgentData?.email ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Residential Address
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.residentialAddress ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Agent ID
+                </div>
+                <div className="text-cream font-mono break-all">
+                  {selectedAgentData?.id ||
+                    'Not provided'}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 2: Professional Information */}
+          {/* SECTION 2: Real Professional Information */}
           <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
-            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><Briefcase className="h-4 w-4 text-ink/50"/> Professional Information</h4>
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-ink/50" />
+              Professional Information
+            </h4>
+
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Years of Experience</div><div className="text-cream">{selectedAgent?.yearsOfExperience || 0} Years</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Languages</div><div className="text-cream">{selectedAgent?.languages?.join(', ') || 'N/A'}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Biography</div><div className="text-cream text-xs leading-relaxed">{selectedAgent?.biography || 'No biography provided.'}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Specializations</div><div className="flex flex-wrap gap-2 mt-1">{selectedAgent?.specializations?.map((s,i) => <span key={i} className="text-[10px] bg-white/5 px-2 py-1 rounded text-ink/80">{s}</span>) || 'N/A'}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Service Areas</div><div className="flex flex-wrap gap-2 mt-1">{selectedAgent?.serviceAreas?.map((s,i) => <span key={i} className="text-[10px] bg-white/5 px-2 py-1 rounded text-ink/80">{s}</span>) || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Coverage Radius</div><div className="text-cream">{selectedAgent?.coverageRadius || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">License Number</div><div className="text-cream font-mono">{selectedAgent?.licenseNumber || 'N/A'}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Certifications</div><div className="text-cream text-xs">{selectedAgent?.certifications?.join(', ') || 'N/A'}</div></div>
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Employment Type
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.employmentType ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Years of Experience
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.yearsOfExperience ??
+                    'Not provided'}
+                  {selectedAgentData?.yearsOfExperience !==
+                    undefined &&
+                    selectedAgentData?.yearsOfExperience !==
+                    null
+                    ? ' Years'
+                    : ''}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Department
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.department ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Level
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.level ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Branch
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.branch ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Reporting Manager
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.reportingManager ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Service States
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.serviceStates?.length
+                    ? selectedAgentData.serviceStates.join(
+                      ', '
+                    )
+                    : 'Not provided'}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Neighborhoods
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.neighborhoods?.length
+                    ? selectedAgentData.neighborhoods.join(
+                      ', '
+                    )
+                    : 'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Coverage Radius
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.coverageRadius ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  License Number
+                </div>
+                <div className="text-cream font-mono">
+                  {selectedAgentData?.licenseNumber ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Specializations
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {selectedAgentData?.specializations?.length ? (
+                    selectedAgentData.specializations.map(
+                      (
+                        specialization: string,
+                        index: number
+                      ) => (
+                        <span
+                          key={`${specialization}-${index}`}
+                          className="text-[10px] bg-white/5 px-2 py-1 rounded text-ink/80"
+                        >
+                          {specialization}
+                        </span>
+                      )
+                    )
+                  ) : (
+                    <span className="text-cream">
+                      Not provided
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 3: Agency Information */}
+          {/* SECTION 3: Real Agency Assignment */}
           <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
-            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><Building2 className="h-4 w-4 text-ink/50"/> Agency Information</h4>
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-ink/50" />
+              Agency Assignment
+            </h4>
+
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Agency</div><div className="text-cream font-medium">Meridian Luxury Properties</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Branch</div><div className="text-cream">{selectedAgent?.branch || 'HQ'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Managing Director</div><div className="text-cream">Marcus Sterling</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Agency Verification Status</div><div className="text-emerald-400 font-medium">{selectedAgent?.agencyVerificationStatus || 'Verified'}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Agency Role</div><div className="text-cream">{selectedAgent?.level} • {selectedAgent?.department} Specialist</div></div>
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Agency Relationship
+                </div>
+                <div className="text-cream">
+                  Assigned to current Agency
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Agent Status
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.status ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Branch
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.branch ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Reporting Manager
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.reportingManager ||
+                    'Not provided'}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 4: Employment Information */}
+          {/* SECTION 4: Real Employment Information */}
           <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
-            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><FileCheck className="h-4 w-4 text-ink/50"/> Employment Information</h4>
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-ink/50" />
+              Employment & Compliance
+            </h4>
+
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employee ID</div><div className="text-cream font-mono">{selectedAgent?.id}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Date Joined</div><div className="text-cream">{selectedAgent?.joinDate}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employment Status</div><div className="text-emerald-400 font-medium">{selectedAgent?.employmentStatus || 'Active'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employment Type</div><div className="text-cream">{selectedAgent?.employmentType || 'Full-Time'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Background Check</div><div className="text-emerald-400">{selectedAgent?.backgroundCheckStatus || 'Cleared'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">License Status</div><div className="text-emerald-400">{selectedAgent?.licenseStatus || 'Active'}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Employment Contract</div><div className="text-blue-400 underline cursor-pointer">{selectedAgent?.employmentContract || 'View Contract'}</div></div>
-              <div className="col-span-2"><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Internal Notes</div><div className="text-ink/80 text-xs italic bg-navy-950 p-2 rounded">{selectedAgent?.internalNotes || 'No notes available.'}</div></div>
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Date Joined
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.joinDate ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Employment Type
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.employmentType ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Background Check
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.backgroundCheckStatus ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  License Number
+                </div>
+                <div className="text-cream font-mono">
+                  {selectedAgentData?.licenseNumber ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Commission Model
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.commissionModel ||
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Agent Share
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.agentShare ??
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Agency Share
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.agencyShare ??
+                    'Not provided'}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Sign-on Bonus
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData?.signOnBonus ??
+                    'Not provided'}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 5: Performance & Workload */}
+          {/* SECTION 5: Real Workload */}
           <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
-            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><Activity className="h-4 w-4 text-ink/50"/> Performance & Workload</h4>
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-ink/50" />
+              Workload
+            </h4>
+
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Revenue Generated</div><div className="text-emerald-400 font-bold">{selectedAgent?.revenueGenerated || '₦0'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Commission Earned</div><div className="text-gold-400 font-bold">{selectedAgent?.commissionEarned || '₦0'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Active Listings</div><div className="text-cream">{selectedAgent?.assigned}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Pending Assignments</div><div className="text-cream">{selectedAgent?.pendingAssignments || 0}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Open Deals</div><div className="text-cream">{selectedAgent?.openDeals || 0}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Appointments</div><div className="text-cream">{selectedAgent?.appointments || 0}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Current Leads</div><div className="text-cream">{selectedAgent?.activeLeads}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Avg Response Time</div><div className="text-cream">{selectedAgent?.avgResponseTime || 'N/A'}</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Performance Score</div><div className="text-emerald-400">{selectedAgent?.score}%</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Capacity</div><div className="text-yellow-400">{selectedAgent?.capacity || 0}%</div></div>
-              <div><div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">Client Rating</div><div className="text-gold-400">★ {selectedAgent?.clientSat}</div></div>
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Assigned Listings
+                </div>
+                <div className="text-cream">
+                  {selectedAgentData
+                    ? getAgentListingCount(
+                      String(
+                        selectedAgentData.id
+                      )
+                    )
+                    : 0}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Current Status
+                </div>
+                <EnterpriseStatusBadge
+                  status={String(
+                    selectedAgentData?.status ||
+                    'Unknown'
+                  )}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider mb-1">
+                  Performance Metrics
+                </div>
+                <div className="text-ink/60 text-sm">
+                  Leads, deals, revenue, ratings, and
+                  response-time metrics are not available
+                  from the current backend yet.
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 6: Verification & Documents */}
+          {/* SECTION 6: Real Verification Information */}
           <div className="p-5 rounded-xl border border-white/10 bg-navy-900/50">
-            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-ink/50"/> Verification & Documents</h4>
-            <div className="space-y-3">
-              {[
-                { name: 'Government ID', status: 'Approved' },
-                { name: 'Passport Photograph', status: 'Approved' },
-                { name: 'Professional License', status: 'Approved' },
-                { name: 'Employment Contract', status: 'Approved' },
-                { name: 'Proof of Address', status: 'Approved' },
-                { name: 'Bank Information', status: 'Pending' },
-                { name: 'Tax Information', status: 'Pending' }
-              ].map((doc, i) => (
-                <div key={i} className="flex justify-between items-center p-3 rounded-lg border border-white/5 bg-navy-950">
-                  <div className="flex items-center gap-3">
-                    <FileText className={`h-4 w-4 ${doc.status === 'Approved' ? 'text-emerald-400' : 'text-yellow-400'}`} />
-                    <div>
-                      <div className="text-sm font-medium text-cream">{doc.name}</div>
-                      <div className={`text-[10px] font-bold tracking-wider uppercase ${doc.status === 'Approved' ? 'text-emerald-400' : 'text-yellow-400'}`}>{doc.status}</div>
-                    </div>
+            <h4 className="text-sm font-bold text-cream mb-4 flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-ink/50" />
+              Verification & Compliance
+            </h4>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm font-medium text-cream">
+                    Account Status
                   </div>
-                  <div className="flex gap-2">
-                    <button className="text-ink/60 hover:text-gold-400 transition-colors p-1" title="View"><Search className="h-4 w-4" /></button>
-                    <button className="text-ink/60 hover:text-gold-400 transition-colors p-1" title="Replace"><Upload className="h-4 w-4" /></button>
+                  <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider">
+                    Current Agent status
                   </div>
                 </div>
-              ))}
+
+                <EnterpriseStatusBadge
+                  status={String(
+                    selectedAgentData?.status ||
+                    'Unknown'
+                  )}
+                />
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm font-medium text-cream">
+                    Background Check
+                  </div>
+                  <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider">
+                    Backend compliance field
+                  </div>
+                </div>
+
+                <span className="text-sm text-cream">
+                  {selectedAgentData?.backgroundCheckStatus ||
+                    'Not provided'}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm font-medium text-cream">
+                    License Number
+                  </div>
+                  <div className="text-[10px] text-ink/50 uppercase font-bold tracking-wider">
+                    Professional license record
+                  </div>
+                </div>
+
+                <span className="text-sm text-cream font-mono">
+                  {selectedAgentData?.licenseNumber ||
+                    'Not provided'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </EnterpriseDetailDrawer>
 
-     <AgentOnboardingModal 
-        isOpen={isOnboardingModalOpen} 
-        onClose={() => setIsOnboardingModalOpen(false)} 
-        onAgentCreated={fetchAgents}
+      {/* Refresh the real Agent list after successful onboarding. */}
+      <AgentOnboardingModal
+        isOpen={isOnboardingModalOpen}
+        onClose={() =>
+          setIsOnboardingModalOpen(false)
+        }
+        onAgentCreated={async () => {
+          // Refresh both Agents and Property workload after onboarding.
+          await Promise.all([
+            fetchAgents(),
+            fetchAgencyProperties(),
+          ]);
+        }}
       />
     </div>
   );

@@ -1,29 +1,383 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Route, CheckCircle2, Clock, XCircle, AlertTriangle, MessageSquare, Upload, Eye, Download, ArrowRight, User, Building2, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { useToast } from '../../../contexts/ToastContext';
-import { mockJourneys } from '../../../data/ownerData';
+import { propertyApi } from '../../../api/property.api';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import UploadDocumentModal from './modals/UploadDocumentModal';
 import ExportModal from './modals/ExportModal';
+
+
+// ListingJourney.tsx
+export const mapPropertyToJourney = (property: any) => {
+  // Calculate the journey progress from the property's real workflow state.
+  let progressPercent = 20;
+
+  if (
+    property.assignmentStatus === 'Agency Assigned' ||
+    property.assignmentStatus === 'Agent Assigned'
+  ) {
+    progressPercent = 40;
+  }
+
+  if (property.assignmentStatus === 'Agent Assigned') {
+    progressPercent = 60;
+  }
+
+  if (property.verificationLevel === 'Documents Verified') {
+    progressPercent = 75;
+  }
+
+  if (property.status === 'Published') {
+    progressPercent = 100;
+  }
+
+  // Determine which workflow stages have been completed.
+  const agencyAssigned =
+    property.assignmentStatus === 'Agency Assigned' ||
+    property.assignmentStatus === 'Agent Assigned';
+
+  const agentAssigned =
+    property.assignmentStatus === 'Agent Assigned';
+
+  const verificationCompleted =
+    property.verificationLevel === 'Documents Verified' ||
+    property.verificationLevel === 'Physical Inspection Completed';
+
+  // Calculate the current workflow stage.
+  let currentStageName = 'Agency Assignment';
+
+  if (property.status === 'Published') {
+    currentStageName = 'Published';
+  } else if (verificationCompleted) {
+    currentStageName = 'Publication';
+  } else if (agentAssigned) {
+    currentStageName = 'Verification';
+  } else if (agencyAssigned) {
+    currentStageName = 'Agent Assignment';
+  }
+
+  // Build the existing journey stages from backend workflow data.
+  const stages = [
+    {
+      name: 'Property Submitted',
+      status: 'Completed',
+      date: property.createdAt,
+      description: 'Property was submitted to Luxora for processing.',
+      officer: undefined,
+      notes: undefined,
+    },
+    {
+      name: 'Agency Assignment',
+      status: agencyAssigned
+        ? 'Completed'
+        : currentStageName === 'Agency Assignment'
+          ? 'Current'
+          : 'Pending',
+      date: agencyAssigned ? property.assignedAt : undefined,
+      description: 'Your property is being reviewed and assigned to an agency.',
+      officer: undefined,
+      notes: undefined,
+    },
+    {
+      name: 'Agent Assignment',
+      status: agentAssigned
+        ? 'Completed'
+        : currentStageName === 'Agent Assignment'
+          ? 'Current'
+          : 'Pending',
+      date: agentAssigned ? property.assignedAt : undefined,
+      description: 'A qualified agent is assigned to manage the property.',
+      officer: property.agent?.user?.fullName,
+      notes: undefined,
+    },
+    {
+      name: 'Verification',
+      status: verificationCompleted
+        ? 'Completed'
+        : currentStageName === 'Verification'
+          ? 'Current'
+          : 'Pending',
+      date: verificationCompleted
+        ? property.inspectionCompletedAt || property.updatedAt
+        : undefined,
+      description: 'Property documents and verification requirements are reviewed.',
+      officer: undefined,
+      notes: undefined,
+    },
+    {
+      name: 'Publication',
+      status:
+        property.status === 'Published'
+          ? 'Completed'
+          : currentStageName === 'Publication'
+            ? 'Current'
+            : 'Pending',
+      date:
+        property.status === 'Published'
+          ? property.updatedAt
+          : undefined,
+      description: 'The property is prepared for publication on the Luxora marketplace.',
+      officer: undefined,
+      notes: undefined,
+    },
+  ];
+
+  // Calculate the number of days since the property was submitted.
+  const submittedTime = property.createdAt
+    ? new Date(property.createdAt).getTime()
+    : Date.now();
+
+  const daysSinceSubmission = Math.max(
+    0,
+    Math.floor(
+      (Date.now() - submittedTime) / (1000 * 60 * 60 * 24),
+    ),
+  );
+
+  // Build the activity feed from real backend lifecycle events.
+  const activityFeed = [
+    {
+      title: 'Property Submitted',
+      date: property.createdAt,
+      type: 'success',
+    },
+    ...(agencyAssigned
+      ? [
+        {
+          title: 'Agency Assigned',
+          date: property.assignedAt,
+          type: 'success',
+        },
+      ]
+      : []),
+    ...(agentAssigned
+      ? [
+        {
+          title: `Agent Assigned${property.agent?.user?.fullName ? `: ${property.agent.user.fullName}` : ''}`,
+          date: property.assignedAt,
+          type: 'success',
+        },
+      ]
+      : []),
+    ...(verificationCompleted
+      ? [
+        {
+          title: 'Verification Completed',
+          date:
+            property.inspectionCompletedAt ||
+            property.updatedAt,
+          type: 'success',
+        },
+      ]
+      : []),
+    ...(property.status === 'Published'
+      ? [
+        {
+          title: 'Property Published',
+          date: property.updatedAt,
+          type: 'success',
+        },
+      ]
+      : []),
+  ];
+
+  // Build workflow alerts from the real property state.
+  const alerts = [];
+
+  if (
+    property.assignmentStatus === 'Unassigned'
+  ) {
+    alerts.push({
+      type: 'warning',
+      message: 'Your property is awaiting agency assignment.',
+    });
+  }
+
+  if (
+    property.verificationLevel !== 'Documents Verified' &&
+    property.status !== 'Published'
+  ) {
+    alerts.push({
+      type: 'warning',
+      message: 'Verification is still in progress.',
+    });
+  }
+
+  // Find the current stage for the existing highlighted section.
+  const currentStage = stages.find(
+    (stage) => stage.status === 'Current',
+  );
+
+  // Return the shape expected by the existing Listing Journey UI.
+  return {
+    id: property._id,
+    name: property.title,
+    image:
+      property.coverImage ||
+      property.images?.[0] ||
+      undefined,
+    status:
+      property.status === 'Published'
+        ? 'Published'
+        : verificationCompleted
+          ? 'Verified'
+          : agencyAssigned
+            ? 'Under Review'
+            : 'Submitted',
+    address: [
+      property.area,
+      property.city,
+      property.state,
+    ]
+      .filter(Boolean)
+      .join(', ') || 'Location unavailable',
+    type:
+      property.propertyType ||
+      property.propertySubType ||
+      'Property',
+    agent: {
+      name:
+        property.agent?.user?.fullName ||
+        'Unassigned',
+      avatar:
+        property.agent?.user?.avatar ||
+        undefined,
+    },
+    progressPercent,
+    daysSinceSubmission,
+    estDaysRemaining:
+      progressPercent === 100
+        ? 0
+        : Math.max(1, 100 - progressPercent),
+    expectedGoLive:
+      property.status === 'Published'
+        ? property.updatedAt
+        : 'To be confirmed',
+    currentStage,
+    stages,
+    alerts,
+    activityFeed,
+  };
+};
 
 export type StageStatus = 'Completed' | 'Current' | 'Pending' | 'Delayed' | 'Rejected';
 
 export default function ListingJourney() {
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [selectedId, setSelectedId] = useState(mockJourneys.length > 0 ? mockJourneys[0].id : '');
+
+  // Store the authenticated Owner's real property journeys.
+  const [journeys, setJourneys] = useState<any[]>([]);
+
+  // Track which property is currently selected.
+  const [selectedId, setSelectedId] = useState('');
+
+  // Track the initial backend loading state.
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Track any backend loading failure.
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
-  
+
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  const journey = useMemo(() => mockJourneys.find(j => j.id === selectedId) || mockJourneys[0], [selectedId]);
+  // Load the Owner's real properties when Listing Journey opens.
+  useEffect(() => {
+    const loadOwnerJourneys = async () => {
+      try {
+        // Show the loading state while the backend request is running.
+        setIsLoading(true);
 
-  if (mockJourneys.length === 0 || !journey) {
+        // Clear any previous API error.
+        setLoadError(null);
+
+        // Fetch the authenticated Owner's real properties.
+        const response = await propertyApi.getOwnerProperties();
+
+        // Read the property collection returned by the HTTP client.
+        const properties = (response as any)?.properties || [];
+
+        // Convert backend properties into the existing journey structure.
+        const mappedJourneys = properties.map(
+          mapPropertyToJourney,
+        );
+
+        // Store the real journeys in component state.
+        setJourneys(mappedJourneys);
+
+        // Automatically select the first property.
+        setSelectedId((currentId) => {
+          if (
+            currentId &&
+            mappedJourneys.some(
+              (journey) => journey.id === currentId,
+            )
+          ) {
+            return currentId;
+          }
+
+          return mappedJourneys[0]?.id || '';
+        });
+      } catch (error) {
+        // Convert the API failure into a readable UI message.
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load your listing journey.',
+        );
+      } finally {
+        // Stop the loading state after the request completes.
+        setIsLoading(false);
+      }
+    };
+
+    // Start loading the real owner properties.
+    loadOwnerJourneys();
+  }, []);
+
+  // Find the selected real backend property.
+  const journey = useMemo(
+    () =>
+      journeys.find(
+        (item) => item.id === selectedId,
+      ) || journeys[0],
+    [journeys, selectedId],
+  );
+
+  // Show a loading state while the backend property list is loading.
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-8 text-center">
+          <p className="text-sm text-ink/60">
+            Loading listing journey...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show the API error when the property request fails.
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
+          <p className="text-sm text-rose-400">
+            {loadError}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show the existing empty state when no properties exist.
+  if (journeys.length === 0 || !journey) {
     return (
       <div className="space-y-6">
         <EmptyState
@@ -82,16 +436,21 @@ export default function ListingJourney() {
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-1/3">
             <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider mb-2 block">Select Property</label>
-            <select 
+            <select
               className="w-full rounded-xl border border-white/10 bg-navy-900 py-3 px-4 text-cream focus:border-gold-400 focus:outline-none transition-colors"
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
             >
-              {mockJourneys.map(j => (
-                <option key={j.id} value={j.id}>{j.name} ({j.status})</option>
+              {journeys.map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}
+                >
+                  {item.name} ({item.status})
+                </option>
               ))}
             </select>
-            
+
             <div className="mt-4 rounded-xl overflow-hidden border border-white/10 relative">
               <img src={journey.image} alt={journey.name} className="h-40 w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-navy-950 to-transparent" />
@@ -106,7 +465,7 @@ export default function ListingJourney() {
               </div>
             </div>
           </div>
-          
+
           <div className="w-full md:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5 flex flex-col justify-center">
               <div className="text-xs text-ink/50 uppercase tracking-wider mb-1">Property Type</div>
@@ -143,19 +502,18 @@ export default function ListingJourney() {
 
       {/* Alerts */}
       {journey.alerts.map((alert, idx) => (
-        <div key={idx} className={`rounded-xl border p-4 flex gap-3 items-center ${
-          alert.type === 'error' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-        }`}>
+        <div key={idx} className={`rounded-xl border p-4 flex gap-3 items-center ${alert.type === 'error' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+          }`}>
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <div className="text-sm font-medium">{alert.message}</div>
         </div>
       ))}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* LEFT COLUMN: Timeline */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* Progress Summary */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col md:flex-row gap-6 justify-between items-center">
             <div className="w-full md:w-1/3">
@@ -233,7 +591,7 @@ export default function ListingJourney() {
                           {stage.date && <div className="text-xs text-ink/50 whitespace-nowrap">{stage.date}</div>}
                         </div>
                         <p className="text-sm text-ink/60 mt-1">{stage.description}</p>
-                        
+
                         {(stage.officer || stage.notes) && (
                           <div className="mt-3 p-3 rounded-xl bg-navy-900/50 border border-white/5 space-y-2">
                             {stage.officer && (
@@ -260,7 +618,7 @@ export default function ListingJourney() {
         {/* RIGHT COLUMN: Activity Feed */}
         <div className="space-y-8">
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <div 
+            <div
               className="flex items-center justify-between cursor-pointer lg:cursor-auto"
               onClick={() => setIsActivityOpen(!isActivityOpen)}
             >
@@ -269,15 +627,14 @@ export default function ListingJourney() {
                 {isActivityOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </div>
             </div>
-            
+
             <div className={`mt-6 space-y-4 ${!isActivityOpen ? 'hidden lg:block' : 'block'}`}>
               {journey.activityFeed.map((event, idx) => (
                 <div key={idx} className="flex gap-4 items-start p-3 rounded-xl bg-navy-900/50 border border-white/5">
-                  <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                    event.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
-                    event.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-blue-500/20 text-blue-400'
-                  }`}>
+                  <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${event.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
+                      event.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-blue-500/20 text-blue-400'
+                    }`}>
                     <ArrowRight className="h-3 w-3" />
                   </div>
                   <div>
@@ -292,14 +649,14 @@ export default function ListingJourney() {
         </div>
 
       </div>
-      
-      <UploadDocumentModal 
-        isOpen={isUploadModalOpen} 
-        onClose={() => setIsUploadModalOpen(false)} 
-        onUpload={handleUpload} 
+
+      <UploadDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={handleUpload}
       />
-      
-      <ExportModal 
+
+      <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         onExport={handleExport}
@@ -321,11 +678,10 @@ export default function ListingJourney() {
           <div className="space-y-4">
             {journey.activityFeed.map((event, idx) => (
               <div key={idx} className="flex gap-4 items-start p-4 rounded-xl bg-navy-900/50 border border-white/5">
-                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 ${
-                  event.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
-                  event.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-blue-500/20 text-blue-400'
-                }`}>
+                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 ${event.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
+                    event.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-blue-500/20 text-blue-400'
+                  }`}>
                   <ArrowRight className="h-4 w-4" />
                 </div>
                 <div>

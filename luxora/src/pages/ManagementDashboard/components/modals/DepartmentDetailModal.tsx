@@ -1,11 +1,40 @@
-import { Building2, Users, Target, ShieldAlert, Activity, CheckCircle2, DollarSign, Award, TrendingUp, Zap, FileText } from 'lucide-react';
+import {
+  Building2,
+  Users,
+  UserCheck,
+  UserX,
+  ShieldCheck,
+  Mail,
+  Phone,
+  Calendar,
+} from 'lucide-react';
+
 import { Modal } from '../../../../components/ui/Modal';
-import { GoldButton, GhostButton } from '../../../../components/ui/ui';
+import { GhostButton } from '../../../../components/ui/ui';
 import { StatusBadge } from '../shared/StatusBadge';
-import { useState } from 'react';
-import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
-import { ConfirmationModal } from '../../../../components/ui/ConfirmationModal';
-import type { Department } from '../../../../types';
+
+interface DepartmentMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  department: string | null;
+  status: string;
+  isActive: boolean;
+  isVerified: boolean;
+  avatar: string | null;
+  createdAt: string;
+}
+
+interface Department {
+  name: string;
+  total: number;
+  active: number;
+  inactive: number;
+  roles: string[];
+  members: DepartmentMember[];
+}
 
 interface DepartmentDetailModalProps {
   isOpen: boolean;
@@ -13,189 +42,270 @@ interface DepartmentDetailModalProps {
   department: Department | null;
 }
 
-export function DepartmentDetailModal({ isOpen, onClose, department }: DepartmentDetailModalProps) {
-  const [confirmationState, setConfirmationState] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    confirmText: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    description: '',
-    confirmText: 'Confirm',
-    onConfirm: () => {}
-  });
+export function DepartmentDetailModal({
+  isOpen,
+  onClose,
+  department,
+}: DepartmentDetailModalProps) {
+  if (!department) {
+    return null;
+  }
 
-  if (!department) return null;
-
-  const timelineItems = [
-    { title: 'Q3 Budget Approved', time: 'Oct 01, 2025', desc: 'Operating budget expanded by 12%', icon: DollarSign, color: 'text-emerald-400' },
-    { title: 'Risk Assessment: Warning', time: 'Sep 15, 2025', desc: 'Resource constraints flagged', icon: ShieldAlert, color: 'text-yellow-400' },
-    { title: 'New Department Head Appointed', time: 'Jan 10, 2025', desc: 'Leadership transition completed', icon: Users, color: 'text-blue-400' },
-  ];
-
-  const handleAction = (title: string, description: string, confirmText: string = 'Confirm') => {
-    setConfirmationState({
-      isOpen: true,
-      title,
-      description,
-      confirmText,
-      onConfirm: () => {
-        // Mock action
-      }
-    });
-  };
+  const activePercentage =
+    department.total > 0
+      ? Math.round(
+          (department.active / department.total) * 100
+        )
+      : 0;
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title="Department Oversight Details"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Department Details"
       size="xl"
-      actionButton={<GoldButton onClick={() => handleAction('Manage Department', `Are you sure you want to manage the ${department.name} department?`, 'Manage')}>Manage Department</GoldButton>}
     >
-      <div className="space-y-8 pb-4">
-        {/* Header Profile Section */}
-        <div className="flex flex-col md:flex-row gap-6 items-start border-b border-white/5 pb-6">
-          <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-navy-800 border border-white/10 text-gold-400 shrink-0">
+      <div className="space-y-6 pb-4">
+        {/* Department Header */}
+        <div className="flex flex-col gap-5 border-b border-white/5 pb-6 sm:flex-row sm:items-center">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-gold-400/20 bg-gold-400/10 text-gold-400">
             <Building2 className="h-10 w-10" />
           </div>
-          <div className="flex-1 space-y-4">
-            <div>
-              <h2 className="text-2xl font-bold text-cream">{department.name}</h2>
-              <p className="text-ink/60 text-lg">Head: <span className="text-cream">{department.head}</span></p>
+
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-cream">
+              {department.name}
+            </h2>
+
+            <p className="mt-1 text-sm text-ink/50">
+              {department.total}{' '}
+              {department.total === 1
+                ? 'team member'
+                : 'team members'}
+            </p>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {department.roles.map((role) => (
+                <span
+                  key={role}
+                  className="rounded-full border border-white/10 bg-navy-900/60 px-3 py-1 text-xs text-ink/60"
+                >
+                  {role}
+                </span>
+              ))}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge status={department.status} />
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
-                Headcount: {department.headcount}
+          </div>
+
+          <GhostButton
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 text-sm"
+          >
+            Close
+          </GhostButton>
+        </div>
+
+        {/* Staffing Overview */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-white/5 bg-navy-900/50 p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs text-ink/40">
+                Total Staff
               </span>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                department.riskLevel === 'Low' ? 'bg-emerald-400/10 text-emerald-400' :
-                department.riskLevel === 'Medium' ? 'bg-yellow-400/10 text-yellow-400' :
-                'bg-rose-400/10 text-rose-400'
-              }`}>
-                Risk: {department.riskLevel}
+
+              <Users className="h-4 w-4 text-gold-400" />
+            </div>
+
+            <p className="text-2xl font-bold text-cream">
+              {department.total}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/5 bg-navy-900/50 p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs text-ink/40">
+                Active Staff
               </span>
+
+              <UserCheck className="h-4 w-4 text-emerald-400" />
             </div>
-            <div className="flex gap-4 pt-2">
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('View Objectives', `Access current objectives for ${department.name}?`, 'View')}>
-                <Target className="h-4 w-4" /> View Objectives
-              </GhostButton>
-              <GhostButton className="flex items-center gap-2 px-3 py-1.5 text-sm" onClick={() => handleAction('Performance Metrics', `View performance metrics for ${department.name}?`, 'View')}>
-                <Activity className="h-4 w-4" /> Performance Metrics
-              </GhostButton>
+
+            <p className="text-2xl font-bold text-emerald-400">
+              {department.active}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/5 bg-navy-900/50 p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs text-ink/40">
+                Inactive Staff
+              </span>
+
+              <UserX className="h-4 w-4 text-rose-400" />
             </div>
+
+            <p className="text-2xl font-bold text-rose-400">
+              {department.inactive}
+            </p>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Resource Allocation, Initiatives, Notes */}
-          <div className="space-y-6">
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-gold-400" /> Active Initiatives
+        {/* Staffing Coverage */}
+        <div className="rounded-xl border border-white/5 bg-navy-900/50 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-cream">
+                Active Staffing
               </h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-cream">Process Optimization</span>
-                    <span className="text-emerald-400 font-medium">90%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-navy-950 rounded-full overflow-hidden border border-white/5">
-                    <div className="h-full bg-emerald-400" style={{ width: '90%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-cream">Core Systems Upgrade</span>
-                    <span className="text-blue-400 font-medium">45%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-navy-950 rounded-full overflow-hidden border border-white/5">
-                    <div className="h-full bg-blue-400" style={{ width: '45%' }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-emerald-400" /> Resource Allocation
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-ink/60">Q3 Operating Budget</span>
-                  <span className="text-cream font-medium">$4.2M</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-ink/60">Budget Consumed</span>
-                  <span className="text-yellow-400 font-medium">88%</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-ink/60">Headcount Capacity</span>
-                  <span className={Number(department.headcount) > 50 ? 'text-rose-400 font-medium' : 'text-emerald-400 font-medium'}>
-                    {Number(department.headcount) > 50 ? '105% (Strained)' : '92% (Optimal)'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-ink/60" /> Internal Notes
-              </h3>
-              <p className="text-xs text-ink/80 leading-relaxed p-3 bg-navy-800 rounded-lg border border-white/5">
-                Department is currently meeting all core KPIs. However, resource capacity needs to be addressed in Q4 to prevent burnout. Recommend increasing budget allocation by 5% to support new hires.
+              <p className="mt-1 text-xs text-ink/40">
+                Current account activity within this department
               </p>
             </div>
+
+            <span className="text-sm font-bold text-emerald-400">
+              {activePercentage}%
+            </span>
           </div>
 
-          {/* Performance Summary, Timeline, Achievements */}
-          <div className="space-y-6">
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4 flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gold-400/10 border border-gold-400/20 shrink-0">
-                <TrendingUp className="h-8 w-8 text-gold-400" />
-              </div>
-              <div>
-                <h3 className="font-heading text-sm font-semibold text-cream">Performance Summary</h3>
-                <p className="text-xs text-ink/60 mt-1">Overall rating: <span className="text-emerald-400 font-bold">A- (Excellent)</span></p>
-                <p className="text-[10px] text-ink/40 mt-0.5">Top 15% across enterprise</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
-                <Award className="h-4 w-4 text-gold-400" /> Recent Achievements
-              </h3>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2 text-xs text-ink/80">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" /> Exceeded Q2 revenue targets by 14%
-                </li>
-                <li className="flex items-start gap-2 text-xs text-ink/80">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" /> Completed core systems migration with zero downtime
-                </li>
-              </ul>
-            </div>
-
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <ActivityTimeline
-                title="Initiative Timeline"
-                items={timelineItems}
-              />
-            </div>
+          <div className="h-2 overflow-hidden rounded-full bg-navy-950">
+            <div
+              className="h-full rounded-full bg-emerald-400"
+              style={{
+                width: `${activePercentage}%`,
+              }}
+            />
           </div>
         </div>
+
+        {/* Department Members */}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="font-heading text-lg font-semibold text-cream">
+                Department Members
+              </h3>
+
+              <p className="mt-1 text-xs text-ink/40">
+                Actual personnel assigned to this department
+              </p>
+            </div>
+
+            <Users className="h-5 w-5 text-ink/40" />
+          </div>
+
+          <div className="space-y-3">
+            {department.members.map((member) => {
+              const createdDate = member.createdAt
+                ? new Date(
+                    member.createdAt
+                  ).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : 'Not available';
+
+              return (
+                <div
+                  key={member.id}
+                  className="rounded-xl border border-white/5 bg-navy-900/50 p-4"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      {member.avatar ? (
+                        <img
+                          src={member.avatar}
+                          alt={member.name}
+                          className="h-11 w-11 shrink-0 rounded-full border border-white/5 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/5 bg-navy-700 text-sm font-bold text-gold-400">
+                          {member.name
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="truncate text-sm font-semibold text-cream">
+                            {member.name}
+                          </h4>
+
+                          <StatusBadge
+                            status={member.status}
+                          />
+                        </div>
+
+                        <p className="mt-1 text-xs text-ink/50">
+                          {member.role}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 text-xs text-ink/50">
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        <span className="max-w-[220px] truncate">
+                          {member.email}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5" />
+                        <span>
+                          {member.phone ||
+                            'No phone'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>
+                          {createdDate}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-3">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                        member.isVerified
+                          ? 'bg-emerald-400/10 text-emerald-400'
+                          : 'bg-yellow-400/10 text-yellow-400'
+                      }`}
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+
+                      {member.isVerified
+                        ? 'Verified'
+                        : 'Unverified'}
+                    </span>
+
+                    <span className="rounded-full border border-white/10 bg-navy-800/60 px-2.5 py-1 text-[10px] text-ink/50">
+                      {member.department ||
+                        'Unassigned'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Data Scope */}
+        <div className="rounded-xl border border-white/5 bg-navy-900/50 p-5">
+          <p className="text-xs leading-relaxed text-ink/50">
+            This department view currently reflects the real
+            personnel data stored on Luxora staff accounts.
+            Budget allocation, departmental risk, initiatives,
+            and performance scores are not displayed until
+            those systems are backed by real data.
+          </p>
+        </div>
       </div>
-      <ConfirmationModal
-        isOpen={confirmationState.isOpen}
-        onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationState.onConfirm}
-        title={confirmationState.title}
-        description={confirmationState.description}
-        confirmText={confirmationState.confirmText}
-      />
     </Modal>
   );
 }

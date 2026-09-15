@@ -1,7 +1,6 @@
 import axios from "axios";
 // import getToken from "./token";
-import { setToken, getToken} from "../api/token";
-
+import { setToken, getToken, clearToken } from "../api/token";
 //let the dev proxy handle forwarding without any env file at all
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";

@@ -1,10 +1,15 @@
 export interface TeamMember {
   id: string;
   name: string;
-  department: string;
+  email: string;
+  phone: string | null;
+  department: string | null;
   role: string;
-  status: 'Active' | 'On Leave' | 'Warning' | string;
-  performance: string;
+  status: string;
+  isActive: boolean;
+  isVerified: boolean;
+  avatar: string | null;
+  createdAt: string;
 }
 
 export interface Department {

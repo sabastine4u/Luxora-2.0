@@ -1,8 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { Bed, Bath, Maximize, MapPin, BadgeCheck, AlertTriangle, CheckCircle2, Share2, LayoutGrid, Video, X, Heart, Scale, Download, FileText } from 'lucide-react';
-import { properties } from '../../data/luxoraData';
-import { PageLayout, Container, Section, Breadcrumb } from '../../components/layout';
+// Import the Property API used to retrieve the published Property from the backend.
+import { propertyApi } from '../../api/property.api';
+
+// Import the mapper that converts backend Property data into the frontend Property shape.
+import { mapApiPropertyToProperty } from '../../api/property.mapper';
+
+// Import the canonical frontend Property type.
+import type { Property } from '../../types'; import { PageLayout, Container, Section, Breadcrumb } from '../../components/layout';
 import { GoldButton, GhostButton } from '../../components/ui/ui';
 import { formatCurrency } from '../../utils';
 import { PropertyCard } from '../../components/property/PropertyCard';
@@ -10,19 +16,172 @@ import { PropertyMap } from '../../components/property/PropertyMap';
 import { PropertyGallery } from '../../components/property/PropertyGallery';
 import { PropertySidebar } from '../../components/property/PropertySidebar';
 import { MortgageCalculator } from '../../components/property/MortgageCalculator';
-import { getSimilarProperties } from '../../utils/propertyRecommendations';
 import { useSession } from '../../contexts/SessionContext';
 import { useFavorites } from '../../contexts/FavoriteContext';
 import { useToast } from '../../contexts/ToastContext';
 import { agentNameToSlug, agencyNameToSlug } from '../../utils/agency';
 import { ROUTES } from '../../constants/routes';
 
+// Describe the unwrapped response returned by the public Property details API.
+interface PropertyDetailsResponse {
+  // Store the backend Property returned by the endpoint.
+  property: unknown;
+}
+
+// Build the human-readable price period shown beneath the Property price.
+const getPricePeriodLabel = (property: Property) => {
+  // A total property price should never be described as monthly.
+  if (property.priceFrequency === 'total') {
+    return 'Total price';
+  }
+
+  // Display the actual monthly frequency when supplied by the backend.
+  if (property.priceFrequency === 'monthly') {
+    return 'Per month';
+  }
+
+  // Display yearly pricing accurately.
+  if (property.priceFrequency === 'yearly') {
+    return 'Per year';
+  }
+
+  // Display nightly pricing for short-let listings.
+  if (property.priceFrequency === 'perNight') {
+    return 'Per night';
+  }
+
+  // Display per-plot pricing for land listings.
+  if (property.priceFrequency === 'perPlot') {
+    return 'Per plot';
+  }
+
+  // Display per-acre pricing for land listings.
+  if (property.priceFrequency === 'perAcre') {
+    return 'Per acre';
+  }
+
+  // Use a neutral fallback when the pricing frequency is unavailable.
+  return 'Price details available';
+};
+
 export default function PropertyDetailsPage() {
+  // Read the Property ID from the current route.
   const { id } = useParams<{ id: string }>();
+
+  // Provide navigation for the existing page actions.
   const navigate = useNavigate();
-  const property = properties.find(p => p.id === id);
-  const { addRecentlyViewed, openScheduleViewingModal, toggleCompareProperty, recentlyViewed } = useSession();
+
+  // Store the Property returned by the backend.
+  const [property, setProperty] = useState<Property | null>(null);
+
+  // Track whether the Property request is still loading.
+  const [isLoadingProperty, setIsLoadingProperty] = useState(true);
+
+  // Store a readable error when the Property cannot be loaded.
+  const [propertyError, setPropertyError] = useState<string | null>(null);
+  // Retrieve the existing Property-related session actions.
+  const {
+    addRecentlyViewed,
+    openScheduleViewingModal,
+    toggleCompareProperty,
+  } = useSession();
   const { isFavorite, toggleFavorite } = useFavorites();
+
+  // Retrieve the published Property from the backend whenever the route ID changes.
+  useEffect(() => {
+    // Track whether this request is still associated with the current page instance.
+    let isActive = true;
+
+    // Fetch the Property details from the public API.
+    const fetchProperty = async () => {
+      // Stop when the route does not contain a Property ID.
+      if (!id) {
+        setPropertyError('Property ID is missing.');
+        setIsLoadingProperty(false);
+        return;
+      }
+
+      try {
+        // Start the Property loading state.
+        setIsLoadingProperty(true);
+
+        // Clear any previous request error.
+        setPropertyError(null);
+
+        // Request the published Property by MongoDB ID.
+        const response = (await propertyApi.getPropertyById(
+          id,
+        )) as unknown as PropertyDetailsResponse;
+
+        // Ignore stale responses when the route has already changed.
+        if (!isActive) {
+          return;
+        }
+
+        // Treat a missing Property as a not-found condition.
+        if (!response?.property) {
+          setProperty(null);
+          setPropertyError('Property not found.');
+          return;
+        }
+
+        // Convert the backend Property into the frontend Property shape.
+        const mappedProperty = mapApiPropertyToProperty(
+          response.property,
+        ) as Property;
+
+        // Store the mapped Property for the existing page UI.
+        setProperty(mappedProperty);
+        // Create or reuse an anonymous browser identifier for analytics tracking.
+        const storedVisitorId = localStorage.getItem('luxora_visitor_id');
+
+        const visitorId =
+          storedVisitorId ||
+          (typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+        // Persist the visitor identifier so repeated views can be deduplicated.
+        if (!storedVisitorId) {
+          localStorage.setItem('luxora_visitor_id', visitorId);
+        }
+
+        // Record the real Property view without blocking the Property Details page.
+        void propertyApi.recordPropertyView(id, visitorId).catch((viewError) => {
+          // Keep analytics failures from breaking the Property Details page.
+          console.error('Failed to record Property view:', viewError);
+        });
+      } catch (requestError) {
+        // Ignore errors from an obsolete request.
+        if (!isActive) {
+          return;
+        }
+
+        // Clear stale Property data.
+        setProperty(null);
+
+        // Store the request error for the page state.
+        setPropertyError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Unable to load Property details.',
+        );
+      } finally {
+        // Stop the loading state for the active request.
+        if (isActive) {
+          setIsLoadingProperty(false);
+        }
+      }
+    };
+
+    // Start the backend Property request.
+    fetchProperty();
+
+    // Mark the request inactive when the component unmounts or the ID changes.
+    return () => {
+      isActive = false;
+    };
+  }, [id]);
 
   // Contact Agent Modal State
   const [contactModalOpen, setContactModalOpen] = useState(false);
@@ -40,19 +199,31 @@ export default function PropertyDetailsPage() {
     }
   }, [property, addRecentlyViewed]);
 
-  // Smart Recommendation Engine (Memoized)
-  const similarProperties = useMemo(() => {
-    return property ? getSimilarProperties(property, properties, 4) : [];
-  }, [property]);
+  // Keep the Similar Properties section empty until it is connected
+  // to a backend recommendation/search query.
+  const similarProperties: Property[] = [];
 
-  const recentlyViewedProperties = useMemo(() => {
-    return recentlyViewed
-      .filter(id => id !== property?.id)
-      .map(id => properties.find(p => p.id === id))
-      .filter((p): p is NonNullable<typeof p> => !!p);
-  }, [recentlyViewed, property]);
+  // Keep Recently Viewed empty until stored Property IDs can be resolved
+  // through the backend instead of the removed mock dataset.
+  const recentlyViewedProperties: Property[] = [];
 
-  if (!property) {
+  // Show a simple loading state while the backend Property is being retrieved.
+  if (isLoadingProperty) {
+    return (
+      <PageLayout>
+        <Container className="pt-24 md:pt-32 pb-24">
+          <div className="flex min-h-[40vh] items-center justify-center">
+            <div className="text-sm text-ink/60">
+              Loading Property...
+            </div>
+          </div>
+        </Container>
+      </PageLayout>
+    );
+  }
+
+  // Redirect only after the backend confirms that the Property cannot be loaded.
+  if (!property || propertyError) {
     return <Navigate to="/properties" replace />;
   }
 
@@ -105,7 +276,7 @@ export default function PropertyDetailsPage() {
 
   const getTierBadge = () => {
     if (!property.listingTier) return null;
-    
+
     if (property.listingTier === 'Pro') {
       return (
         <span className="inline-flex items-center rounded-md border border-gold-400/30 bg-gold-400/10 px-2.5 py-0.5 text-xs font-semibold text-gold-400 uppercase tracking-wider shadow-[0_0_10px_rgba(212,175,55,0.2)]">
@@ -151,33 +322,36 @@ export default function PropertyDetailsPage() {
           <div className="text-left md:text-right flex items-center justify-between md:flex-col md:items-end gap-4 md:gap-3 shrink-0">
             <div>
               <div className="font-heading text-3xl font-bold text-cream">{property.price}</div>
-              <div className="text-sm font-medium text-gold-300">From {property.monthly}/month</div>
+              {/* Display the backend pricing frequency without assuming a monthly price. */}
+              <div className="text-sm font-medium text-gold-300">
+                {getPricePeriodLabel(property)}
+              </div>
             </div>
-            
+
             {/* Header Action Area */}
             <div className="flex items-center gap-2 flex-wrap">
-              <GhostButton 
+              <GhostButton
                 size="sm"
                 className={`transition-colors h-9 px-3 text-xs border border-white/10 ${saved ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20'}`}
                 onClick={() => toggleFavorite(property.id)}
               >
                 <Heart className={`h-3.5 w-3.5 mr-1.5 ${saved ? 'fill-current' : ''}`} /> {saved ? 'Saved' : 'Save'}
               </GhostButton>
-              <GhostButton 
+              <GhostButton
                 size="sm"
                 className="transition-colors h-9 px-3 text-xs border border-white/10 hover:bg-gold-400/10 hover:text-gold-400 hover:border-gold-400/20"
                 onClick={handleCompareClick}
               >
                 <Scale className="h-3.5 w-3.5 mr-1.5" /> Compare
               </GhostButton>
-              <GhostButton 
+              <GhostButton
                 size="sm"
                 className="transition-colors h-9 px-3 text-xs border border-white/10 hover:bg-white/10"
                 onClick={handleDownloadBrochure}
               >
                 <Download className="h-3.5 w-3.5 mr-1.5" /> Brochure
               </GhostButton>
-              <GhostButton 
+              <GhostButton
                 size="sm"
                 className="transition-colors h-9 px-3 text-xs border border-white/10 hover:bg-white/10"
                 onClick={handleShareClick}
@@ -314,11 +488,10 @@ export default function PropertyDetailsPage() {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors ${
-                        activeTab === tab 
-                          ? 'text-gold-400 border-b-2 border-gold-400' 
-                          : 'text-ink/60 hover:text-cream border-b-2 border-transparent'
-                      }`}
+                      className={`whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab
+                        ? 'text-gold-400 border-b-2 border-gold-400'
+                        : 'text-ink/60 hover:text-cream border-b-2 border-transparent'
+                        }`}
                     >
                       {tab}
                     </button>
@@ -330,11 +503,11 @@ export default function PropertyDetailsPage() {
                     <div className="space-y-6 animate-in fade-in duration-500">
                       <div className="space-y-4 text-ink/70 leading-relaxed">
                         <p>
-                          Experience unparalleled luxury in this exquisite {property.type.toLowerCase()} located in the prestigious neighborhood of {property.location}. 
+                          Experience unparalleled luxury in this exquisite {property.type.toLowerCase()} located in the prestigious neighborhood of {property.location}.
                           Designed with meticulous attention to detail, this residence offers a seamless blend of modern sophistication and timeless elegance.
                         </p>
                       </div>
-                      
+
                       {property.features && property.features.length > 0 && (
                         <div>
                           <h4 className="text-sm font-semibold text-cream mb-4">Key Features</h4>
@@ -438,11 +611,11 @@ export default function PropertyDetailsPage() {
                     <div className="rounded-3xl border border-white/10 bg-navy-800/50 min-h-[300px] flex flex-col items-center justify-center p-4 md:p-8 text-center animate-in fade-in duration-500 overflow-hidden">
                       {property.videoUrl ? (
                         <div className="w-full max-w-4xl aspect-video rounded-xl overflow-hidden shadow-2xl relative">
-                          <iframe 
-                            src={property.videoUrl} 
-                            title={`${property.title} Video Presentation`} 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen 
+                          <iframe
+                            src={property.videoUrl}
+                            title={`${property.title} Video Presentation`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
                             className="absolute top-0 left-0 w-full h-full border-0"
                           ></iframe>
                         </div>
@@ -462,7 +635,7 @@ export default function PropertyDetailsPage() {
               {/* Payment & Financing */}
               <div className="pt-8 pb-4">
                 <h3 className="font-heading text-2xl font-bold text-cream mb-6">Payment & Financing</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                   <div className="rounded-3xl border border-white/10 bg-navy-800/30 p-6 md:p-8">
                     <h4 className="text-sm font-semibold text-cream mb-6 border-b border-white/5 pb-4">Financial Overview</h4>
@@ -512,7 +685,7 @@ export default function PropertyDetailsPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="mt-6 pt-6 border-t border-white/5">
                       <div className="flex justify-between items-center">
                         <div>
@@ -575,30 +748,30 @@ export default function PropertyDetailsPage() {
       {contactModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/90 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-3xl bg-navy-800 border border-white/10 p-6 md:p-8 relative shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-            <button 
+            <button
               className="absolute top-6 right-6 text-ink/50 hover:text-cream transition-colors p-2 rounded-full hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
               onClick={() => { setContactModalOpen(false); setContactSuccess(false); }}
             >
               <X className="h-5 w-5" />
             </button>
-            
+
             <h3 className="font-heading text-2xl font-bold text-cream mb-2">Contact {property.agent.name}</h3>
-            
+
             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/5">
-              <button 
+              <button
                 onClick={() => navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(property.agent.name)))}
                 className="shrink-0 transition-transform hover:scale-105 focus:outline-none"
               >
                 <img src={property.agent.avatar} alt={property.agent.name} className="h-10 w-10 rounded-full object-cover border border-gold-400/30 hover:border-gold-400/80 transition-colors" />
               </button>
               <div>
-                <button 
+                <button
                   onClick={() => navigate(ROUTES.AGENT_DETAILS.replace(':slug', agentNameToSlug(property.agent.name)))}
                   className="text-sm font-semibold text-cream hover:text-gold-400 transition-colors focus:outline-none text-left block"
                 >
                   {property.agent.name}
                 </button>
-                <button 
+                <button
                   onClick={() => navigate(ROUTES.AGENCY_DETAILS.replace(':slug', agencyNameToSlug(property.agent.agency)))}
                   className="text-xs text-ink/50 hover:text-gold-300 transition-colors focus:outline-none text-left block w-full"
                 >

@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { properties } from '../data/luxoraData';
-import type { PropertyType } from '../types';
+import { propertyApi } from '../api/property.api';
+import { mapApiPropertiesToProperties } from '../api/property.mapper';
+import type { PropertyType, Property } from '../types';
 import { storage } from '../utils/storage';
 
 export type SortOption = 'newest' | 'price-asc' | 'price-desc';
@@ -13,213 +14,615 @@ interface UsePropertySearchOptions {
   initialListingType?: string;
 }
 
-export function usePropertySearch({ initialItemsPerPage = 9, initialType = 'Any Type', initialLocation = 'Any Location', initialListingType = 'Any' }: UsePropertySearchOptions = {}) {
+// Describe the unwrapped response returned by the public Property search API.
+interface PropertySearchResponse {
+  // Properties returned for the requested page.
+  properties: unknown[];
+
+  // Pagination metadata returned by the backend.
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export function usePropertySearch({
+  initialItemsPerPage = 9,
+  initialType = 'Any Type',
+  initialLocation = 'Any Location',
+  initialListingType = 'Any',
+}: UsePropertySearchOptions = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // URL Helpers
-  const getParam = useCallback((key: string, fallback: string) => searchParams.get(key) || fallback, [searchParams]);
-  const getNumParam = useCallback((key: string, fallback: number) => {
-    const val = searchParams.get(key);
-    return val ? parseInt(val, 10) : fallback;
-  }, [searchParams]);
-  const getBoolParam = useCallback((key: string, fallback: boolean) => {
-    const val = searchParams.get(key);
-    return val ? val === 'true' : fallback;
-  }, [searchParams]);
-  const getArrayParam = useCallback((key: string, fallback: string[] = []) => {
-    const val = searchParams.get(key);
-    return val ? val.split(',') : fallback;
-  }, [searchParams]);
+  // Store the Properties returned by the real backend API.
+  const [properties, setProperties] = useState<Property[]>([]);
 
-  const updateParams = useCallback((updates: Record<string, string | null>) => {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      Object.entries(updates).forEach(([k, v]) => {
-        if (v === null || v === '' || v === 'Any Type' || v === 'Any Location' || v === 'Any Budget' || v === 'Any' || v === 'newest' || v === 'false') {
-          next.delete(k);
-        } else {
-          next.set(k, v);
-        }
-      });
-      // Reset page to 1 when filters change (if page isn't the thing being updated)
-      if (Object.keys(updates).some(k => k !== 'page' && k !== 'limit')) {
-        next.delete('page');
+  // Track whether the marketplace request is currently loading.
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Store a readable API error for the marketplace UI.
+  const [error, setError] = useState<string | null>(null);
+
+  // Store backend pagination metadata.
+  const [totalProperties, setTotalProperties] = useState(0);
+  const [totalPagesFromApi, setTotalPagesFromApi] = useState(1);
+
+  // Read a string URL parameter with a fallback value.
+  const getParam = useCallback(
+    (key: string, fallback: string) =>
+      searchParams.get(key) || fallback,
+    [searchParams],
+  );
+
+  // Read a numeric URL parameter with a fallback value.
+  const getNumParam = useCallback(
+    (key: string, fallback: number) => {
+      const value = searchParams.get(key);
+
+      // Return the fallback when the parameter is missing.
+      if (!value) {
+        return fallback;
       }
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
 
-  // State mapped from URL
+      // Convert the URL value into a number.
+      const parsed = Number(value);
+
+      // Return the fallback when the value is not numeric.
+      return Number.isFinite(parsed) ? parsed : fallback;
+    },
+    [searchParams],
+  );
+
+  // Read a boolean URL parameter with a fallback value.
+  const getBoolParam = useCallback(
+    (key: string, fallback: boolean) => {
+      const value = searchParams.get(key);
+
+      // Return the fallback when the parameter is missing.
+      if (!value) {
+        return fallback;
+      }
+
+      // Convert the string representation into a boolean.
+      return value === 'true';
+    },
+    [searchParams],
+  );
+
+  // Read a comma-separated URL parameter into an array.
+  const getArrayParam = useCallback(
+    (key: string, fallback: string[] = []) => {
+      const value = searchParams.get(key);
+
+      // Return the fallback when no parameter is present.
+      if (!value) {
+        return fallback;
+      }
+
+      // Convert the comma-separated value into an array.
+      return value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    },
+    [searchParams],
+  );
+
+  // Update URL parameters while preserving unrelated parameters.
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      setSearchParams(
+        (previous) => {
+          // Clone the current URL parameters before changing anything.
+          const next = new URLSearchParams(previous);
+
+          // Apply each requested parameter update.
+          Object.entries(updates).forEach(([key, value]) => {
+            // Remove empty/default values from the URL.
+            if (
+              value === null ||
+              value === '' ||
+              value === 'Any Type' ||
+              value === 'Any Location' ||
+              value === 'Any Budget' ||
+              value === 'Any' ||
+              value === 'newest' ||
+              value === 'false'
+            ) {
+              next.delete(key);
+            } else {
+              next.set(key, value);
+            }
+          });
+
+          // Reset pagination whenever a filter changes.
+          if (
+            Object.keys(updates).some(
+              (key) => key !== 'page' && key !== 'limit',
+            )
+          ) {
+            next.delete('page');
+          }
+
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  // Read the current search state from the URL.
   const search = getParam('search', '');
-  const type = getParam('propertyType', initialType) as PropertyType;
-  const location = getParam('location', initialLocation);
-  const sort = getParam('sort', 'newest') as SortOption;
-  const budgetString = getParam('budget', 'Any Budget');
-  const minPriceM = getNumParam('minPriceM', 0);
-  const maxPriceM = getNumParam('maxPriceM', 1000);
+
+  // Read the Property type filter from the URL.
+  const type = getParam(
+    'propertyType',
+    initialType,
+  ) as PropertyType;
+
+  // Read the broad location filter from the URL.
+  const location = getParam(
+    'location',
+    initialLocation,
+  );
+
+  // Read the selected sort option.
+  const sort = getParam(
+    'sort',
+    'newest',
+  ) as SortOption;
+
+  // Read the frontend budget preset.
+  const budgetString = getParam(
+    'budget',
+    'Any Budget',
+  );
+
+  // Read frontend price-range values expressed in millions.
+  const minPriceM = getNumParam(
+    'minPriceM',
+    0,
+  );
+
+  const maxPriceM = getNumParam(
+    'maxPriceM',
+    1000,
+  );
+
+  // Read bedroom and bathroom minimum values.
   const beds = getParam('bedrooms', 'Any');
   const baths = getParam('bathrooms', 'Any');
-  
-  // Advanced State mapped from URL
-  const listingType = getParam('listingType', initialListingType);
+
+  // Read the advanced listing type from the current URL.
+  const listingType = getParam(
+    'listingType',
+    initialListingType,
+  );
+
+  // Read the existing UI status filter.
   const status = getParam('status', 'Any');
+
+  // Read advanced filter arrays and flags.
   const amenities = getArrayParam('amenities', []);
-  const mortgageSupport = getBoolParam('mortgageSupport', false);
-  const verificationLevel = getParam('verificationLevel', 'Any');
-  const minArea = getNumParam('minArea', 0);
-  const maxArea = getNumParam('maxArea', 10000);
-  const listingTier = getParam('listingTier', 'Any');
-  const furnishing = getParam('furnishing', 'Any');
-  const availability = getParam('availability', 'Any');
-  const paymentPlan = getArrayParam('paymentPlan', []);
+  const mortgageSupport = getBoolParam(
+    'mortgageSupport',
+    false,
+  );
 
-  // Pagination mapped from URL
+  const verificationLevel = getParam(
+    'verificationLevel',
+    'Any',
+  );
+
+  const minArea = getNumParam(
+    'minArea',
+    0,
+  );
+
+  const maxArea = getNumParam(
+    'maxArea',
+    10000,
+  );
+
+  const listingTier = getParam(
+    'listingTier',
+    'Any',
+  );
+
+  const furnishing = getParam(
+    'furnishing',
+    'Any',
+  );
+
+  const availability = getParam(
+    'availability',
+    'Any',
+  );
+
+  const paymentPlan = getArrayParam(
+    'paymentPlan',
+    [],
+  );
+
+  // Read backend pagination state from the URL.
   const page = getNumParam('page', 1);
-  const itemsPerPage = getNumParam('limit', initialItemsPerPage);
 
-  // View Mode (Local Storage - not URL bound)
-  const [viewMode, setViewModeState] = useState<'grid' | 'list' | 'map'>(() => {
-    const stored = storage.getItem<'grid' | 'list' | 'map' | null>('luxora_view_mode', null);
-    if (stored === 'grid' || stored === 'list' || stored === 'map') return stored;
+  const itemsPerPage = getNumParam(
+    'limit',
+    initialItemsPerPage,
+  );
+
+  // Store the UI view mode separately from backend search state.
+  const [viewMode, setViewModeState] = useState<
+    'grid' | 'list' | 'map'
+  >(() => {
+    // Restore the user's previously selected view mode.
+    const stored = storage.getItem<
+      'grid' | 'list' | 'map' | null
+    >(
+      'luxora_view_mode',
+      null,
+    );
+
+    // Accept only supported view modes.
+    if (
+      stored === 'grid' ||
+      stored === 'list' ||
+      stored === 'map'
+    ) {
+      return stored;
+    }
+
+    // Default to grid view.
     return 'grid';
   });
 
-  const setViewMode = useCallback((mode: 'grid' | 'list' | 'map') => {
-    setViewModeState(mode);
-    storage.setItem('luxora_view_mode', mode);
-  }, []);
+  // Persist the selected view mode.
+  const setViewMode = useCallback(
+    (mode: 'grid' | 'list' | 'map') => {
+      // Update React state immediately.
+      setViewModeState(mode);
 
-  const filteredProperties = useMemo(() => {
-    let result = properties;
+      // Persist the preference for future visits.
+      storage.setItem(
+        'luxora_view_mode',
+        mode,
+      );
+    },
+    [],
+  );
 
+  // Convert the frontend budget preset into real NGN values.
+  const getBudgetRange = useCallback(() => {
+    // Default to no budget restrictions.
+    let minPrice;
+    let maxPrice;
+
+    // Convert each existing UI preset into backend values.
+    if (budgetString === '₦50M – ₦100M') {
+      minPrice = 50_000_000;
+      maxPrice = 100_000_000;
+    } else if (
+      budgetString === '₦100M – ₦300M'
+    ) {
+      minPrice = 100_000_000;
+      maxPrice = 300_000_000;
+    } else if (
+      budgetString === '₦300M – ₦700M'
+    ) {
+      minPrice = 300_000_000;
+      maxPrice = 700_000_000;
+    } else if (
+      budgetString === '₦700M+'
+    ) {
+      minPrice = 700_000_000;
+    }
+
+    // Return the translated backend range.
+    return {
+      minPrice,
+      maxPrice,
+    };
+  }, [budgetString]);
+
+  // Build the canonical backend search query from the frontend URL state.
+  const apiQuery = useMemo(() => {
+    // Convert the selected budget preset into NGN values.
+    const budgetRange = getBudgetRange();
+
+    // Convert the price slider values from millions into NGN.
+    const sliderMinPrice =
+      minPriceM > 0
+        ? minPriceM * 1_000_000
+        : undefined;
+
+    const sliderMaxPrice =
+      maxPriceM < 1000
+        ? maxPriceM * 1_000_000
+        : undefined;
+
+    // Start with the required pagination and sorting values.
+    const query: Record<string, string | number | boolean> = {
+      page,
+      limit: itemsPerPage,
+      sort,
+    };
+
+    // Add the general text search only when supplied.
     if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(p => p.title.toLowerCase().includes(q) || p.location.toLowerCase().includes(q));
+      query.search = search;
     }
 
+    // Add the Property type only when a specific type is selected.
     if (type !== 'Any Type') {
-      result = result.filter(p => p.type === type);
+      query.propertyType = type;
     }
 
+    // Convert the frontend listing type to the backend transaction type.
+    if (
+      listingType !== 'Any' &&
+      listingType !== ''
+    ) {
+      query.transactionType =
+        listingType.toLowerCase();
+    }
+
+    // Pass the location search through to the backend.
     if (location !== 'Any Location') {
-      result = result.filter(p => p.city === location || p.state === location);
+      query.location = location;
     }
 
-    // Budget String Logic (for PropertiesPage)
-    if (budgetString !== 'Any Budget') {
-      let min = 0;
-      let max = Infinity;
-      if (budgetString === '₦50M – ₦100M') { min = 50_000_000; max = 100_000_000; }
-      else if (budgetString === '₦100M – ₦300M') { min = 100_000_000; max = 300_000_000; }
-      else if (budgetString === '₦300M – ₦700M') { min = 300_000_000; max = 700_000_000; }
-      else if (budgetString === '₦700M+') { min = 700_000_000; max = Infinity; }
-      result = result.filter(p => p.priceValue >= min && p.priceValue <= max);
+    // Prefer the explicit budget preset when selected.
+    if (budgetRange.minPrice !== undefined) {
+      query.minPrice = budgetRange.minPrice;
     }
 
-    // Range Logic (for SearchPage)
-    if (minPriceM > 0) {
-      result = result.filter(p => (p.priceValue / 1_000_000) >= minPriceM);
+    if (budgetRange.maxPrice !== undefined) {
+      query.maxPrice = budgetRange.maxPrice;
     }
 
-    if (maxPriceM < 1000) {
-      result = result.filter(p => (p.priceValue / 1_000_000) <= maxPriceM);
+    // Apply the slider range when no preset has already provided the boundary.
+    if (
+      budgetRange.minPrice === undefined &&
+      sliderMinPrice !== undefined
+    ) {
+      query.minPrice = sliderMinPrice;
     }
 
-    // Beds & Baths Logic
+    if (
+      budgetRange.maxPrice === undefined &&
+      sliderMaxPrice !== undefined
+    ) {
+      query.maxPrice = sliderMaxPrice;
+    }
+
+    // Convert the frontend bedroom value into the backend field.
     if (beds !== 'Any') {
-      result = result.filter(p => p.beds >= parseInt(beds, 10));
+      query.bedrooms = Number(beds);
     }
 
+    // Convert the frontend bathroom value into the backend field.
     if (baths !== 'Any') {
-      result = result.filter(p => p.baths >= parseInt(baths, 10));
+      query.bathrooms = Number(baths);
     }
 
-    // Advanced Filters Logic
-    if (listingType !== 'Any' && listingType !== '') {
-      result = result.filter(p => p.transactionType === listingType.toLowerCase());
-    }
-
-    if (status !== 'Any') {
-      result = result.filter(p => p.status === status || (status === 'Available' && !p.status));
-    }
-
+    // Pass supported advanced filters to the backend.
     if (mortgageSupport) {
-      result = result.filter(p => p.mortgageSupport === true);
+      query.mortgageSupport = true;
     }
 
     if (verificationLevel !== 'Any') {
-      result = result.filter(p => p.verified?.includes(verificationLevel));
+      query.verificationLevel =
+        verificationLevel;
     }
 
     if (listingTier !== 'Any') {
-      result = result.filter(p => p.listingTier === listingTier || (listingTier === 'Basic' && !p.listingTier));
+      query.listingTier =
+        listingTier;
     }
-    
+
     if (furnishing !== 'Any') {
-      result = result.filter(p => p.furnishing === furnishing);
+      query.furnishing =
+        furnishing;
     }
-    
+
+    // Map the frontend availability terminology to the backend enum.
     if (availability !== 'Any') {
-      if (availability === 'Immediate') {
-        result = result.filter(p => p.status === 'Available' || !p.status);
-      } else {
-        result = result.filter(p => p.status !== 'Available');
+      query.availabilityStatus =
+        availability === 'Immediate'
+          ? 'Available'
+          : availability;
+    }
+
+    // Convert the frontend area range into the backend propertySize range.
+    if (minArea > 0) {
+      query.minArea = minArea;
+    }
+
+    if (maxArea < 10000) {
+      query.maxArea = maxArea;
+    }
+
+    // Pass selected amenities as a comma-separated backend value.
+    if (amenities.length > 0) {
+      query.amenities =
+        amenities.join(',');
+    }
+
+    // Convert the frontend payment-plan labels into backend durations.
+    if (paymentPlan.length > 0) {
+      const durations = paymentPlan
+        .map((plan) => {
+          // Extract numeric duration from labels like "6 Months Plan".
+          const match =
+            plan.match(/\d+/);
+
+          return match
+            ? match[0]
+            : null;
+        })
+        .filter(Boolean);
+
+      // Send only successfully parsed durations.
+      if (durations.length > 0) {
+        query.paymentPlan =
+          durations.join(',');
       }
     }
 
-    if (minArea > 0) {
-      result = result.filter(p => {
-        const areaNum = parseInt(p.area.replace(/\D/g, ''), 10);
-        return !isNaN(areaNum) && areaNum >= minArea;
-      });
-    }
-    
-    if (maxArea < 10000) {
-      result = result.filter(p => {
-        const areaNum = parseInt(p.area.replace(/\D/g, ''), 10);
-        return !isNaN(areaNum) && areaNum <= maxArea;
-      });
-    }
+    // Return the completed backend query.
+    return query;
+  }, [
+    search,
+    type,
+    location,
+    listingType,
+    budgetString,
+    minPriceM,
+    maxPriceM,
+    beds,
+    baths,
+    mortgageSupport,
+    verificationLevel,
+    listingTier,
+    furnishing,
+    availability,
+    minArea,
+    maxArea,
+    amenities,
+    paymentPlan,
+    sort,
+    page,
+    itemsPerPage,
+    getBudgetRange,
+  ]);
 
-    if (amenities.length > 0) {
-      result = result.filter(p => 
-        amenities.every(amenity => p.amenities?.includes(amenity))
+  // Fetch Properties whenever the URL search state changes.
+  useEffect(() => {
+    // Track whether this particular request is still active.
+    let isActive = true;
+
+    // Wrap the API request in an async function.
+    const fetchProperties = async () => {
+      try {
+        // Show the loading state before requesting fresh results.
+        setIsLoading(true);
+
+        // Clear the previous error before making the request.
+        setError(null);
+
+        // Request the published Properties from the backend using the canonical search query.
+        const response = (await propertyApi.getProperties(
+          apiQuery,
+        )) as unknown as PropertySearchResponse;
+        // Stop if another request has already replaced this one.
+        if (!isActive) {
+          return;
+        }
+
+        // Extract the backend Property collection.
+        const apiProperties =
+          response?.properties || [];
+
+        // Convert backend Properties into the canonical frontend Property shape.
+        const mappedProperties =
+          mapApiPropertiesToProperties(
+            apiProperties,
+          ) as Property[];
+
+        // Update the frontend Property collection.
+        setProperties(mappedProperties);
+
+        // Preserve backend pagination totals.
+        setTotalProperties(
+          response?.pagination?.total || 0,
+        );
+
+        // Preserve backend page count.
+        setTotalPagesFromApi(
+          response?.pagination?.totalPages || 1,
+        );
+      } catch (requestError) {
+        // Ignore stale request errors after a newer request has started.
+        if (!isActive) {
+          return;
+        }
+
+        // Clear stale Property results after a failed request.
+        setProperties([]);
+
+        // Reset pagination metadata after a failed request.
+        setTotalProperties(0);
+        setTotalPagesFromApi(1);
+
+        // Convert the caught error into a readable frontend message.
+        const message =
+          requestError instanceof Error
+            ? requestError.message
+            : 'Unable to load Properties';
+
+        // Expose the error to the existing UI.
+        setError(message);
+      } finally {
+        // Stop the loading state for the active request.
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Start the backend request.
+    fetchProperties();
+
+    // Mark the request inactive when dependencies change or the component unmounts.
+    return () => {
+      isActive = false;
+    };
+  }, [apiQuery]);
+
+  // Use the backend result count as the authoritative total.
+  const totalPages = Math.max(
+    1,
+    totalPagesFromApi,
+  );
+
+  // Keep the current page inside the backend-reported bounds.
+  const validPage = Math.min(
+    Math.max(1, page),
+    totalPages,
+  );
+
+  // Navigate to a different backend page.
+  const goToPage = useCallback(
+    (nextPage: number) => {
+      // Keep the requested page at or above one.
+      const safePage = Math.max(
+        1,
+        nextPage,
       );
-    }
 
-    if (paymentPlan.length > 0) {
-      result = result.filter(p => 
-        paymentPlan.every(plan => p.paymentOptions?.includes(plan))
-      );
-    }
+      // Store the page in the URL.
+      updateParams({
+        page: safePage.toString(),
+      });
+    },
+    [updateParams],
+  );
 
-    // Sort
-    result = [...result].sort((a, b) => {
-      if (sort === 'price-asc') return a.priceValue - b.priceValue;
-      if (sort === 'price-desc') return b.priceValue - a.priceValue;
-      return 0; // newest
-    });
-
-    return result;
-  }, [search, type, location, budgetString, minPriceM, maxPriceM, beds, baths, sort, status, mortgageSupport, verificationLevel, minArea, maxArea, amenities, listingType, listingTier, furnishing, availability, paymentPlan]);
-
-  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
-  
-  // Constrain page to bounds if filters change heavily
-  const validPage = Math.min(page, Math.max(1, totalPages));
-
-  const paginatedProperties = useMemo(() => {
-    return filteredProperties.slice((validPage - 1) * itemsPerPage, validPage * itemsPerPage);
-  }, [filteredProperties, validPage, itemsPerPage]);
-
-  const goToPage = useCallback((p: number) => updateParams({ page: p.toString() }), [updateParams]);
-
+  // Reset every search filter by clearing the URL.
   const resetFilters = useCallback(() => {
-    setSearchParams(new URLSearchParams(), { replace: true });
+    setSearchParams(
+      new URLSearchParams(),
+      { replace: true },
+    );
   }, [setSearchParams]);
 
+  // Return the existing hook contract so current UI components require minimal changes.
   return {
-    // State
+    // State.
     search,
     type,
     location,
@@ -243,41 +646,216 @@ export function usePropertySearch({ initialItemsPerPage = 9, initialType = 'Any 
     page: validPage,
     itemsPerPage,
 
-    // Setters (Mapped to URL params)
-    setSearch: useCallback((v: string) => updateParams({ search: v }), [updateParams]),
-    setType: useCallback((v: string) => updateParams({ propertyType: v }), [updateParams]),
-    setLocation: useCallback((v: string) => updateParams({ location: v }), [updateParams]),
-    setListingType: useCallback((v: string) => updateParams({ listingType: v }), [updateParams]),
-    setBudgetString: useCallback((v: string) => updateParams({ budget: v }), [updateParams]),
-    setMinPriceM: useCallback((v: number) => updateParams({ minPriceM: v === 0 ? null : v.toString() }), [updateParams]),
-    setMaxPriceM: useCallback((v: number) => updateParams({ maxPriceM: v === 1000 ? null : v.toString() }), [updateParams]),
-    setBeds: useCallback((v: string) => updateParams({ bedrooms: v }), [updateParams]),
-    setBaths: useCallback((v: string) => updateParams({ bathrooms: v }), [updateParams]),
-    setSort: useCallback((v: SortOption) => updateParams({ sort: v }), [updateParams]),
-    setStatus: useCallback((v: string) => updateParams({ status: v }), [updateParams]),
-    setAmenities: useCallback((v: string[]) => updateParams({ amenities: v.length > 0 ? v.join(',') : null }), [updateParams]),
-    setMortgageSupport: useCallback((v: boolean) => updateParams({ mortgageSupport: v ? 'true' : null }), [updateParams]),
-    setVerificationLevel: useCallback((v: string) => updateParams({ verificationLevel: v }), [updateParams]),
-    setListingTier: useCallback((v: string) => updateParams({ listingTier: v }), [updateParams]),
-    setFurnishing: useCallback((v: string) => updateParams({ furnishing: v }), [updateParams]),
-    setAvailability: useCallback((v: string) => updateParams({ availability: v }), [updateParams]),
-    setPaymentPlan: useCallback((v: string[]) => updateParams({ paymentPlan: v.length > 0 ? v.join(',') : null }), [updateParams]),
-    setMinArea: useCallback((v: number) => updateParams({ minArea: v === 0 ? null : v.toString() }), [updateParams]),
-    setMaxArea: useCallback((v: number) => updateParams({ maxArea: v === 10000 ? null : v.toString() }), [updateParams]),
-    setItemsPerPage: useCallback((v: number) => updateParams({ limit: v.toString() }), [updateParams]),
+    // Backend request state.
+    isLoading,
+    error,
 
-    // Pagination
+    // Setters mapped to URL parameters.
+    setSearch: useCallback(
+      (value: string) =>
+        updateParams({ search: value }),
+      [updateParams],
+    ),
+
+    setType: useCallback(
+      (value: string) =>
+        updateParams({
+          propertyType: value,
+        }),
+      [updateParams],
+    ),
+
+    setLocation: useCallback(
+      (value: string) =>
+        updateParams({
+          location: value,
+        }),
+      [updateParams],
+    ),
+
+    setListingType: useCallback(
+      (value: string) =>
+        updateParams({
+          listingType: value,
+        }),
+      [updateParams],
+    ),
+
+    setBudgetString: useCallback(
+      (value: string) =>
+        updateParams({
+          budget: value,
+        }),
+      [updateParams],
+    ),
+
+    setMinPriceM: useCallback(
+      (value: number) =>
+        updateParams({
+          minPriceM:
+            value === 0
+              ? null
+              : value.toString(),
+        }),
+      [updateParams],
+    ),
+
+    setMaxPriceM: useCallback(
+      (value: number) =>
+        updateParams({
+          maxPriceM:
+            value === 1000
+              ? null
+              : value.toString(),
+        }),
+      [updateParams],
+    ),
+
+    setBeds: useCallback(
+      (value: string) =>
+        updateParams({
+          bedrooms: value,
+        }),
+      [updateParams],
+    ),
+
+    setBaths: useCallback(
+      (value: string) =>
+        updateParams({
+          bathrooms: value,
+        }),
+      [updateParams],
+    ),
+
+    setSort: useCallback(
+      (value: SortOption) =>
+        updateParams({
+          sort: value,
+        }),
+      [updateParams],
+    ),
+
+    setStatus: useCallback(
+      (value: string) =>
+        updateParams({
+          status: value,
+        }),
+      [updateParams],
+    ),
+
+    setAmenities: useCallback(
+      (value: string[]) =>
+        updateParams({
+          amenities:
+            value.length > 0
+              ? value.join(',')
+              : null,
+        }),
+      [updateParams],
+    ),
+
+    setMortgageSupport: useCallback(
+      (value: boolean) =>
+        updateParams({
+          mortgageSupport:
+            value
+              ? 'true'
+              : null,
+        }),
+      [updateParams],
+    ),
+
+    setVerificationLevel:
+      useCallback(
+        (value: string) =>
+          updateParams({
+            verificationLevel:
+              value,
+          }),
+        [updateParams],
+      ),
+
+    setListingTier: useCallback(
+      (value: string) =>
+        updateParams({
+          listingTier: value,
+        }),
+      [updateParams],
+    ),
+
+    setFurnishing: useCallback(
+      (value: string) =>
+        updateParams({
+          furnishing: value,
+        }),
+      [updateParams],
+    ),
+
+    setAvailability: useCallback(
+      (value: string) =>
+        updateParams({
+          availability: value,
+        }),
+      [updateParams],
+    ),
+
+    setPaymentPlan: useCallback(
+      (value: string[]) =>
+        updateParams({
+          paymentPlan:
+            value.length > 0
+              ? value.join(',')
+              : null,
+        }),
+      [updateParams],
+    ),
+
+    setMinArea: useCallback(
+      (value: number) =>
+        updateParams({
+          minArea:
+            value === 0
+              ? null
+              : value.toString(),
+        }),
+      [updateParams],
+    ),
+
+    setMaxArea: useCallback(
+      (value: number) =>
+        updateParams({
+          maxArea:
+            value === 10000
+              ? null
+              : value.toString(),
+        }),
+      [updateParams],
+    ),
+
+    setItemsPerPage: useCallback(
+      (value: number) =>
+        updateParams({
+          limit: value.toString(),
+        }),
+      [updateParams],
+    ),
+
+    // Pagination actions.
     goToPage,
-    
-    // Actions
+
+    // Reset all filters.
     resetFilters,
 
-    // Derived Data
-    filteredProperties,
-    paginatedProperties,
+    // Real backend Property results.
+    filteredProperties: properties,
+    paginatedProperties: properties,
+
+    // Backend pagination metadata.
     totalPages,
-    totalProperties: properties.length,
+    totalProperties,
+
+    // UI view mode.
     viewMode,
-    setViewMode
+    setViewMode,
   };
 }

@@ -2967,7 +2967,8 @@ export const buyerNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Recommendations', icon: 'Sparkles' },
   { label: 'Recently Viewed', icon: 'Activity' },
-  { label: 'My Favorites', icon: 'Heart', badge: '3' },
+  // Favorites count is provided live by FavoriteContext.
+  { label: 'My Favorites', icon: 'Heart' },
   { label: 'Mortgage Tracker', icon: 'Wallet' },
   { label: 'Messages', icon: 'MessageSquare', badge: '2' },
   { label: 'Viewing Requests', icon: 'Eye' },
@@ -3019,7 +3020,7 @@ export const adminNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Messages', icon: 'MessageSquare', badge: '5' },
   { label: 'Listings', icon: 'Building2' },
-  { label: 'Verification Queue', icon: 'ShieldCheck', badge: '14' },
+  { label: 'Verification Center', icon: 'ShieldCheck'},
   { label: 'Owners', icon: 'UserCircle' },
   { label: 'Buyers', icon: 'Heart' },
   { label: 'Agents', icon: 'Users' },

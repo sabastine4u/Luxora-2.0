@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { offerApi } from '../../../api/offer.api';
 import { FileText, History, Home, Phone } from 'lucide-react';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout';
@@ -8,12 +9,13 @@ import { formatCurrency } from '../../../utils';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { useToast } from '../../../contexts/ToastContext';
-import { mockOffers } from '../../../data/buyerData';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { OfferActionModal } from './modals/OfferActionModal';
 import type { Offer } from '../../../types';
+
+
 
 export default function Offers() {
   const { showToast } = useToast();
@@ -30,13 +32,89 @@ export default function Offers() {
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
+  // Store the Buyer's Offers retrieved from the backend.
+  const [offers, setOffers] = useState<Offer[]>([]);
+
+  // Track whether the Buyer's Offers are currently being loaded.
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load the authenticated Buyer's Offers from the backend.
+  useEffect(() => {
+    const loadOffers = async () => {
+      try {
+        // Request the Buyer's Offers from the API.
+        const response = await offerApi.getMyOffers();
+
+        // Read the Offers from the API response data.
+        const backendOffers = response.data?.offers ?? [];
+
+        // Convert backend Offers into the shape already used by this UI.
+        const mappedOffers: Offer[] = backendOffers.map((offer: any) => ({
+          id: offer._id,
+          propertyTitle: offer.property?.title || 'Property',
+          location: [
+            offer.property?.area,
+            offer.property?.city,
+            offer.property?.state,
+          ]
+            .filter(Boolean)
+            .join(', ') || offer.property?.address || 'Location unavailable',
+          propertyType: offer.property?.propertyType || 'Unknown',
+          askingPrice: offer.property?.price || 0,
+          offerAmount: offer.offerAmount,
+          status: offer.status,
+          date: offer.createdAt
+            ? offer.createdAt.split('T')[0]
+            : '',
+          // Use a readable fallback until the backend provides populated Agent details.
+          agent: 'Assigned Agent',
+          image:
+            offer.property?.coverImage ||
+            offer.property?.images?.[0] ||
+            '',
+          summary:
+            offer.property?.description ||
+            offer.property?.title ||
+            'Property offer',
+          timeline: [
+            {
+              date: offer.createdAt
+                ? offer.createdAt.split('T')[0]
+                : '',
+              event: 'Offer submitted',
+            },
+          ],
+          counterOfferDetails: offer.counterOfferDetails || null,
+          agentNotes: offer.agentNotes || '',
+          buyerNotes: offer.buyerNotes || '',
+          estimatedClosing: offer.estimatedClosing || '',
+        }));
+
+        // Store the converted Offers for the existing table and filters.
+        setOffers(mappedOffers);
+      } catch (error) {
+        // Log the API failure without breaking the dashboard.
+        console.error('Failed to load offers:', error);
+
+        // Keep the Offers list empty when the request fails.
+        setOffers([]);
+      } finally {
+        // Stop the loading state after the API request finishes.
+        setIsLoading(false);
+      }
+    };
+
+    // Load the Buyer's Offers when the component mounts.
+    loadOffers();
+  }, []);
+
   const filteredAndSortedOffers = useMemo(() => {
-    let result = [...mockOffers];
+    let result = [...offers];
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(o => 
-        o.propertyTitle.toLowerCase().includes(q) || 
-        o.agent.toLowerCase().includes(q) || 
+      result = result.filter(o =>
+        o.propertyTitle.toLowerCase().includes(q) ||
+        o.agent.toLowerCase().includes(q) ||
         o.location.toLowerCase().includes(q)
       );
     }
@@ -62,28 +140,80 @@ export default function Offers() {
       return 0;
     });
     return result;
-  }, [searchQuery, filterStatus, filterType, filterDate, filterPrice, sortBy]);
-
+  }, [
+    offers,
+    searchQuery,
+    filterStatus,
+    filterType,
+    filterDate,
+    filterPrice,
+    sortBy
+  ]);
   const uniqueStatuses = ['All', 'Draft', 'Submitted', 'Under Review', 'Counter Offer Received', 'Accepted', 'Rejected', 'Withdrawn', 'Expired'];
-  const uniqueTypes = ['All', ...new Set(mockOffers.map(o => o.propertyType))];
+  const uniqueTypes = ['All', ...new Set(offers.map(o => o.propertyType))];
   const uniqueDates = ['All', 'Past Month', 'Past 6 Months', 'This Year'];
   const uniquePrices = ['All', 'Under 100M', '100M - 500M', 'Over 500M'];
+  const totalOffers = offers.length;
 
-  const totalOffers = mockOffers.length;
-  const activeOffers = mockOffers.filter(o => ['Submitted', 'Under Review', 'Counter Offer Received'].includes(o.status)).length;
-  const acceptedOffers = mockOffers.filter(o => o.status === 'Accepted').length;
-  const rejectedOffers = mockOffers.filter(o => o.status === 'Rejected').length;
+  const activeOffers = offers.filter(o =>
+    ['Submitted', 'Under Review', 'Counter Offer Received'].includes(o.status)
+  ).length;
 
+  const acceptedOffers = offers.filter(o => o.status === 'Accepted').length;
+
+  const rejectedOffers = offers.filter(o => o.status === 'Rejected').length;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleActionSubmit = (_amount: number, _notes: string) => {
     showToast({ type: 'success', title: 'Offer Updated', description: 'Your offer has been submitted to the backend.' });
   };
+  const handleWithdrawConfirm = async () => {
+    // Stop the action when no Offer is currently selected.
+    if (!selectedOffer) return;
 
-  const handleWithdrawConfirm = () => {
-    showToast({ type: 'success', title: 'Offer Withdrawn', description: 'Your offer withdrawal has been processed by the backend.' });
-    setIsDrawerOpen(false);
+    try {
+      // Send the withdrawal request for the selected Offer to the backend.
+      await offerApi.withdrawOffer(selectedOffer.id);
+
+      // Update the local Offer status so the table reflects the withdrawal immediately.
+      setOffers((currentOffers) =>
+        currentOffers.map((offer) =>
+          offer.id === selectedOffer.id
+            ? { ...offer, status: 'Withdrawn' }
+            : offer
+        )
+      );
+
+      // Update the selected Offer shown in the drawer.
+      setSelectedOffer((currentOffer) =>
+        currentOffer
+          ? { ...currentOffer, status: 'Withdrawn' }
+          : currentOffer
+      );
+
+      // Close the confirmation modal after the backend succeeds.
+      setIsConfirmationOpen(false);
+
+      // Close the Offer details drawer after the withdrawal succeeds.
+      setIsDrawerOpen(false);
+
+      // Tell the Buyer that the backend processed the withdrawal.
+      showToast({
+        type: 'success',
+        title: 'Offer Withdrawn',
+        description: 'Your offer has been withdrawn successfully.',
+      });
+    } catch (error) {
+      // Log the API failure for debugging.
+      console.error('Failed to withdraw offer:', error);
+
+      // Tell the Buyer that the withdrawal could not be completed.
+      showToast({
+        type: 'error',
+        title: 'Withdrawal Failed',
+        description: 'We could not withdraw this offer. Please try again.',
+      });
+    }
   };
-
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col gap-2">
@@ -156,7 +286,14 @@ export default function Offers() {
         />
       </div>
 
-      {filteredAndSortedOffers.length === 0 ? (
+      {isLoading ? (
+        // Show a loading state while the Buyer's Offers are being retrieved.
+        <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
+          <div className="flex min-h-[200px] items-center justify-center">
+            <div className="text-sm text-ink/60">Loading your offers...</div>
+          </div>
+        </div>
+      ) : filteredAndSortedOffers.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
           <EmptyState
             icon={<FileText className="h-12 w-12 text-gold-400" />}
@@ -204,8 +341,8 @@ export default function Offers() {
                 header: <div className="text-right">Actions</div>,
                 className: "text-right",
                 render: (offer) => (
-                  <button 
-                    onClick={() => { setSelectedOffer(offer); setIsDrawerOpen(true); }} 
+                  <button
+                    onClick={() => { setSelectedOffer(offer); setIsDrawerOpen(true); }}
                     className="inline-flex h-8 items-center justify-center rounded-lg border border-white/10 px-3 text-xs font-semibold hover:bg-white/5 hover:text-gold-400 transition-colors"
                   >
                     View Details
@@ -225,22 +362,22 @@ export default function Offers() {
           subtitle={`Property: ${selectedOffer.propertyTitle}`}
           footerActions={
             <>
-              <GoldButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}><Home className="h-4 w-4 mr-2"/> View Property</GoldButton>
+              <GoldButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}><Home className="h-4 w-4 mr-2" /> View Property</GoldButton>
               {selectedOffer.status === 'Counter Offer Received' && (
-                 <GoldButton size="sm" onClick={() => setIsActionModalOpen(true)}>Respond to Counter</GoldButton>
+                <GoldButton size="sm" onClick={() => setIsActionModalOpen(true)}>Respond to Counter</GoldButton>
               )}
-              <GhostButton size="sm" onClick={() => { setIsDrawerOpen(false); navigate(ROUTES.BUYER_DASHBOARD); }}><Phone className="h-4 w-4 mr-2"/> Contact Agent</GhostButton>
+              <GhostButton size="sm" onClick={() => { setIsDrawerOpen(false); navigate(ROUTES.BUYER_DASHBOARD); }}><Phone className="h-4 w-4 mr-2" /> Contact Agent</GhostButton>
               {['Draft', 'Submitted', 'Under Review', 'Counter Offer Received'].includes(selectedOffer.status) && (
-                 <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30" onClick={() => setIsConfirmationOpen(true)}>Withdraw Offer</GhostButton>
+                <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30" onClick={() => setIsConfirmationOpen(true)}>Withdraw Offer</GhostButton>
               )}
             </>
           }
         >
           <div className="space-y-6">
             <div className="rounded-xl overflow-hidden">
-               <img src={selectedOffer.image} alt={selectedOffer.propertyTitle} className="w-full h-48 object-cover" />
+              <img src={selectedOffer.image} alt={selectedOffer.propertyTitle} className="w-full h-48 object-cover" />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-navy-900/50 rounded-xl p-3 border border-white/5">
                 <span className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold">Asking Price</span>
@@ -296,12 +433,12 @@ export default function Offers() {
         </EnterpriseDetailDrawer>
       )}
 
-      <OfferActionModal 
-        isOpen={isActionModalOpen} 
-        onClose={() => setIsActionModalOpen(false)} 
-        onSubmit={handleActionSubmit} 
-        offer={selectedOffer} 
-        actionType="counter" 
+      <OfferActionModal
+        isOpen={isActionModalOpen}
+        onClose={() => setIsActionModalOpen(false)}
+        onSubmit={handleActionSubmit}
+        offer={selectedOffer}
+        actionType="counter"
       />
 
       <ConfirmationModal

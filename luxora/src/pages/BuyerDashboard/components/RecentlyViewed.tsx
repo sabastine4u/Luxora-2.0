@@ -1,16 +1,80 @@
-import { useState, useMemo } from 'react';
+
+import { useEffect, useMemo, useState } from 'react';
 import { Search, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { properties } from '../../../data/luxoraData';
 import { useSession } from '../../../contexts/SessionContext';
 import { PropertyCard } from '../../../components/property/PropertyCard';
+// Fetch published Properties from the Luxora backend.
+import { propertyApi } from '../../../api/property.api';
+// Convert backend Property data into the frontend Property shape used by PropertyCard.
+import { mapApiPropertiesToProperties } from '../../../api/property.mapper';
+// Use the canonical frontend Property type for Recently Viewed results.
+import type { Property } from '../../../types';
 import { EmptyState } from '../../../components/layout';
 import { ROUTES } from '../../../constants/routes';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 
 export default function RecentlyViewed() {
+  // Store published Properties loaded from the Luxora backend.
+  // Store published Properties loaded from the Luxora backend.
+  const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
+
+  // Track whether Recently Viewed Properties are still loading.
+  const [isLoading, setIsLoading] = useState(true);
+
   const { recentlyViewed } = useSession();
   const navigate = useNavigate();
+
+  // Load published Properties from the Luxora backend for Recently Viewed.
+  useEffect(() => {
+    const loadProperties = async () => {
+      // Start the loading state whenever Recently Viewed is refreshed.
+      setIsLoading(true);
+
+      // Clear the displayed Properties when there is no viewing history.
+      if (recentlyViewed.length === 0) {
+        setAvailableProperties([]);
+
+        // Finish loading before showing the empty state.
+        setIsLoading(false);
+
+        return;
+      }
+
+      try {
+        // Fetch each Property that the Buyer actually viewed.
+        const responses = await Promise.all(
+          recentlyViewed.map((propertyId) =>
+            propertyApi.getPropertyById(propertyId),
+          ),
+        );
+
+        // Extract the Property document returned by the shared HTTP client.
+        const properties = responses
+          .map((response) => (response as any).property)
+          .filter(Boolean);
+
+        // Convert the backend Properties into the frontend Property shape.
+        const mappedProperties = mapApiPropertiesToProperties(properties);
+
+        // Store the mapped Properties for the Recently Viewed page.
+        setAvailableProperties(mappedProperties as Property[]);
+
+        // Finish the loading state after the Properties have been loaded.
+        setIsLoading(false);
+      } catch (error) {
+        // Keep the page usable if the backend request fails.
+        console.error('Failed to load properties for recently viewed:', error);
+        setAvailableProperties([]);
+
+        // Finish the loading state even when the backend request fails.
+        setIsLoading(false);
+      }
+    };
+
+    // Run the Property loading function whenever Recently Viewed changes.
+    void loadProperties();
+  }, [recentlyViewed]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
@@ -18,11 +82,12 @@ export default function RecentlyViewed() {
   const [filterVerification, setFilterVerification] = useState('All');
   const [sortBy, setSortBy] = useState('recent');
 
+  // Match the stored Recently Viewed IDs against real backend Properties.
   const baseProps = useMemo(() => {
     return recentlyViewed
-      .map((id) => properties.find((p) => p.id === id))
-      .filter((p): p is NonNullable<typeof p> => p !== undefined);
-  }, [recentlyViewed]);
+      .map((id) => availableProperties.find((p) => p.id === id))
+      .filter((p): p is Property => p !== undefined);
+  }, [recentlyViewed, availableProperties]);
 
   const filteredAndSortedProps = useMemo(() => {
     let result = [...baseProps];
@@ -53,18 +118,33 @@ export default function RecentlyViewed() {
       return 0;
     });
 
-    // The recentlyViewed list is appended to, meaning newest is at the end.
-    // So 'recent' should reverse the array.
+    // Recently Viewed stores the newest Property first, so keep the backend/local history order.
     if (sortBy === 'recent') {
-       result.reverse();
+      return result;
     }
 
     return result;
   }, [baseProps, searchQuery, filterType, filterLocation, filterVerification, sortBy]);
 
-  const uniqueTypes = ['All', ...new Set(properties.map((p) => p.type))];
-  const uniqueLocations = ['All', ...new Set(properties.map((p) => p.location))];
+  // Build the Property Type filter from the real backend Properties.
+  const uniqueTypes = ['All', ...new Set(availableProperties.map((p) => p.type))];
+  // Build the location filter from the real backend Properties.
+  const uniqueLocations = [
+    'All',
+    ...new Set(availableProperties.map((p) => p.location)),
+  ];
   const uniqueVerifications = ['All', 'Title', 'Structural', 'Legal'];
+
+  // Show a loading message while Recently Viewed Properties are being fetched.
+  if (isLoading) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
+        <div className="flex items-center justify-center py-12 text-sm text-ink/60">
+          Loading recently viewed properties...
+        </div>
+      </div>
+    );
+  }
 
   if (baseProps.length === 0) {
     return (
@@ -153,7 +233,7 @@ export default function RecentlyViewed() {
         </div>
       ) : (
         <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
-           <EmptyState
+          <EmptyState
             icon={<Search className="h-8 w-8 text-gold-400" />}
             title="No matching properties"
             description="Adjust your search and filter criteria to find what you're looking for."

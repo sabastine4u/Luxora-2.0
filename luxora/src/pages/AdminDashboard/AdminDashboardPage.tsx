@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
     switch (activeTab) {
       case 'Overview': return <Overview />;
       case 'Listings': return <Listings />;
-      case 'Verification Queue': return <VerificationQueue />;
+      case 'Verification Center': return <VerificationQueue />;
       case 'Owners': return <Owners />;
       case 'Buyers': return <Buyers />;
       case 'Agents': return <Agents />;
