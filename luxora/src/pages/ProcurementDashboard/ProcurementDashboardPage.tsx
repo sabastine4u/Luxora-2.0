@@ -1,25 +1,12 @@
 import { useSearchParams } from 'react-router-dom';
 import { EnterpriseLayout } from '../../components/layout';
-import Overview from './components/Overview';
+import { ProcurementOverview, ProcurementRecordCenter, ProcurementReports } from './components/ProcurementRecordCenter';
 import Messages from './components/Messages';
 import Settings from './components/Settings';
-import VendorDirectory from './components/VendorDirectory';
-import VendorDetails from './components/VendorDetails/VendorDetails';
-import RFQs from './components/RFQs';
-import PurchaseRequests from './components/PurchaseRequests';
-import PurchaseOrders from './components/PurchaseOrders';
-import Contracts from './components/Contracts';
-import Inventory from './components/Inventory';
-import Assets from './components/Assets';
-import Invoices from './components/Invoices';
-import Budget from './components/Budget';
-import Payments from './components/Payments';
-import Reports from './components/Reports';
 
 export default function ProcurementDashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'Overview';
-  const selectedVendorId = searchParams.get('vendorId');
 
   const handleNavigate = (tab: string, id?: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -34,22 +21,21 @@ export default function ProcurementDashboardPage() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Overview': return <Overview />;
+      case 'Overview': return <ProcurementOverview />;
       case 'Messages': return <Messages />;
       case 'Settings': return <Settings />;
-      case 'Vendor Directory': return <VendorDirectory onNavigate={handleNavigate} />;
-      case 'Vendor Details': return <VendorDetails vendorId={selectedVendorId} onBack={() => handleNavigate('Vendor Directory')} />;
-      case 'RFQs': return <RFQs />;
-      case 'Purchase Requests': return <PurchaseRequests />;
-      case 'Purchase Orders': return <PurchaseOrders />;
-      case 'Contracts': return <Contracts />;
-      case 'Inventory': return <Inventory />;
-      case 'Assets': return <Assets />;
-      case 'Invoices': return <Invoices />;
-      case 'Budget': return <Budget />;
-      case 'Payments': return <Payments />;
-      case 'Reports': return <Reports />;
-      default: return <Overview />;
+      case 'Vendor Directory': return <ProcurementRecordCenter recordType="vendor" />;
+      case 'RFQs': return <ProcurementRecordCenter recordType="rfq" />;
+      case 'Purchase Requests': return <ProcurementRecordCenter recordType="request" />;
+      case 'Purchase Orders': return <ProcurementRecordCenter recordType="order" />;
+      case 'Contracts': return <ProcurementRecordCenter recordType="contract" />;
+      case 'Inventory': return <ProcurementRecordCenter recordType="inventory" />;
+      case 'Assets': return <ProcurementRecordCenter recordType="asset" />;
+      case 'Invoices': return <ProcurementRecordCenter recordType="invoice" />;
+      case 'Budget': return <ProcurementRecordCenter recordType="budget" />;
+      case 'Payments': return <ProcurementRecordCenter recordType="payment" />;
+      case 'Reports': return <ProcurementReports />;
+      default: return <ProcurementOverview />;
     }
   };
 

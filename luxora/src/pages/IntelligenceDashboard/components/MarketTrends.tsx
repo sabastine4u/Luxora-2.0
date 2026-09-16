@@ -4,24 +4,31 @@ import { EnterpriseExportMenu, EnterpriseDetailDrawer } from '../../../component
 import { GhostButton } from '../../../components/ui/ui';
 import { useToast } from '../../../contexts/ToastContext';
 import type { MarketMetric } from '../types';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function MarketTrends() {
   const { showToast } = useToast();
   const [location, setLocation] = useState('Lagos - All Areas');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<MarketMetric | null>(null);
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getMarketTrends(location === 'Lagos - All Areas' ? {} : { city: location }), [location]);
+  const periods: any[] = data?.periods || [];
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });
   };
 
-  const metrics: MarketMetric[] = [
-    { label: 'Avg Sale Price (Lagos)', value: '₦125M', delta: '+4.2%', up: true },
-    { label: 'Avg Rent (Abuja)', value: '₦4.5M/yr', delta: '+1.8%', up: true },
-    { label: 'Days on Market', value: '42 Days', delta: '-12%', up: true },
-    { label: 'Inventory Level', value: 'Low', delta: '-5%', up: false },
-  ];
+  const latest = periods[periods.length - 1]; const previous = periods[periods.length - 2];
+  const metrics: MarketMetric[] = latest ? [
+    { label: 'Average asking price', value: `₦${Number(latest.averageAskingPrice || 0).toLocaleString()}`, delta: previous?.averageAskingPrice ? `${((latest.averageAskingPrice - previous.averageAskingPrice) / previous.averageAskingPrice * 100).toFixed(1)}%` : 'No prior period', up: true },
+    { label: 'Average asking rent', value: `₦${Number(latest.averageAskingRent || 0).toLocaleString()}`, delta: previous?.averageAskingRent ? `${((latest.averageAskingRent - previous.averageAskingRent) / previous.averageAskingRent * 100).toFixed(1)}%` : 'No prior period', up: true },
+    { label: 'New listings', value: String(latest.listings || 0), delta: previous ? `${latest.listings - previous.listings} vs prior period` : 'No prior period', up: true },
+  ] : [];
 
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading asking/listing trend data…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!periods.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">No listing history is available for this filter.<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

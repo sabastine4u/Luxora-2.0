@@ -4,12 +4,18 @@ import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EnterpriseExportMenu, EnterpriseDetailDrawer, EnterpriseStatusBadge } from '../../../components/enterprise';
 import { useToast } from '../../../contexts/ToastContext';
 import type { NeighborhoodInsight } from '../types';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function NeighborhoodInsights() {
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<NeighborhoodInsight | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getNeighborhoods(), []);
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading neighborhood listing data…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!data?.neighborhoods?.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">No neighborhood samples are available.<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });

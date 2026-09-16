@@ -4,25 +4,19 @@ import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { EnterpriseExportMenu, EnterpriseStatusBadge } from '../../../components/enterprise';
-import { useToast } from '../../../contexts/ToastContext';
 import type { RiskAnalysisItem } from '../types';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function RiskAnalysis() {
-  const { showToast } = useToast();
   const [search, setSearch] = useState('');
-
-  const handleAction = (action: string) => {
-    showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });
-  };
-
-  const risks: RiskAnalysisItem[] = [
-    { id: 'R-01', factor: 'Interest Rate Hike', severity: 'Critical', probability: 85, mitigation: 'Lock in long-term fixed rates', impact: 'Severe cash flow reduction' },
-    { id: 'R-02', factor: 'Local Zoning Changes', severity: 'Medium', probability: 40, mitigation: 'Diversify into commercial zones', impact: 'Restricted development options' },
-    { id: 'R-03', factor: 'Material Cost Inflation', severity: 'High', probability: 70, mitigation: 'Pre-purchase building materials', impact: 'Decreased development ROI' },
-    { id: 'R-04', factor: 'Currency Devaluation', severity: 'High', probability: 65, mitigation: 'Peg rental agreements to USD', impact: 'Asset value erosion' },
-  ];
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getRiskAnalysis(), []);
+  const risks: RiskAnalysisItem[] = (data?.items || []).map((item: any) => ({ id:String(item.propertyId),factor:item.title,severity:item.riskLevel,probability:item.flags.length?100:0,mitigation:item.flags.join(', ') || 'No rule triggered',impact:item.riskLevel }));
 
   const filteredRisks = risks.filter(r => r.factor.toLowerCase().includes(search.toLowerCase()));
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading deterministic risk flags…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!risks.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">No properties are available for deterministic risk checks.<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -32,8 +26,8 @@ export default function RiskAnalysis() {
           <p className="text-sm text-ink/60">Identify, evaluate, and mitigate potential market risks.</p>
         </div>
         <div className="flex gap-3">
-          <EnterpriseExportMenu onExport={(f) => handleAction(`Export Risk Matrix as ${f.toUpperCase()}`)} />
-          <GoldButton onClick={() => handleAction('Run Risk Simulation')}>
+          <EnterpriseExportMenu onExport={() => {}} />
+          <GoldButton disabled>
             <AlertTriangle className="h-4 w-4 mr-2" /> Run Simulation
           </GoldButton>
         </div>
@@ -45,7 +39,7 @@ export default function RiskAnalysis() {
           searchValue={search}
           onSearchChange={setSearch}
           showFilter={true}
-          onFilter={() => handleAction('Open Filters')}
+          onFilter={() => {}}
         />
         
         <DataTable
@@ -88,7 +82,7 @@ export default function RiskAnalysis() {
               header: "Action",
               className: "text-right",
               render: () => (
-                <GhostButton size="sm" onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleAction('View Mitigation Plan'); }}>View Plan</GhostButton>
+                <GhostButton size="sm" disabled>Read-only</GhostButton>
               )
             }
           ]}

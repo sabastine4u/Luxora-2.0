@@ -6,24 +6,26 @@ import { DataTableToolbar } from '../../../components/dashboard/shared/filters/D
 import { EnterpriseStatusBadge, EnterpriseDetailDrawer } from '../../../components/enterprise';
 import { useToast } from '../../../contexts/ToastContext';
 import type { MarketAlert } from '../types';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function MarketAlerts() {
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<MarketAlert | null>(null);
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getAlerts(), []);
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });
   };
 
-  const alerts: MarketAlert[] = [
-    { id: 'AL-1', title: 'Lekki Price Drop', description: 'Triggered when Lekki avg price drops by >5%', threshold: '-5%', type: 'Price Drop', status: 'Active', date: 'Oct 01, 2025' },
-    { id: 'AL-2', title: 'Victoria Island Demand', description: 'Triggered when VI demand index exceeds 85', threshold: '>85', type: 'Demand Spike', status: 'Triggered', date: 'Oct 15, 2025' },
-    { id: 'AL-3', title: 'Abuja Inventory Shortage', description: 'Triggered when Abuja inventory level falls below Normal', threshold: 'Low', type: 'Inventory Alert', status: 'Resolved', date: 'Sep 20, 2025' },
-  ];
+  const alerts: MarketAlert[] = (data?.alerts || []).map((item: any) => ({ id:String(item.propertyId),title:item.rule,description:(item.details || []).join(', '),threshold:item.threshold,type:item.source,status:'Triggered',date:item.evaluatedPeriod }));
 
   const filteredAlerts = alerts.filter(a => a.title.toLowerCase().includes(search.toLowerCase()));
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading deterministic alerts…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!alerts.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">No deterministic data-quality alerts are currently triggered.<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -33,8 +35,8 @@ export default function MarketAlerts() {
           <p className="text-sm text-ink/60">Manage threshold-based notifications for market events.</p>
         </div>
         <div className="flex gap-3">
-          <GoldButton onClick={() => handleAction('Create New Alert')}>
-            <Plus className="h-4 w-4 mr-2" /> New Alert
+          <GoldButton disabled title="Read-only deterministic alerts">
+            <Plus className="h-4 w-4 mr-2" /> Read-only
           </GoldButton>
         </div>
       </div>
@@ -86,7 +88,7 @@ export default function MarketAlerts() {
               className: "text-right",
               render: () => (
                 <div className="flex justify-end gap-2">
-                  <GhostButton size="sm" className="text-ink/60 hover:text-rose-400" onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleAction('Delete Alert'); }}><Trash2 className="h-4 w-4" /></GhostButton>
+                  <GhostButton size="sm" disabled title="Read-only deterministic alert"><Trash2 className="h-4 w-4" /></GhostButton>
                 </div>
               )
             }
@@ -121,12 +123,10 @@ export default function MarketAlerts() {
             </div>
 
             <div className="pt-4 flex flex-col gap-3">
-               {selectedAlert.status === 'Triggered' && (
-                 <GoldButton className="w-full" onClick={() => { handleAction('Resolve Alert'); setIsDrawerOpen(false); }}>
-                   Mark as Resolved
-                 </GoldButton>
-               )}
-               <GhostButton className="w-full text-rose-400 hover:text-rose-300" onClick={() => { handleAction('Delete Alert'); setIsDrawerOpen(false); }}>
+               <GoldButton className="w-full" disabled>
+                 Read-only Alert
+               </GoldButton>
+               <GhostButton className="w-full text-ink/40" disabled>
                  <Trash2 className="h-4 w-4 mr-2" /> Delete Alert
                </GhostButton>
             </div>

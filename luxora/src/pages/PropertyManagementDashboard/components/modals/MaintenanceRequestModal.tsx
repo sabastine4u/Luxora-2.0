@@ -1,79 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '../../../../components/ui/Modal';
 import { GoldButton } from '../../../../components/ui/ui';
 import { Input } from '../../../../components/ui/Input';
 import { Select } from '../../../../components/ui/Select';
 import { Textarea } from '../../../../components/ui/Textarea';
-
-interface MaintenanceRequestModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: { propertyId: string; priority: string; title: string; description: string }) => void;
-}
-
-export function MaintenanceRequestModal({ isOpen, onClose, onSubmit }: MaintenanceRequestModalProps) {
-  const [propertyId, setPropertyId] = useState('');
-  const [priority, setPriority] = useState('Low');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-
-  const handleSubmit = () => {
-    if (!propertyId || !title) return;
-    onSubmit({ propertyId, priority, title, description });
-    setPropertyId('');
-    setPriority('Low');
-    setTitle('');
-    setDescription('');
-    onClose();
-  };
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Create Maintenance Ticket"
-      size="md"
-      actionButton={
-        <GoldButton onClick={handleSubmit} disabled={!propertyId || !title}>
-          Submit Request
-        </GoldButton>
-      }
-    >
-      <div className="space-y-4">
-        <Select 
-          label="Property" 
-          options={[
-            { value: 'Lekki Phase 1 Apt', label: 'Lekki Phase 1 Apt' },
-            { value: 'Victoria Island Villa', label: 'Victoria Island Villa' },
-            { value: 'Abuja Central Office', label: 'Abuja Central Office' },
-          ]}
-          value={propertyId}
-          onChange={(e) => setPropertyId(e.target.value)}
-        />
-        <Select 
-          label="Priority" 
-          options={[
-            { value: 'Low', label: 'Low' },
-            { value: 'Medium', label: 'Medium' },
-            { value: 'High', label: 'High' },
-            { value: 'Emergency', label: 'Emergency' },
-          ]}
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-        />
-        <Input 
-          label="Issue Title" 
-          placeholder="e.g. Broken AC Unit" 
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <Textarea 
-          label="Description" 
-          placeholder="Detailed description of the issue..." 
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-    </Modal>
-  );
-}
+interface Props { isOpen: boolean; onClose: () => void; onSubmit: (data: any) => Promise<void>; properties: any[]; submitting?: boolean; error?: string | null }
+export function MaintenanceRequestModal({ isOpen, onClose, onSubmit, properties, submitting, error }: Props) { const [data, setData] = useState<any>({ propertyId: '', priority: 'Low', title: '', description: '' }); useEffect(() => { if (isOpen) setData({ propertyId: properties[0]?._id || '', priority: 'Low', title: '', description: '' }); }, [isOpen, properties]); return <Modal isOpen={isOpen} onClose={onClose} title="Create Maintenance Ticket" size="md" actionButton={<GoldButton disabled={submitting || !data.propertyId || !data.title} onClick={() => void onSubmit(data)}>{submitting ? 'Submitting…' : 'Submit Request'}</GoldButton>}><div className="space-y-4">{error && <p className="text-sm text-rose-300">{error}</p>}<Select label="Property" value={data.propertyId} options={properties.map(p => ({ value: p._id, label: p.title }))} onChange={e => setData({ ...data, propertyId: e.target.value })} /><Select label="Priority" value={data.priority} options={['Low', 'Medium', 'High', 'Emergency'].map(value => ({ value, label: value }))} onChange={e => setData({ ...data, priority: e.target.value })} /><Input label="Issue Title" value={data.title} onChange={e => setData({ ...data, title: e.target.value })} /><Textarea label="Description" value={data.description} onChange={e => setData({ ...data, description: e.target.value })} /></div></Modal>; }

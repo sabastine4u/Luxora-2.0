@@ -3,6 +3,7 @@ import { Calculator, Download, Save, RefreshCw } from 'lucide-react';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { useToast } from '../../../contexts/ToastContext';
 import { EnterpriseExportMenu } from '../../../components/enterprise';
+import { intelligenceApi } from '../../../api/intelligence.api';
 
 export default function ROICalculator() {
   const { showToast } = useToast();
@@ -19,18 +20,33 @@ export default function ROICalculator() {
   
   const [isCalculating, setIsCalculating] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState('');
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });
   };
 
-  const handleCalculate = (e: React.FormEvent) => {
+  const handleCalculate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCalculating(true);
-    setTimeout(() => {
+    setError('');
+    try {
+      const response = await intelligenceApi.getROICalculation({
+        purchasePrice: Number(formData.purchasePrice),
+        downPaymentPercent: Number(formData.downPayment),
+        interestRate: Number(formData.interestRate), loanTermYears: Number(formData.loanTerm),
+        monthlyRent: Number(formData.monthlyRent), operatingExpenses: Number(formData.operatingExpenses),
+        vacancyRate: Number(formData.vacancyRate),
+      });
+      setResult(response.data);
       setIsCalculating(false);
       setShowResults(true);
-    }, 1000);
+    } catch (requestError: any) {
+      setIsCalculating(false);
+      setShowResults(false);
+      setError(requestError?.message || 'Unable to calculate this scenario. Please retry.');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,19 +118,19 @@ export default function ROICalculator() {
                <div className="grid grid-cols-2 gap-6 mb-8">
                   <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5">
                      <div className="text-sm text-ink/60 mb-1">Cash on Cash Return</div>
-                     <div className="font-heading text-3xl font-bold text-emerald-400">8.4%</div>
+                     <div className="font-heading text-3xl font-bold text-emerald-400">{result?.results?.cashOnCashReturn ?? 'N/A'}%</div>
                   </div>
                   <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5">
                      <div className="text-sm text-ink/60 mb-1">Cap Rate</div>
-                     <div className="font-heading text-3xl font-bold text-emerald-400">6.2%</div>
+                     <div className="font-heading text-3xl font-bold text-emerald-400">{result?.results?.capRate ?? 'N/A'}%</div>
                   </div>
                   <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5">
                      <div className="text-sm text-ink/60 mb-1">Net Operating Income (Annual)</div>
-                     <div className="font-heading text-2xl font-bold text-cream">₦7,320,000</div>
+                     <div className="font-heading text-2xl font-bold text-cream">₦{Number(result?.results?.netOperatingIncome || 0).toLocaleString()}</div>
                   </div>
                   <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5">
                      <div className="text-sm text-ink/60 mb-1">Cash Flow (Monthly)</div>
-                     <div className="font-heading text-2xl font-bold text-cream">₦124,500</div>
+                     <div className="font-heading text-2xl font-bold text-cream">₦{Number(result?.results?.monthlyCashFlow || 0).toLocaleString()}</div>
                   </div>
                </div>
                
@@ -123,12 +139,13 @@ export default function ROICalculator() {
                      <Download className="h-4 w-4 mr-2" /> Download Full PDF Report
                   </GoldButton>
                </div>
+               <p className="mt-4 text-xs text-ink/60">{result?.assumptions?.label}</p>
              </div>
           ) : (
              <div className="rounded-2xl border border-white/10 bg-navy-800/30 p-6 h-full flex flex-col items-center justify-center text-center">
                 <Calculator className="h-16 w-16 text-ink/20 mb-4" />
                 <h3 className="font-heading text-xl font-bold text-cream mb-2">Awaiting Parameters</h3>
-                <p className="text-ink/60 max-w-sm">Fill out the investment parameters on the left and click calculate to view detailed ROI metrics and cash flow projections.</p>
+                <p className="text-ink/60 max-w-sm">{error || 'Fill out the investment parameters on the left and click calculate to view detailed ROI metrics and cash flow projections.'}</p>
              </div>
           )}
         </div>

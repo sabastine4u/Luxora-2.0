@@ -32,10 +32,10 @@ export interface InvestmentScore {
   propertyId: string;
   address: string;
   score: number;
-  recommendation: 'Buy' | 'Hold' | 'Sell';
+  recommendation: string;
   capRate: string;
   cashOnCash: string;
-  riskLevel: 'Low' | 'Medium' | 'High';
+  riskLevel: string;
   appreciation: string;
 }
 
@@ -99,7 +99,7 @@ export interface MarketAlert {
 export interface RiskAnalysisItem {
   id: string;
   factor: string;
-  severity: 'Low' | 'Medium' | 'High' | 'Critical';
+  severity: string;
   probability: number;
   mitigation: string;
   impact: string;

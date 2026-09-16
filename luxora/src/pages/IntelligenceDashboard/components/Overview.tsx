@@ -7,21 +7,23 @@ import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise';
 import { useToast } from '../../../contexts/ToastContext';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function Overview() {
   const { showToast } = useToast();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<{id: string, event: string, location: string, time: string, severity: string} | null>(null);
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getOverview(), []);
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });
   };
 
-  const recentActivity = [
-    { id: '1', event: 'Price Drop Alert', location: 'Lekki Phase 1', time: '2 hours ago', severity: 'Medium' },
-    { id: '2', event: 'New High ROI Property', location: 'Eko Atlantic', time: '5 hours ago', severity: 'Low' },
-    { id: '3', event: 'Demand Spike', location: 'Maitama, Abuja', time: '1 day ago', severity: 'High' },
-  ];
+  const recentActivity = (data?.composition || []).map((item: any, index: number) => ({ id: String(index), event: `${item.count} ${item._id?.propertyType || 'property'} listings`, location: item._id?.transactionType || 'All transactions', time: data?.labels?.listingValue || 'asking', severity: 'Info' }));
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading Intelligence overview…</div>;
+  if (error) return <div className="rounded-2xl border border-rose-400/30 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!data?.listings?.total) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">No listing data is available for the overview.<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -43,36 +45,36 @@ export default function Overview() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard 
           title="Market Health Score"
-          value="84/100"
+          value={String(data.listings.published)}
           icon={Activity}
-          trend="+2.4% vs last quarter"
+          trend="Published listings"
           trendColor="text-emerald-400"
           iconColor="text-emerald-400"
           backgroundColor="bg-emerald-400/10"
         />
         <KPICard 
           title="Avg Rental Yield"
-          value="6.2%"
+          value={`₦${Number(data.listings.averageAskingRent || 0).toLocaleString()}`}
           icon={PieChart}
-          trend="+0.3% YoY"
+          trend="Average asking rent"
           trendColor="text-emerald-400"
           iconColor="text-gold-400"
           backgroundColor="bg-gold-400/10"
         />
         <KPICard 
           title="Demand Index"
-          value="High"
+          value={String(data.demand.propertyViews)}
           icon={TrendingUp}
-          trend="Surging in Lagos"
+          trend="Property views"
           trendColor="text-emerald-400"
           iconColor="text-blue-400"
           backgroundColor="bg-blue-400/10"
         />
         <KPICard 
           title="Risk Index"
-          value="Medium-Low"
+          value={`${data.demand.offerConversionRate}%`}
           icon={ShieldAlert}
-          trend="Stable"
+          trend="Accepted offer conversion"
           trendColor="text-ink/60"
           iconColor="text-amber-400"
           backgroundColor="bg-amber-400/10"

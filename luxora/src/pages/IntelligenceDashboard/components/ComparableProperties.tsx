@@ -6,12 +6,18 @@ import { DataTableToolbar } from '../../../components/dashboard/shared/filters/D
 import { EnterpriseExportMenu, EnterpriseDetailDrawer } from '../../../components/enterprise';
 import { useToast } from '../../../contexts/ToastContext';
 import type { ComparableProperty } from '../types';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function ComparableProperties() {
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<ComparableProperty | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getComparables({ limit: 20 }), []);
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading comparable properties…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!data?.items?.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">No comparable properties match this view.<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });

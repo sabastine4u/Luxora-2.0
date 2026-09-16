@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 import { Map, MapPin, Search, Maximize, Layers } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
 import { EnterpriseExportMenu } from '../../../components/enterprise';
@@ -8,6 +10,10 @@ export default function HeatMap() {
   const { showToast } = useToast();
   const [layer, setLayer] = useState('Pricing');
   const [region, setRegion] = useState('Lagos');
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getHeatMap(region === 'Lagos' ? {} : { city: region }), [region]);
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading mapped property coordinates…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!data?.points?.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{data?.message || 'No valid property coordinates are available.'}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });

@@ -71,6 +71,14 @@ import {
   adminApi,
 } from '../../api/admin.api';
 
+import {
+  PROCUREMENT_DATA_CHANGED,
+  procurementApi,
+} from '../../api/procurement.api';
+import { financeApi } from '../../api/finance.api';
+import { intelligenceApi } from '../../api/intelligence.api';
+import { PROPERTY_MANAGEMENT_DATA_CHANGED, propertyManagementApi } from '../../api/property-management.api';
+
 const iconMap: Record<
   string,
   React.ComponentType<{
@@ -205,9 +213,58 @@ export default function Sidebar({
   const [adminComplaintCount, setAdminComplaintCount] =
     useState<number | null>(null);
 
+  const [procurementCounts, setProcurementCounts] =
+    useState<Record<string, number> | null>(null);
+  const [financeCounts, setFinanceCounts] = useState<Record<string, number> | null>(null);
+  const [intelligenceCounts, setIntelligenceCounts] = useState<Record<string, number> | null>(null);
+  const [propertyManagementCounts, setPropertyManagementCounts] = useState<Record<string, number> | null>(null);
+
   useEffect(() => {
     if (!user?.role) {
       return;
+    }
+
+    if (user.role === 'Procurement Officer') {
+      const loadProcurementCounts = () => {
+        procurementApi
+          .getCounts()
+          .then((response: any) => {
+            const counts = response?.counts;
+            setProcurementCounts(
+              counts && typeof counts === 'object' ? counts : null,
+            );
+          })
+          .catch(() => setProcurementCounts(null));
+      };
+
+      loadProcurementCounts();
+      window.addEventListener(
+        PROCUREMENT_DATA_CHANGED,
+        loadProcurementCounts,
+      );
+      return () => window.removeEventListener(
+        PROCUREMENT_DATA_CHANGED,
+        loadProcurementCounts,
+      );
+    }
+
+    if (user.role === 'Finance Manager') {
+      financeApi.getCounts().then((response: any) => setFinanceCounts(response?.counts || null)).catch(() => setFinanceCounts(null));
+      return;
+    }
+
+    if (user.role === 'Data Analyst') {
+      intelligenceApi.getCounts().then((response: any) => setIntelligenceCounts(response?.data || null)).catch(() => setIntelligenceCounts(null));
+      return;
+    }
+
+    if (user.role === 'Property Manager') {
+      const loadPropertyManagementCounts = () => propertyManagementApi.summary()
+        .then((response: any) => setPropertyManagementCounts(response?.summary || null))
+        .catch(() => setPropertyManagementCounts(null));
+      loadPropertyManagementCounts();
+      window.addEventListener(PROPERTY_MANAGEMENT_DATA_CHANGED, loadPropertyManagementCounts);
+      return () => window.removeEventListener(PROPERTY_MANAGEMENT_DATA_CHANGED, loadPropertyManagementCounts);
     }
 
     if (
@@ -701,6 +758,8 @@ export default function Sidebar({
     setAdminAgencyCount(null);
     setAdminStaffCount(null);
     setAdminComplaintCount(null);
+    setProcurementCounts(null);
+    setFinanceCounts(null);
   }, [user?.role]);
 
   const getInitials = (
@@ -788,7 +847,50 @@ export default function Sidebar({
               active === item.label;
 
             const badgeValue =
-              item.label === 'Listings' &&
+              user?.role === 'Finance Manager' &&
+                ({ 'Owner Payments': 'ownerPayments', 'Agency Earnings': 'agencyEarnings', 'Agent Commissions': 'agentCommissions', 'Mortgage Statistics': 'mortgageApplications', Budget: 'procurementBudget', 'Audit Logs': 'auditLogs' } as Record<string, string>)[item.label]
+                ? financeCounts?.[({ 'Owner Payments': 'ownerPayments', 'Agency Earnings': 'agencyEarnings', 'Agent Commissions': 'agentCommissions', 'Mortgage Statistics': 'mortgageApplications', Budget: 'procurementBudget', 'Audit Logs': 'auditLogs' } as Record<string, string>)[item.label]]
+
+              : user?.role === 'Finance Manager' && item.label === 'Refunds'
+                ? undefined
+
+              : user?.role === 'Data Analyst' && item.label === 'Comparable Properties'
+                ? intelligenceCounts?.properties
+
+              : user?.role === 'Procurement Officer' &&
+                ({
+                  'Vendor Directory': 'vendor',
+                  RFQs: 'rfq',
+                  'Purchase Requests': 'request',
+                  'Purchase Orders': 'order',
+                  Contracts: 'contract',
+                  Inventory: 'inventory',
+                  Assets: 'asset',
+                  Invoices: 'invoice',
+                  Budget: 'budget',
+                  Payments: 'payment',
+                } as Record<string, string>)[item.label]
+                ? procurementCounts?.[({
+                  'Vendor Directory': 'vendor',
+                  RFQs: 'rfq',
+                  'Purchase Requests': 'request',
+                  'Purchase Orders': 'order',
+                  Contracts: 'contract',
+                  Inventory: 'inventory',
+                  Assets: 'asset',
+                  Invoices: 'invoice',
+                  Budget: 'budget',
+                  Payments: 'payment',
+                } as Record<string, string>)[item.label]]
+
+              : user?.role === 'Procurement Officer' && item.label === 'Messages'
+                ? undefined
+
+              : user?.role === 'Property Manager' &&
+                ({ Tenants: 'activeTenants', 'Rent Collection': 'pendingRentPayments', Maintenance: 'openWorkOrders', 'Lease Tracking': 'activeLeases', Inspections: 'pendingInspections', Expenses: 'pendingExpenses' } as Record<string, string>)[item.label]
+                ? propertyManagementCounts?.[({ Tenants: 'activeTenants', 'Rent Collection': 'pendingRentPayments', Maintenance: 'openWorkOrders', 'Lease Tracking': 'activeLeases', Inspections: 'pendingInspections', Expenses: 'pendingExpenses' } as Record<string, string>)[item.label]]
+
+              : item.label === 'Listings' &&
                 (
                   user?.role === 'Admin' ||
                   user?.role === 'Super Admin'

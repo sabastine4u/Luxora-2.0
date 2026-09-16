@@ -3075,12 +3075,12 @@ export const procurementNav: NavItem[] = [
   { label: 'Messages', icon: 'MessageSquare', badge: '5' },
   { label: 'Vendor Directory', icon: 'Users' },
   { label: 'RFQs', icon: 'MessageSquare' },
-  { label: 'Purchase Requests', icon: 'FileCheck', badge: '12' },
+  { label: 'Purchase Requests', icon: 'FileCheck' },
   { label: 'Purchase Orders', icon: 'ShoppingCart' },
   { label: 'Contracts', icon: 'Handshake' },
   { label: 'Inventory', icon: 'Package' },
   { label: 'Assets', icon: 'Building2' },
-  { label: 'Invoices', icon: 'FileBarChart', badge: '4' },
+  { label: 'Invoices', icon: 'FileBarChart' },
   { label: 'Budget', icon: 'PieChart' },
   { label: 'Payments', icon: 'Wallet' },
   { label: 'Reports', icon: 'TrendingUp' },
@@ -3096,7 +3096,7 @@ export const financeNav: NavItem[] = [
   { label: 'Agency Earnings', icon: 'Building2' },
   { label: 'Agent Commissions', icon: 'Users' },
   { label: 'Invoices', icon: 'FileBarChart' },
-  { label: 'Refunds', icon: 'MessageSquare', badge: '3' },
+  { label: 'Refunds', icon: 'MessageSquare' },
   { label: 'Mortgage Statistics', icon: 'PieChart' },
   { label: 'Budget', icon: 'Wallet' },
   { label: 'Reports', icon: 'FileCheck' },
@@ -3264,4 +3264,3 @@ export const ENTERPRISE_MODULE_MAP: Record<string, string[]> = {
   [ROLES.ADMIN]: ['All'],
   [ROLES.SUPER_ADMIN]: ['All'],
 };
-

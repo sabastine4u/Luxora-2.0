@@ -6,24 +6,26 @@ import { DataTableToolbar } from '../../../components/dashboard/shared/filters/D
 import { EnterpriseDetailDrawer, EnterpriseExportMenu, EnterpriseStatusBadge } from '../../../components/enterprise';
 import { useToast } from '../../../contexts/ToastContext';
 import type { InvestmentScore } from '../types';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function InvestmentScoring() {
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [selectedScore, setSelectedScore] = useState<InvestmentScore | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getInvestmentScores(), []);
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });
   };
 
-  const scores: InvestmentScore[] = [
-    { id: 'IS-01', propertyId: 'P-100', address: '14 Admiralty Way, Lekki', score: 94, recommendation: 'Buy', capRate: '8.2%', cashOnCash: '10.5%', riskLevel: 'Low', appreciation: '12% YoY' },
-    { id: 'IS-02', propertyId: 'P-101', address: '8 Fola Osibo St, Lekki', score: 76, recommendation: 'Hold', capRate: '6.1%', cashOnCash: '7.0%', riskLevel: 'Medium', appreciation: '8% YoY' },
-    { id: 'IS-03', propertyId: 'P-102', address: '22 Freedom Way, Lekki', score: 45, recommendation: 'Sell', capRate: '3.5%', cashOnCash: '2.1%', riskLevel: 'High', appreciation: '-2% YoY' },
-  ];
+  const scores: InvestmentScore[] = (data?.items || []).map((item: any) => ({ id: String(item.propertyId), propertyId: String(item.propertyId), address: item.title, score: item.score, recommendation: 'Deterministic score only', capRate: `${item.components.askingRentalYield.value}% asking yield`, cashOnCash: `Views: ${item.components.demandViews.value}`, riskLevel: `Completeness: ${item.components.dataCompleteness.score}/${item.components.dataCompleteness.weight}`, appreciation: 'Not available' }));
 
   const filteredScores = scores.filter(s => s.address.toLowerCase().includes(search.toLowerCase()));
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading deterministic score data…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!data?.sufficientData || !scores.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{data?.message || 'Insufficient data for deterministic scoring.'}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   return (
     <div className="space-y-6 max-w-7xl">

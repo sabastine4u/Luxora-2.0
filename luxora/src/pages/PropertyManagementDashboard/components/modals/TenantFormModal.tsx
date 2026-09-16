@@ -1,91 +1,11 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '../../../../components/ui/Modal';
 import { GoldButton } from '../../../../components/ui/ui';
 import { Input } from '../../../../components/ui/Input';
 import { Select } from '../../../../components/ui/Select';
-import type { Tenant } from '../../../../types/propertyManager';
-
-interface TenantFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (tenant: Partial<Tenant>) => void;
-  initialData?: Tenant | null;
-}
-
-export function TenantFormModal({ isOpen, onClose, onSubmit, initialData }: TenantFormModalProps) {
-  const [formData, setFormData] = useState<Partial<Tenant>>({
-    name: '',
-    email: '',
-    phone: '',
-    unit: '',
-    status: 'Active'
-  });
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
-    } else {
-      setFormData({ name: '', email: '', phone: '', unit: '', status: 'Active' });
-    }
-  }, [initialData, isOpen]);
-
-  const handleSubmit = () => {
-    if (!formData.name || !formData.email) return;
-    onSubmit(formData);
-    onClose();
-  };
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? "Edit Tenant" : "Add New Tenant"}
-      size="lg"
-      actionButton={
-        <GoldButton onClick={handleSubmit} disabled={!formData.name || !formData.email}>
-          {initialData ? "Save Changes" : "Add Tenant"}
-        </GoldButton>
-      }
-    >
-      <div className="grid gap-6 md:grid-cols-2">
-        <Input 
-          label="Full Name" 
-          placeholder="Enter full name" 
-          value={formData.name || ''}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        />
-        <Input 
-          label="Email Address" 
-          placeholder="Enter email" 
-          type="email"
-          value={formData.email || ''}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-        />
-        <Input 
-          label="Phone Number" 
-          placeholder="Enter phone number" 
-          value={formData.phone || ''}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-        />
-        <Input 
-          label="Unit / Property" 
-          placeholder="e.g. Apt 4B" 
-          value={formData.unit || ''}
-          onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-        />
-        <Select 
-          label="Status" 
-          options={[
-            { value: 'Active', label: 'Active' },
-            { value: 'Moving Out', label: 'Moving Out' },
-            { value: 'Past', label: 'Past' },
-            { value: 'Eviction', label: 'Eviction' },
-          ]}
-          value={formData.status || 'Active'}
-          onChange={(e) => setFormData({ ...formData, status: e.target.value as Tenant['status'] })}
-        />
-      </div>
-    </Modal>
-  );
+interface Props { isOpen: boolean; onClose: () => void; onSubmit: (values: any) => Promise<void>; initialData?: any; properties: any[]; submitting?: boolean; error?: string | null }
+export function TenantFormModal({ isOpen, onClose, onSubmit, initialData, properties, submitting, error }: Props) {
+  const [values, setValues] = useState<any>({ fullName: '', email: '', phone: '', unit: '', status: 'Active', propertyId: '' });
+  useEffect(() => { setValues({ fullName: initialData?.fullName || '', email: initialData?.email || '', phone: initialData?.phone || '', unit: initialData?.unit || '', status: initialData?.status || 'Active', propertyId: initialData?.property?._id || initialData?.property || properties[0]?._id || '' }); }, [initialData, isOpen, properties]);
+  return <Modal isOpen={isOpen} onClose={onClose} title={initialData?._id ? 'Edit Tenant' : 'Add New Tenant'} size="lg" actionButton={<GoldButton onClick={() => void onSubmit(values)} disabled={submitting || !values.fullName || !values.propertyId}>{submitting ? 'Saving…' : initialData?._id ? 'Save Changes' : 'Add Tenant'}</GoldButton>}><div className="grid gap-5 md:grid-cols-2">{error && <p className="md:col-span-2 text-sm text-rose-300">{error}</p>}<Input label="Full Name" value={values.fullName} onChange={e => setValues({ ...values, fullName: e.target.value })} /><Input label="Email Address" type="email" value={values.email} onChange={e => setValues({ ...values, email: e.target.value })} /><Input label="Phone Number" value={values.phone} onChange={e => setValues({ ...values, phone: e.target.value })} /><Input label="Unit" value={values.unit} onChange={e => setValues({ ...values, unit: e.target.value })} /><Select label="Property" value={values.propertyId} disabled={Boolean(initialData?._id)} options={properties.map(p => ({ value: p._id, label: p.title }))} onChange={e => setValues({ ...values, propertyId: e.target.value })} /><Select label="Status" value={values.status} options={['Active', 'Moving Out', 'Past', 'Eviction'].map(value => ({ value, label: value }))} onChange={e => setValues({ ...values, status: e.target.value })} /></div></Modal>;
 }

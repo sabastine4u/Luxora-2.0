@@ -3,6 +3,8 @@ import { PieChart, Download, Save, RefreshCw, Home } from 'lucide-react';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { useToast } from '../../../contexts/ToastContext';
 import { EnterpriseExportMenu, EnterpriseDetailDrawer } from '../../../components/enterprise';
+import { intelligenceApi } from '../../../api/intelligence.api';
+import { useIntelligenceQuery } from '../useIntelligenceQuery';
 
 export default function RentalYield() {
   const { showToast } = useToast();
@@ -13,6 +15,7 @@ export default function RentalYield() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { data, loading, error, retry } = useIntelligenceQuery(() => intelligenceApi.getRentalYield(), []);
 
   const handleAction = (action: string) => {
     showToast({ type: 'success', title: 'Backend Integration', description: `This feature (${action}) is ready and will become fully functional during backend integration.` });
@@ -21,11 +24,11 @@ export default function RentalYield() {
   const handleCalculate = (e: React.FormEvent) => {
     e.preventDefault();
     setIsCalculating(true);
-    setTimeout(() => {
-      setIsCalculating(false);
-      setShowResults(true);
-    }, 1000);
+    setIsCalculating(false); setShowResults(true);
   };
+  if (loading) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">Loading advertised rent/yield estimates…</div>;
+  if (error) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">{error}<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
+  if (!data?.items?.length) return <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-10 text-center text-ink/60">No properties have both an asking price and rent.<button onClick={retry} className="block mx-auto mt-4 text-gold-400">Retry</button></div>;
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -78,7 +81,7 @@ export default function RentalYield() {
         {showResults ? (
            <div className="rounded-2xl border border-emerald-400/30 bg-navy-800/80 p-6 flex flex-col justify-center items-center text-center animate-in zoom-in duration-500">
              <div className="text-sm text-ink/60 uppercase tracking-wider mb-4">Gross Rental Yield</div>
-             <div className="font-heading text-6xl font-bold text-emerald-400 mb-6">7.5%</div>
+             <div className="font-heading text-6xl font-bold text-emerald-400 mb-6">{data.averageYield}%</div>
              
              <div className="grid grid-cols-2 gap-4 w-full mb-8">
                <div className="p-3 bg-navy-900/50 rounded-lg border border-white/5">
