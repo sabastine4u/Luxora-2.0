@@ -568,7 +568,6 @@ export function SessionProvider({
 
     // Reset session-specific application state.
     setCompareList([]);
-    setRecentlyViewed([]);
     setFavoriteAgents([]);
     setNotifications([]);
     setPreferences({});

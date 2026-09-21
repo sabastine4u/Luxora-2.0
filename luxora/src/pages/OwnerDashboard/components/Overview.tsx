@@ -28,7 +28,6 @@ import {
   GhostButton,
   VerifyBadge,
 } from '../../../components/ui/ui';
-import PropertySubmissionModal from './modals/PropertySubmissionModal';
 
 // Import the real Owner analytics API used by the dashboard.
 import { analyticsApi } from '../../../api/analytics.api';
@@ -54,7 +53,6 @@ export default function Overview({
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
 
   // Store the real Owner analytics snapshot.
   const [analytics, setAnalytics] = useState<any | null>(null);
@@ -292,7 +290,7 @@ export default function Overview({
         <div className="flex gap-3 flex-wrap">
           <GoldButton
             size="sm"
-            onClick={() => setIsSubmissionModalOpen(true)}
+           onClick={() => navigate('/dashboard/create-listing')}
           >
             <Plus className="h-4 w-4 mr-2" />
             Submit Property
@@ -851,22 +849,7 @@ export default function Overview({
         </div>
       </div>
 
-      <PropertySubmissionModal
-        isOpen={isSubmissionModalOpen}
-        onClose={() => setIsSubmissionModalOpen(false)}
-        onSubmit={() => {
-          setIsSubmissionModalOpen(false);
-
-          showToast({
-            type: 'success',
-            title: 'Property Submitted',
-            description:
-              'Your property has been submitted for review.',
-          });
-
-          navigate('/owner-dashboard?tab=Listing+Journey');
-        }}
-      />
+     
     </div>
   );
 }

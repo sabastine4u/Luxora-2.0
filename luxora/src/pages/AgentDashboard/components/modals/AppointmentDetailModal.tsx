@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   Clock,
@@ -11,17 +12,15 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Modal } from '../../../../components/ui/Modal';
-import { GoldButton, GhostButton } from '../../../../components/ui/ui';
+import {
+  GoldButton,
+  GhostButton,
+} from '../../../../components/ui/ui';
 import { StatusBadge } from '../../../ManagementDashboard/components/shared/StatusBadge';
 import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
-import { agentApi } from '../../../../api/agent.api';
+import { bookingApi } from '../../../../api/booking.api';
 import { useToast } from '../../../../contexts/ToastContext';
-
-interface AppointmentNote {
-  text: string;
-  addedBy?: string;
-  addedAt?: string;
-}
+import { ROUTES } from '../../../../constants/routes';
 
 interface AppointmentActivity {
   action: string;
@@ -32,26 +31,53 @@ interface AppointmentActivity {
 
 interface AppointmentRecord {
   id: string;
-  inquiryId: string;
+  inquiryId?: string;
+
   clientName: string;
   clientEmail: string;
   clientPhone: string;
+
   propertyId: string | null;
   title: string;
   propertyType: string;
   transactionType: string;
+
   scheduledDate: string;
   scheduledTime: string;
+
   date: string;
   time: string;
+
   location: string;
-  status: string;
-  appointmentStatus: 'Scheduled' | 'Completed' | 'Cancelled';
+
+  status:
+    | 'Pending'
+    | 'Confirmed'
+    | 'Rescheduled'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Rejected';
+
+  appointmentStatus:
+    | 'Pending'
+    | 'Confirmed'
+    | 'Rescheduled'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Rejected';
+
   priority: string;
   source: string;
   message: string;
-  notes: AppointmentNote[];
+
+  notes?: {
+    text: string;
+    addedBy?: string;
+    addedAt?: string;
+  }[];
+
   activities: AppointmentActivity[];
+
   createdAt: string;
   updatedAt: string;
 }
@@ -72,94 +98,54 @@ export function AppointmentDetailModal({
   onUpdated,
 }: AppointmentDetailModalProps) {
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<
     'overview' | 'notes' | 'history'
   >('overview');
 
-  const [meetingNotes, setMeetingNotes] = useState('');
-  const [isSavingNotes, setIsSavingNotes] = useState(false);
-
-  const [rescheduleOpen, setRescheduleOpen] =
+  const [isConfirming, setIsConfirming] =
     useState(false);
 
-  const [rescheduleDate, setRescheduleDate] =
-    useState('');
-
-  const [rescheduleTime, setRescheduleTime] =
-    useState('');
-
-  const [isRescheduling, setIsRescheduling] =
+  const [isRejecting, setIsRejecting] =
     useState(false);
 
-  const [appointmentStatus, setAppointmentStatus] =
-    useState<
-      'Scheduled' | 'Completed' | 'Cancelled'
-    >('Scheduled');
-
-  const [isUpdatingStatus, setIsUpdatingStatus] =
+  const [isCompleting, setIsCompleting] =
     useState(false);
 
   /*
-   * Keep all Hooks above the conditional return.
+   * Reset the active tab whenever a different
+   * viewing request is opened.
    */
   useEffect(() => {
     if (!appointment) {
       return;
     }
 
-    const latestNote =
-      appointment.notes?.length > 0
-        ? appointment.notes[
-            appointment.notes.length - 1
-          ]?.text
-        : '';
-
-    setMeetingNotes(
-      latestNote || appointment.message || '',
-    );
-
-    setRescheduleDate(
-      appointment.scheduledDate
-        ? appointment.scheduledDate.slice(0, 10)
-        : '',
-    );
-
-    setRescheduleTime(
-      appointment.scheduledTime || '',
-    );
-
-    setAppointmentStatus(
-      appointment.appointmentStatus || 'Scheduled',
-    );
+    setActiveTab('overview');
   }, [appointment]);
 
   /*
-   * Safe because this happens after all Hooks.
+   * Keep all Hooks above the conditional return.
    */
   if (!appointment) {
     return null;
   }
 
-  const hasNotes =
-    appointment.notes &&
-    appointment.notes.length > 0;
-
+  /*
+   * Booking activity history comes from the
+   * real Booking record mapped by Appointments.tsx.
+   */
   const hasActivities =
     appointment.activities &&
     appointment.activities.length > 0;
 
-  /*
-   * Build the real appointment timeline directly.
-   *
-   * We do not need useMemo here because this list is small
-   * and removing the memo avoids unnecessary Hook complexity.
-   */
   const scheduleTimeline = hasActivities
     ? appointment.activities.map(
         (activity, index) => ({
           title:
-            activity.action || 'Activity',
+            activity.action ||
+            'Activity',
 
           time: activity.createdAt
             ? new Date(
@@ -177,37 +163,44 @@ export function AppointmentDetailModal({
           icon:
             activity.action
               ?.toLowerCase()
-              .includes('schedule') ||
-            activity.action
-              ?.toLowerCase()
-              .includes('reschedule')
+              .includes('viewing')
               ? Calendar
               : activity.action
                   ?.toLowerCase()
-                  .includes('contact')
-              ? User
+                  .includes('confirm')
+              ? CheckCircle2
+              : activity.action
+                  ?.toLowerCase()
+                  .includes('reject')
+              ? AlertCircle
               : Activity,
 
           color:
             activity.action
               ?.toLowerCase()
-              .includes('schedule') ||
-            activity.action
-              ?.toLowerCase()
-              .includes('reschedule')
-              ? 'text-blue-400'
+              .includes('confirm')
+              ? 'text-emerald-400'
               : activity.action
                   ?.toLowerCase()
-                  .includes('note')
-              ? 'text-gold-400'
-              : 'text-emerald-400',
+                  .includes('reject')
+              ? 'text-rose-400'
+              : activity.action
+                  ?.toLowerCase()
+                  .includes('viewing')
+              ? 'text-blue-400'
+              : 'text-gold-400',
 
-          key: `${activity.createdAt || 'activity'}-${index}`,
+          key: `${
+            activity.createdAt ||
+            'activity'
+          }-${index}`,
         }),
       )
     : [
         {
-          title: 'Appointment Scheduled',
+          title:
+            'Viewing Request Created',
+
           time: appointment.createdAt
             ? new Date(
                 appointment.createdAt,
@@ -215,285 +208,344 @@ export function AppointmentDetailModal({
             : 'Time unavailable',
 
           desc:
-            'Scheduled viewing recorded on the client inquiry.',
+            'The Buyer submitted a viewing request for this property.',
 
           icon: Calendar,
           color: 'text-blue-400',
-          key: 'appointment-created',
+          key: 'booking-created',
         },
       ];
 
   /*
-   * Keep the existing Follow-up Tasks section.
+   * Confirm the real Booking.
    *
-   * These remain UI-level tasks for now because the
-   * current Inquiry backend does not yet have a task entity.
+   * PATCH /api/v1/bookings/:bookingId/confirm
    */
-  const followUpTasks = [
-    {
-      task: 'Send property comparison report',
-      status: 'pending',
-    },
-    {
-      task: 'Schedule secondary viewing',
-      status: 'pending',
-    },
-    {
-      task: 'Prepare offer documentation',
-      status: 'completed',
-    },
-  ];
-
-  /*
-   * There is currently no Deal model connected to this
-   * appointment, so do not display a fabricated transaction.
-   */
-  const relatedDeal = null;
-
-  const handleSaveNotes = async () => {
-    if (!appointment.inquiryId) {
-      return;
-    }
-
-    const trimmedNotes =
-      meetingNotes.trim();
-
-    if (!trimmedNotes) {
-      showToast({
-        type: 'error',
-        title: 'Notes Required',
-        description:
-          'Enter a note before saving.',
-      });
-
-      return;
-    }
-
-    try {
-      setIsSavingNotes(true);
-
-      await agentApi.addLeadNote(
-        appointment.inquiryId,
-        trimmedNotes,
-      );
-
-      showToast({
-        type: 'success',
-        title: 'Notes Saved',
-        description:
-          'The appointment note has been added successfully.',
-      });
-    } catch (error) {
-      console.error(
-        'Failed to save appointment notes:',
-        error,
-      );
-
-      showToast({
-        type: 'error',
-        title: 'Unable to save notes',
-        description:
-          'The appointment note could not be saved.',
-      });
-    } finally {
-      setIsSavingNotes(false);
-    }
-  };
-
-  const handleReschedule = async () => {
+  const handleConfirmBooking = async () => {
     if (
-      !appointment.inquiryId ||
-      !rescheduleDate ||
-      !rescheduleTime
-    ) {
-      showToast({
-        type: 'error',
-        title: 'Schedule Required',
-        description:
-          'Select both a date and time before rescheduling.',
-      });
-
-      return;
-    }
-
-    try {
-      setIsRescheduling(true);
-
-      await agentApi.scheduleLeadViewing(
-        appointment.inquiryId,
-        rescheduleDate,
-        rescheduleTime,
-        'Appointment rescheduled by Agent.',
-      );
-
-      setAppointmentStatus('Scheduled');
-
-      onUpdated?.({
-        scheduledDate: `${rescheduleDate}T00:00:00.000Z`,
-        scheduledTime: rescheduleTime,
-        appointmentStatus: 'Scheduled',
-      });
-
-      showToast({
-        type: 'success',
-        title: 'Appointment Rescheduled',
-        description:
-          'The viewing schedule has been updated successfully.',
-      });
-
-      setRescheduleOpen(false);
-
-      onClose();
-    } catch (error) {
-      console.error(
-        'Failed to reschedule appointment:',
-        error,
-      );
-
-      showToast({
-        type: 'error',
-        title: 'Unable to reschedule',
-        description:
-          'The appointment could not be rescheduled.',
-      });
-    } finally {
-      setIsRescheduling(false);
-    }
-  };
-
-  const handleUpdateAppointmentStatus = async (
-    newStatus:
-      | 'Completed'
-      | 'Cancelled',
-  ) => {
-    if (
-      !appointment.inquiryId ||
-      isUpdatingStatus
+      appointment.appointmentStatus !==
+      'Pending'
     ) {
       return;
     }
 
-    if (appointmentStatus === newStatus) {
+    if (
+      isConfirming ||
+      isRejecting
+    ) {
       return;
     }
 
     try {
-      setIsUpdatingStatus(true);
+      setIsConfirming(true);
 
-      await agentApi.updateAppointmentStatus(
-        appointment.inquiryId,
-        newStatus,
-      );
+      const response =
+        await bookingApi.confirmBooking(
+          appointment.id,
+        );
 
-      setAppointmentStatus(newStatus);
+      const confirmedBooking =
+        (response as any)?.data?.booking;
 
-      onUpdated?.({
-        appointmentStatus: newStatus,
-      });
-
-      if (newStatus === 'Completed') {
-        showToast({
-          type: 'success',
-          title: 'Appointment Completed',
-          description:
-            'The appointment has been marked as completed successfully.',
-        });
-      } else {
-        showToast({
-          type: 'success',
-          title: 'Appointment Cancelled',
-          description:
-            'The appointment has been cancelled successfully.',
-        });
+      if (!confirmedBooking?._id) {
+        throw new Error(
+          'The confirmed booking was not returned by the server.',
+        );
       }
 
+      const confirmedStatus =
+        confirmedBooking.status ||
+        'Confirmed';
+
+      onUpdated?.({
+        status: confirmedStatus,
+        appointmentStatus:
+          confirmedStatus,
+        updatedAt:
+          confirmedBooking.updatedAt ||
+          new Date().toISOString(),
+      });
+
+      showToast({
+        type: 'success',
+        title:
+          'Viewing Confirmed',
+        description:
+          'The Buyer viewing request has been confirmed successfully.',
+      });
+
       onClose();
     } catch (error) {
       console.error(
-        `Failed to update appointment to ${newStatus}:`,
+        'Failed to confirm viewing:',
         error,
       );
 
       showToast({
         type: 'error',
         title:
-          newStatus === 'Completed'
-            ? 'Unable to complete appointment'
-            : 'Unable to cancel appointment',
+          'Unable to confirm viewing',
         description:
-          'The appointment status could not be updated.',
+          error instanceof Error
+            ? error.message
+            : 'The viewing request could not be confirmed.',
       });
     } finally {
-      setIsUpdatingStatus(false);
+      setIsConfirming(false);
     }
   };
 
-  const handleMarkCompleted = () => {
-    handleUpdateAppointmentStatus(
-      'Completed',
-    );
+  /*
+   * Reject the real Booking.
+   *
+   * PATCH /api/v1/bookings/:bookingId/reject
+   */
+  const handleRejectBooking = async () => {
+    if (
+      appointment.appointmentStatus !==
+        'Pending' &&
+      appointment.appointmentStatus !==
+        'Rescheduled'
+    ) {
+      return;
+    }
+
+    if (
+      isConfirming ||
+      isRejecting
+    ) {
+      return;
+    }
+
+    try {
+      setIsRejecting(true);
+
+      const response =
+        await bookingApi.rejectBooking(
+          appointment.id,
+        );
+
+      const rejectedBooking =
+        (response as any)?.data?.booking;
+
+      if (!rejectedBooking?._id) {
+        throw new Error(
+          'The rejected booking was not returned by the server.',
+        );
+      }
+
+      onUpdated?.({
+        status: 'Rejected',
+        appointmentStatus:
+          'Rejected',
+        updatedAt:
+          rejectedBooking.updatedAt ||
+          new Date().toISOString(),
+      });
+
+      showToast({
+        type: 'success',
+        title:
+          'Viewing Rejected',
+        description:
+          'The Buyer viewing request has been rejected.',
+      });
+
+      onClose();
+    } catch (error) {
+      console.error(
+        'Failed to reject viewing:',
+        error,
+      );
+
+      showToast({
+        type: 'error',
+        title:
+          'Unable to reject viewing',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'The viewing request could not be rejected.',
+      });
+    } finally {
+      setIsRejecting(false);
+    }
   };
 
-  const handleCancel = () => {
-    handleUpdateAppointmentStatus(
-      'Cancelled',
-    );
+  /*
+   * Mark the confirmed Booking as completed.
+   *
+   * PATCH /api/v1/bookings/:bookingId/complete
+   */
+  const handleCompleteBooking = async () => {
+    if (
+      appointment.appointmentStatus !==
+      'Confirmed'
+    ) {
+      return;
+    }
+
+    if (
+      isConfirming ||
+      isRejecting ||
+      isCompleting
+    ) {
+      return;
+    }
+
+    try {
+      setIsCompleting(true);
+
+      const response =
+        await bookingApi.completeBooking(
+          appointment.id,
+        );
+
+      const completedBooking =
+        (response as any)?.data?.booking;
+
+      if (!completedBooking?._id) {
+        throw new Error(
+          'The completed booking was not returned by the server.',
+        );
+      }
+
+      onUpdated?.({
+        status: 'Completed',
+        appointmentStatus:
+          'Completed',
+        updatedAt:
+          completedBooking.updatedAt ||
+          new Date().toISOString(),
+      });
+
+      showToast({
+        type: 'success',
+        title:
+          'Viewing Completed',
+        description:
+          'The property viewing has been marked as completed.',
+      });
+
+      onClose();
+    } catch (error) {
+      console.error(
+        'Failed to complete viewing:',
+        error,
+      );
+
+      showToast({
+        type: 'error',
+        title:
+          'Unable to complete viewing',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'The viewing could not be marked as completed.',
+      });
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
-  const handleViewClient = () => {
-    showToast({
-      type: 'info',
-      title: 'Client Profile',
-      description:
-        'Client profile navigation will use the Agent Clients page.',
-    });
-  };
-
+  /*
+   * Navigate directly to the exact public
+   * property associated with the Booking.
+   */
   const handleViewProperty = () => {
     if (!appointment.propertyId) {
       showToast({
         type: 'error',
-        title: 'Property Unavailable',
+        title:
+          'Property Unavailable',
         description:
-          'This appointment is not linked to a property record.',
+          'This viewing request is not linked to a property record.',
       });
 
       return;
     }
 
+    const propertyRoute =
+      ROUTES.PROPERTY_DETAILS.replace(
+        ':id',
+        appointment.propertyId,
+      );
+
+    onClose();
+
+    navigate(propertyRoute);
+  };
+
+  /*
+   * Client navigation stays informational until
+   * the Agent Clients workflow is connected.
+   */
+  const handleViewClient = () => {
     showToast({
       type: 'info',
-      title: 'Property Record',
+      title: 'Client Profile',
       description:
-        'Property navigation will be connected to the property details route.',
+        'Client profile navigation will be connected to the Agent Clients workflow.',
     });
   };
 
+  const isPending =
+    appointment.appointmentStatus ===
+    'Pending';
+
+  const isConfirmed =
+    appointment.appointmentStatus ===
+    'Confirmed';
+
   const isCompleted =
-    appointmentStatus === 'Completed';
+    appointment.appointmentStatus ===
+    'Completed';
+
+  const isRejected =
+    appointment.appointmentStatus ===
+    'Rejected';
 
   const isCancelled =
-    appointmentStatus === 'Cancelled';
+    appointment.appointmentStatus ===
+    'Cancelled';
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Appointment Details"
+      title="Viewing Request Details"
       size="2xl"
       actionButton={
-        <GoldButton
-          onClick={() =>
-            setRescheduleOpen((current) => !current)
-          }
-          disabled={
-            isCompleted ||
-            isCancelled ||
-            isUpdatingStatus
-          }
-        >
-          Reschedule
-        </GoldButton>
+        isPending ? (
+          <GoldButton
+            onClick={
+              handleConfirmBooking
+            }
+            disabled={
+              isConfirming ||
+              isRejecting
+            }
+          >
+            {isConfirming
+              ? 'Confirming...'
+              : 'Confirm Viewing'}
+          </GoldButton>
+        ) : isConfirmed ? (
+          <GoldButton
+            onClick={
+              handleCompleteBooking
+            }
+            disabled={
+              isCompleting ||
+              isConfirming ||
+              isRejecting
+            }
+          >
+            {isCompleting
+              ? 'Completing...'
+              : 'Mark Viewing Completed'}
+          </GoldButton>
+        ) : null
       }
     >
       <div className="space-y-8 pb-4">
@@ -510,7 +562,7 @@ export function AppointmentDetailModal({
                   'Property Viewing'}
               </h2>
 
-              <div className="text-ink/60 flex flex-wrap items-center gap-4 mt-1">
+              <div className="text-ink/60 flex flex-wrap items-center gap-4 mt-2">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
                   {appointment.time}
@@ -531,15 +583,15 @@ export function AppointmentDetailModal({
             <div className="flex flex-wrap gap-2">
               <StatusBadge
                 status={
-                  appointmentStatus ||
-                  'Scheduled'
+                  appointment.appointmentStatus ||
+                  'Pending'
                 }
               />
 
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
-                Lead:{' '}
-                {appointment.status ||
-                  'Unknown'}
+                Source:{' '}
+                {appointment.source ||
+                  'Buyer Viewing Request'}
               </span>
 
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
@@ -547,118 +599,78 @@ export function AppointmentDetailModal({
                 {appointment.priority ||
                   'Standard'}
               </span>
-
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
-                Source: {appointment.source}
-              </span>
             </div>
 
-            <div className="flex gap-4 pt-2">
-              <GhostButton
-                onClick={
-                  handleMarkCompleted
-                }
-                disabled={
-                  isUpdatingStatus ||
-                  isCompleted ||
-                  isCancelled
-                }
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-emerald-400 hover:text-emerald-300"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                {isUpdatingStatus
-                  ? 'Updating...'
-                  : isCompleted
-                  ? 'Completed'
-                  : 'Mark Completed'}
-              </GhostButton>
+            {/* Booking Actions */}
+            <div className="flex flex-wrap gap-3 pt-2">
+              {isPending && (
+                <>
+                  <GoldButton
+                    onClick={
+                      handleConfirmBooking
+                    }
+                    disabled={
+                      isConfirming ||
+                      isRejecting
+                    }
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
 
-              <GhostButton
-                onClick={handleCancel}
-                disabled={
-                  isUpdatingStatus ||
-                  isCompleted ||
-                  isCancelled
-                }
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:text-red-300"
-              >
-                <AlertCircle className="h-4 w-4" />
-                {isCancelled
-                  ? 'Cancelled'
-                  : 'Cancel'}
-              </GhostButton>
+                    {isConfirming
+                      ? 'Confirming...'
+                      : 'Confirm Viewing'}
+                  </GoldButton>
+
+                  <GhostButton
+                    onClick={
+                      handleRejectBooking
+                    }
+                    disabled={
+                      isConfirming ||
+                      isRejecting
+                    }
+                    className="flex items-center gap-2 text-rose-400 hover:text-rose-300"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+
+                    {isRejecting
+                      ? 'Rejecting...'
+                      : 'Reject Request'}
+                  </GhostButton>
+                </>
+              )}
+
+              {isConfirmed && (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm font-medium text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Viewing Confirmed
+                </span>
+              )}
+
+              {isCompleted && (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-blue-400/20 bg-blue-400/10 px-3 py-2 text-sm font-medium text-blue-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Viewing Completed
+                </span>
+              )}
+
+              {isRejected && (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm font-medium text-rose-400">
+                  <AlertCircle className="h-4 w-4" />
+                  Viewing Rejected
+                </span>
+              )}
+
+              {isCancelled && (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm font-medium text-rose-400">
+                  <AlertCircle className="h-4 w-4" />
+                  Viewing Cancelled
+                </span>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Reschedule Panel */}
-        {rescheduleOpen && (
-          <div className="rounded-xl border border-gold-400/20 bg-gold-400/5 p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="h-4 w-4 text-gold-400" />
-
-              <h3 className="text-sm font-semibold text-cream">
-                Reschedule Appointment
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-ink/60 mb-2">
-                  New Date
-                </label>
-
-                <input
-                  type="date"
-                  value={rescheduleDate}
-                  onChange={(event) =>
-                    setRescheduleDate(
-                      event.target.value,
-                    )
-                  }
-                  className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream focus:outline-none focus:border-gold-400/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-ink/60 mb-2">
-                  New Time
-                </label>
-
-                <input
-                  type="text"
-                  value={rescheduleTime}
-                  onChange={(event) =>
-                    setRescheduleTime(
-                      event.target.value,
-                    )
-                  }
-                  placeholder="e.g. 4:00 PM"
-                  className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream placeholder:text-ink/40 focus:outline-none focus:border-gold-400/50"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <GhostButton
-                onClick={() =>
-                  setRescheduleOpen(false)
-                }
-              >
-                Close
-              </GhostButton>
-
-              <GoldButton
-                onClick={handleReschedule}
-                disabled={isRescheduling}
-              >
-                {isRescheduling
-                  ? 'Rescheduling...'
-                  : 'Save New Schedule'}
-              </GoldButton>
-            </div>
-          </div>
-        )}
 
         {/* Navigation */}
         <div className="flex border-b border-white/10">
@@ -669,7 +681,7 @@ export function AppointmentDetailModal({
             },
             {
               id: 'notes',
-              label: 'Notes & Tasks',
+              label: 'Buyer Message',
             },
             {
               id: 'history',
@@ -705,7 +717,7 @@ export function AppointmentDetailModal({
               <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
                 <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
                   <User className="h-4 w-4 text-ink/60" />
-                  Client Information
+                  Buyer Information
                 </h3>
 
                 <div className="space-y-3 text-sm">
@@ -742,7 +754,9 @@ export function AppointmentDetailModal({
                   </div>
 
                   <GhostButton
-                    onClick={handleViewClient}
+                    onClick={
+                      handleViewClient
+                    }
                     className="w-full justify-center text-xs py-1 mt-2"
                   >
                     View Client Profile
@@ -750,29 +764,44 @@ export function AppointmentDetailModal({
                 </div>
               </div>
 
-              {/* Related Deal */}
+              {/* Viewing Schedule */}
               <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
                 <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-ink/60" />
-                  Related Deal
+                  <Calendar className="h-4 w-4 text-ink/60" />
+                  Viewing Schedule
                 </h3>
 
-                {relatedDeal ? (
-                  <div className="bg-navy-800 p-3 rounded-lg border border-white/5">
-                    {/* Reserved for real Deal data once the Deal module is connected. */}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-white/10 bg-navy-800/40 p-4">
-                    <div className="text-sm text-cream mb-1">
-                      No deal linked
-                    </div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink/60">
+                      Date
+                    </span>
 
-                    <div className="text-xs text-ink/60">
-                      This appointment currently has no
-                      associated transaction/deal record.
-                    </div>
+                    <span className="text-cream font-medium">
+                      {appointment.date}
+                    </span>
                   </div>
-                )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink/60">
+                      Time
+                    </span>
+
+                    <span className="text-cream font-medium">
+                      {appointment.time}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start justify-between gap-4">
+                    <span className="text-ink/60">
+                      Location
+                    </span>
+
+                    <span className="text-cream font-medium text-right">
+                      {appointment.location}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -829,149 +858,100 @@ export function AppointmentDetailModal({
                   </div>
 
                   <GhostButton
-                    onClick={handleViewProperty}
-                    className="w-full justify-center text-xs py-1 mt-2"
+                    onClick={
+                      handleViewProperty
+                    }
+                    className="w-full justify-center text-xs py-2 mt-2"
                   >
                     View Property
                   </GhostButton>
                 </div>
               </div>
 
-              {/* Appointment Request */}
+              {/* Booking Information */}
               <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
                 <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-ink/60" />
-                  Appointment Request
+                  Booking Information
                 </h3>
 
-                <p className="text-sm text-ink/80 leading-relaxed">
-                  {appointment.message ||
-                    'No appointment message was provided.'}
-                </p>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="block text-ink/60 text-xs mb-1">
+                      Booking ID
+                    </span>
+
+                    <span className="text-gold-400 font-medium break-all">
+                      {appointment.id}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="block text-ink/60 text-xs mb-1">
+                      Status
+                    </span>
+
+                    <span className="text-cream">
+                      {appointment.appointmentStatus}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="block text-ink/60 text-xs mb-1">
+                      Request Source
+                    </span>
+
+                    <span className="text-cream">
+                      Buyer Viewing Request
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Notes */}
+        {/* Buyer Message */}
         {activeTab === 'notes' && (
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4 h-full">
-                <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-ink/60" />
-                  Meeting Notes
-                </h3>
+          <div className="space-y-6">
+            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-5">
+              <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-ink/60" />
+                Buyer Message
+              </h3>
 
-                {hasNotes && (
-                  <div className="mb-4 space-y-2">
-                    {appointment.notes.map(
-                      (note, index) => (
-                        <div
-                          key={`${note.addedAt || 'note'}-${index}`}
-                          className="rounded-lg border border-white/5 bg-navy-800/60 p-3"
-                        >
-                          <p className="text-sm text-ink/80">
-                            {note.text}
-                          </p>
-
-                          <div className="text-[10px] text-ink/40 mt-2">
-                            {note.addedBy ||
-                              'Agent'}
-                            {note.addedAt
-                              ? ` • ${new Date(
-                                  note.addedAt,
-                                ).toLocaleString()}`
-                              : ''}
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </div>
+              <div className="rounded-lg border border-white/5 bg-navy-800/60 p-4">
+                {appointment.message ? (
+                  <p className="text-sm text-ink/80 leading-relaxed">
+                    {appointment.message}
+                  </p>
+                ) : (
+                  <p className="text-sm text-ink/50 italic">
+                    The Buyer did not include a message
+                    with this viewing request.
+                  </p>
                 )}
-
-                <textarea
-                  className="w-full h-[160px] text-sm text-cream bg-navy-800 rounded-lg border border-white/5 p-3 focus:outline-none focus:border-gold-400/50 resize-none"
-                  placeholder="Enter a new meeting note..."
-                  value={meetingNotes}
-                  onChange={(event) =>
-                    setMeetingNotes(
-                      event.target.value,
-                    )
-                  }
-                />
-
-                <div className="mt-3 flex justify-end">
-                  <GhostButton
-                    className="text-xs py-1 px-3"
-                    onClick={
-                      handleSaveNotes
-                    }
-                    disabled={isSavingNotes}
-                  >
-                    {isSavingNotes
-                      ? 'Saving...'
-                      : 'Save Notes'}
-                  </GhostButton>
-                </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-ink/60" />
-                Follow-up Tasks
-              </h3>
+            <div className="rounded-xl border border-gold-400/10 bg-gold-400/5 p-5">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-gold-400 shrink-0 mt-0.5" />
 
-              <div className="space-y-3">
-                {followUpTasks.map(
-                  (item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3"
-                    >
-                      <div
-                        className={`h-4 w-4 rounded-full border flex items-center justify-center ${
-                          item.status ===
-                          'completed'
-                            ? 'bg-emerald-400 border-emerald-400'
-                            : 'border-ink/40'
-                        }`}
-                      >
-                        {item.status ===
-                          'completed' && (
-                          <CheckCircle2 className="h-3 w-3 text-navy-900" />
-                        )}
-                      </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-cream mb-1">
+                    Booking Notes
+                  </h3>
 
-                      <span
-                        className={`text-sm ${
-                          item.status ===
-                          'completed'
-                            ? 'text-cream line-through opacity-50'
-                            : 'text-cream'
-                        }`}
-                      >
-                        {item.task}
-                      </span>
-                    </div>
-                  ),
-                )}
+                  <p className="text-xs text-ink/60 leading-relaxed">
+                    Persistent Agent notes are not part of
+                    the current Booking API yet. We are
+                    keeping this section read-only rather
+                    than writing notes into the old Inquiry
+                    system.
+                  </p>
+                </div>
               </div>
-
-              <GhostButton
-                className="w-full justify-center text-xs py-1 mt-4 border border-dashed border-white/10"
-                onClick={() =>
-                  showToast({
-                    type: 'info',
-                    title: 'Tasks',
-                    description:
-                      'Task creation will be connected to the Agent task workflow.',
-                  })
-                }
-              >
-                + Add Task
-              </GhostButton>
             </div>
           </div>
         )}
@@ -980,7 +960,7 @@ export function AppointmentDetailModal({
         {activeTab === 'history' && (
           <div className="rounded-xl border border-white/5 bg-navy-900/50 p-6">
             <ActivityTimeline
-              title="Schedule Timeline"
+              title="Viewing Request Timeline"
               items={scheduleTimeline}
             />
           </div>

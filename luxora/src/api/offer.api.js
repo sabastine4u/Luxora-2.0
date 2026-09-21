@@ -11,6 +11,11 @@ export const offerApi = {
 getOwnerOffers: () =>
   http.get("/offers/owner"),
 
+// GET /offers/agency
+// Fetch Offers associated with Properties belonging to the authenticated Agency.
+getAgencyOffers: () =>
+  http.get('/offers/agency'),
+
   // POST /offers -> { data: { offer } }
   createOffer: (offerData) =>
     http.post("/offers", offerData),
@@ -30,4 +35,14 @@ rejectOffer: (offerId) =>
 // Submit a counter offer to the Buyer.
 counterOffer: (offerId, counterOfferData) =>
   http.patch(`/offers/${offerId}/counter`, counterOfferData),
+
+acceptCounterOffer: (offerId) =>
+  http.patch(`/offers/${offerId}/accept-counter`),
+
+rejectCounterOffer: (offerId) =>
+  http.patch(`/offers/${offerId}/reject-counter`),
+
+buyerCounterOffer: (offerId, counterData) =>
+  http.patch(`/offers/${offerId}/buyer-counter`, counterData),
+
 };

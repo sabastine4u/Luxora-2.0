@@ -1,32 +1,66 @@
-// Import the shared HTTP client used by the Luxora frontend.
+// Import the shared HTTP client.
 import http from './http';
 
-// Convert a browser File array into multipart/form-data for the backend upload endpoint.
-const createFileFormData = (files, fieldName) => {
-  // Create the multipart form container.
+// Convert a browser File array into multipart/form-data.
+const createFileFormData = (
+  files,
+  fieldName,
+) => {
   const formData = new FormData();
 
-  // Append each selected file using the field name expected by Multer.
   files.forEach((file) => {
-    formData.append(fieldName, file);
+    formData.append(
+      fieldName,
+      file,
+    );
   });
 
   return formData;
 };
 
-// Define the API methods responsible for property media uploads.
+// Define the API methods responsible for Property media uploads.
 export const uploadApi = {
-  // Upload property images and return their public URLs.
+  // Upload Property images.
   uploadPropertyImages: (files = []) => {
-    const formData = createFileFormData(files, 'images');
+    const formData =
+      createFileFormData(
+        files,
+        'images',
+      );
 
-    return http.post('/uploads/properties/images', formData);
+    return http.post(
+      '/uploads/properties/images',
+      formData,
+      {
+        headers: {
+          // Tell Axios this request is multipart.
+          // Axios will add the required boundary.
+          'Content-Type':
+            'multipart/form-data',
+        },
+      },
+    );
   },
 
-  // Upload property documents and return their public URLs.
-  uploadPropertyDocuments: (files = []) => {
-    const formData = createFileFormData(files, 'documents');
+  // Upload Property documents.
+  uploadPropertyDocuments: (
+    files = [],
+  ) => {
+    const formData =
+      createFileFormData(
+        files,
+        'documents',
+      );
 
-    return http.post('/uploads/properties/documents', formData);
+    return http.post(
+      '/uploads/properties/documents',
+      formData,
+      {
+        headers: {
+          'Content-Type':
+            'multipart/form-data',
+        },
+      },
+    );
   },
 };

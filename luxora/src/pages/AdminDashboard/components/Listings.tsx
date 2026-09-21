@@ -1,19 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
+
 import {
   Building2,
   CheckCircle,
   Clock,
   AlertTriangle,
 } from 'lucide-react';
+
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+
 import {
   RejectionReasonModal,
   type ReviewActionType,
 } from './RejectionReasonModal';
+
 import { ListingDetailModal } from './ListingDetailModal';
 import { AgencyAssignmentModal } from './modals/AgencyAssignmentModal';
-import { GhostButton, GoldButton } from '../../../components/ui/ui';
+
+import {
+  GhostButton,
+  GoldButton,
+} from '../../../components/ui/ui';
+
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
@@ -27,50 +36,60 @@ import { propertyApi } from '../../../api/property.api';
 import { useToast } from '../../../contexts/ToastContext';
 
 import type { AdminListing } from '../../../types/admin';
+
 import { ListingTable } from '../../../components/dashboard/shared/tables/ListingTable';
 
 export interface ListingsProps {
   pageTitle?: string;
   pageSubtitle?: string;
-  mode?: 'operational' | 'oversight';
+  mode?: 'operational' | 'oversight' | 'management';
 }
 
-// Represent the Property structure returned by the Admin backend.
 interface AdminProperty {
   _id: string;
   title: string;
 
-  // Used to determine which price field should be displayed.
   transactionType?: string;
 
   state?: string;
   city?: string;
+  area?: string | null;
 
-  // Sale/purchase price.
   price?: number | null;
-
-  // Rental amount when available.
   rentAmount?: number | null;
-
   currency?: string;
   priceFrequency?: string | null;
 
-  // Real Property lifecycle state from the backend.
   status?: string;
-
-  // Real Property verification level from the backend.
   verificationLevel?: string;
+  assignmentStatus?: string | null;
 
-  // Real Property assignment status from the backend.
-  assignmentStatus?: string;
+  description?: string;
+  propertyType?: string;
 
-  // Populated Agency information.
+  bedrooms?: number;
+  bathrooms?: number;
+  toilets?: number;
+  parkingSpaces?: number;
+
+  propertySize?: number | null;
+  propertySizeUnit?: string;
+
+  yearBuilt?: number | null;
+  furnishing?: string | null;
+  propertyCondition?: string | null;
+
+  images?: string[];
+  coverImage?: string | null;
+
+  origin?: string;
+  createdByRole?: string;
+
   agency?: {
     _id?: string;
     name?: string;
   } | null;
 
-  // Populated Agent information.
   agent?: {
     _id?: string;
     user?: {
@@ -78,7 +97,6 @@ interface AdminProperty {
     } | null;
   } | null;
 
-  // Populated Owner information.
   owner?: {
     _id?: string;
     fullName?: string;
@@ -87,19 +105,21 @@ interface AdminProperty {
   createdAt?: string;
   updatedAt?: string;
 
-  // Property documents returned by the backend.
   documents?: Array<{
-    name?: string;
-    type?: string;
-    size?: string;
+    title?: string;
+    url?: string;
+    verified?: boolean;
+    uploadedAt?: string;
   }>;
 }
 
-// Convert the real backend Property into the existing AdminListing table shape.
+/**
+ * Convert the real Property response into the existing AdminListing
+ * structure used by the Admin/Super Admin listing UI.
+ */
 const mapPropertyToAdminListing = (
   property: AdminProperty,
 ): AdminListing => {
-  // Use rentAmount for rental properties and price for other transaction types.
   const rawPrice =
     property.transactionType === 'rent' ||
     property.priceFrequency === 'monthly' ||
@@ -107,7 +127,6 @@ const mapPropertyToAdminListing = (
       ? property.rentAmount ?? property.price
       : property.price;
 
-  // Format the real property amount using Nigerian currency formatting.
   const formattedPrice =
     typeof rawPrice === 'number'
       ? new Intl.NumberFormat('en-NG', {
@@ -117,18 +136,15 @@ const mapPropertyToAdminListing = (
         }).format(rawPrice)
       : 'N/A';
 
-  // Add the rental frequency when the backend provides one.
   const frequency =
     property.priceFrequency &&
     property.priceFrequency !== 'total'
       ? `/${property.priceFrequency}`
       : '';
 
-  // Keep the actual Property lifecycle status from the backend.
   const listingStatus =
     property.status || 'Draft';
 
-  // Convert backend assignment state into the existing AdminListing assignment values.
   let assignmentStatus:
     | 'Ready for Agency Assignment'
     | 'Assigned to Agency'
@@ -136,30 +152,22 @@ const mapPropertyToAdminListing = (
     | 'Cancelled'
     | undefined;
 
-  // Handle rejected Agent assignments.
   if (
     property.assignmentStatus ===
     'Agent Declined'
   ) {
     assignmentStatus = 'Cancelled';
-  }
-
-  // Handle Properties already assigned to an Agency.
-  else if (
+  } else if (
     property.assignmentStatus ===
       'Agency Assigned' ||
     property.assignmentStatus ===
       'Agent Assigned' ||
     property.assignmentStatus ===
-      'Agent Accepted' ||
-    property.agency
+      'Agent Accepted'
   ) {
     assignmentStatus =
       'Assigned to Agency';
-  }
-
-  // Handle Properties still waiting for an Agency.
-  else if (
+  } else if (
     property.assignmentStatus ===
     'Pending Agency Assignment'
   ) {
@@ -168,88 +176,132 @@ const mapPropertyToAdminListing = (
   }
 
   return {
-    // Keep the real MongoDB ID internally for backend actions and selection.
     id: property._id,
 
-    // Display the actual Property title.
     title: property.title,
 
-    // Display the readable Owner name.
     owner:
       property.owner?.fullName ||
       'Unassigned',
 
-    // Display the readable location.
     location:
       [property.city, property.state]
         .filter(Boolean)
         .join(', ') ||
       'Location not provided',
 
-    // Display the real Property amount.
     price: `${formattedPrice}${frequency}`,
 
-    // Preserve the real lifecycle status.
     status: listingStatus,
 
-    // Keep unverified Properties marked for attention.
+    propertyType: property.propertyType,
+    transactionType: property.transactionType,
+    description: property.description,
+
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    toilets: property.toilets,
+    parkingSpaces: property.parkingSpaces,
+
+    propertySize: property.propertySize,
+    propertySizeUnit:
+      property.propertySizeUnit,
+
+    yearBuilt: property.yearBuilt,
+    furnishing: property.furnishing,
+    propertyCondition:
+      property.propertyCondition,
+
+    priceFrequency:
+      property.priceFrequency,
+
+    images: property.images || [],
+    coverImage:
+      property.coverImage || null,
+
+    origin: property.origin,
+    createdByRole:
+      property.createdByRole,
+
+    verificationLevel:
+      property.verificationLevel,
+
+    assignmentStatus:
+      property.assignmentStatus,
+
+    documents:
+      property.documents || [],
+
+    agent: property.agent
+      ? {
+          id: property.agent._id,
+          name:
+            property.agent.user?.fullName ||
+            'Unknown Agent',
+        }
+      : null,
+
+    agency: property.agency
+      ? {
+          id: property.agency._id,
+          name:
+            property.agency.name ||
+            'Unknown Agency',
+        }
+      : null,
+
     priority:
       property.verificationLevel ===
       'Unverified'
         ? 'High'
         : 'Normal',
 
-    // Keep verification separate from lifecycle status.
     verification: {
       status: listingStatus,
 
-      // Verification checklist will be connected separately.
       checklist: [],
 
-      // Preserve real Property documents.
       documents:
         property.documents?.map(
           (document, index) => ({
             name:
-              document.name ||
+              document.title ||
               `Document ${index + 1}`,
             type:
-              document.type ||
-              'Document',
-            size: document.size,
+              document.verified
+                ? 'Verified Document'
+                : 'Document',
+            size:
+              document.uploadedAt
+                ? new Date(
+                    document.uploadedAt,
+                  ).toLocaleDateString()
+                : undefined,
           }),
         ) || [],
 
-      // Preserve the real verification level for the detail UI.
       notes: `Verification level: ${
         property.verificationLevel ||
         'Unverified'
       }`,
 
-      // Approval history will be connected through the Approval records later.
       history: [],
     },
 
-    // Preserve Agency assignment information.
     assignment: assignmentStatus
       ? {
-          // Keep an internal assignment reference.
           id:
             property.agency?._id ||
             property._id,
 
-          // Preserve the assignment state.
           status: assignmentStatus,
 
-          // Keep the Agency ID internally.
           agencyId:
             property.agency?._id,
 
-          // Display the readable Agency name.
           agencyName:
             property.agency?.name,
 
-          // Preserve the latest assignment timestamp.
           assignedAt:
             property.updatedAt,
         }
@@ -259,128 +311,119 @@ const mapPropertyToAdminListing = (
 
 export default function Listings({
   pageTitle = 'Verification Queue',
-  pageSubtitle = 'Review, verify, and approve property submissions before Agency Assignment.',
+  pageSubtitle =
+    'Review, approve, and publish property submissions.',
   mode = 'operational',
 }: ListingsProps) {
   const navigate = useNavigate();
 
-  // Show backend success and error feedback to the Admin.
   const { showToast } = useToast();
 
-  // Search input state.
   const [searchQuery, setSearchQuery] =
     useState('');
 
-  // Current lifecycle status filter.
   const [statusFilter, setStatusFilter] =
     useState('All');
 
-  // Selected Property IDs.
   const [selectedRows, setSelectedRows] =
     useState<Set<string>>(
       new Set(),
     );
 
-  // Approval confirmation modal state.
-  const [approvalModalOpen, setApprovalModalOpen] =
-    useState(false);
+  const [
+    approvalModalOpen,
+    setApprovalModalOpen,
+  ] = useState(false);
 
-  // Rejection modal state.
-  const [reasonModalOpen, setReasonModalOpen] =
-    useState(false);
+  const [
+    publishModalOpen,
+    setPublishModalOpen,
+  ] = useState(false);
 
-  // Current review action.
+  const [
+    reasonModalOpen,
+    setReasonModalOpen,
+  ] = useState(false);
+
   const [actionType, setActionType] =
     useState<ReviewActionType>(
       'reject',
     );
 
-  // Property ID or bulk action target.
   const [actionTarget, setActionTarget] =
     useState<string | null>(
       null,
     );
 
-  // Property currently shown in the detail modal.
   const [previewListing, setPreviewListing] =
     useState<AdminListing | null>(
       null,
     );
 
-  // Property currently shown in Agency Assignment modal.
-  const [assignmentListing, setAssignmentListing] =
-    useState<AdminListing | null>(
-      null,
-    );
+  const [
+    assignmentListing,
+    setAssignmentListing,
+  ] = useState<AdminListing | null>(
+    null,
+  );
 
-  // Store the real Property records.
   const [properties, setProperties] =
     useState<AdminProperty[]>([]);
 
-  // Track initial Property loading state.
   const [isLoading, setIsLoading] =
     useState(true);
 
-  // Track errors from the initial Property request.
   const [loadError, setLoadError] =
     useState<string | null>(
       null,
     );
 
-  // Track an active backend action.
-  const [isActionLoading, setIsActionLoading] =
-    useState(false);
+  const [
+    isActionLoading,
+    setIsActionLoading,
+  ] = useState(false);
 
-  // Store notes typed into the Listing Detail Modal.
   const [reviewNotes, setReviewNotes] =
     useState('');
 
-  // Fetch the full Admin Property collection.
+  /**
+   * Fetch all real Properties available to Admin/Super Admin.
+   */
   const loadProperties = async () => {
     try {
-      // Clear an existing load error.
       setLoadError(null);
 
-      // Request all Properties from the Admin endpoint.
-const response =
-  await adminApi.getProperties();
+      const response =
+        await adminApi.getProperties();
 
-// The HTTP interceptor unwraps the Axios response at runtime,
-// so cast the returned payload to the expected Property shape.
-const data = response as unknown as {
-  properties?: AdminProperty[];
-};
+      const data =
+        response as unknown as {
+          properties?: AdminProperty[];
+        };
 
-// Store the returned Property collection.
-setProperties(
-  data.properties || [],
-);
+      setProperties(
+        data.properties || [],
+      );
     } catch (error) {
-      // Log the actual request failure.
       console.error(
         'Failed to load Admin properties:',
         error,
       );
 
-      // Show a user-friendly page error.
       setLoadError(
         'Unable to load properties right now.',
       );
 
-      // Clear incomplete data.
       setProperties([]);
     } finally {
-      // Stop the initial loading state.
       setIsLoading(false);
     }
   };
 
-  // Load Properties when the Admin page mounts.
   useEffect(() => {
     void loadProperties();
   }, []);
 
-  // Convert backend Properties into the existing table shape.
   const adminListings = useMemo(
     () =>
       properties.map(
@@ -389,53 +432,44 @@ setProperties(
     [properties],
   );
 
-  // Filter the real listings.
-  const filteredListings = useMemo(() => {
-    return adminListings.filter(
-      (listing) => {
-        // Normalize the search input.
-        const search =
-          searchQuery
-            .trim()
-            .toLowerCase();
+  const filteredListings =
+    useMemo(() => {
+      const search =
+        searchQuery
+          .trim()
+          .toLowerCase();
 
-        // Search using the readable Property name.
-        const matchesTitle =
-          listing.title
-            .toLowerCase()
-            .includes(search);
+      return adminListings.filter(
+        (listing) => {
+          const matchesSearch =
+            !search ||
+            listing.title
+              .toLowerCase()
+              .includes(search) ||
+            listing.owner
+              .toLowerCase()
+              .includes(search);
 
-        // Search using the readable Owner name.
-        const matchesOwner =
-          listing.owner
-            .toLowerCase()
-            .includes(search);
+          const matchesStatus =
+            statusFilter === 'All' ||
+            listing.status ===
+              statusFilter;
 
-        // Match the actual Property lifecycle status.
-        const matchesStatus =
-          statusFilter ===
-            'All' ||
-          listing.status ===
-            statusFilter;
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        },
+      );
+    }, [
+      adminListings,
+      searchQuery,
+      statusFilter,
+    ]);
 
-        return (
-          (matchesTitle ||
-            matchesOwner) &&
-          matchesStatus
-        );
-      },
-    );
-  }, [
-    adminListings,
-    searchQuery,
-    statusFilter,
-  ]);
-
-  // Total number of real Properties.
   const totalListings =
     adminListings.length;
 
-  // Properties waiting for Admin review.
   const pendingReviewCount =
     adminListings.filter(
       (listing) =>
@@ -443,7 +477,6 @@ setProperties(
         'Pending Review',
     ).length;
 
-  // Properties approved by Admin/Super Admin.
   const approvedCount =
     adminListings.filter(
       (listing) =>
@@ -451,7 +484,6 @@ setProperties(
         'Approved',
     ).length;
 
-  // Properties still in Draft.
   const draftCount =
     adminListings.filter(
       (listing) =>
@@ -459,7 +491,6 @@ setProperties(
         'Draft',
     ).length;
 
-  // Published Properties.
   const publishedCount =
     adminListings.filter(
       (listing) =>
@@ -467,7 +498,6 @@ setProperties(
         'Published',
     ).length;
 
-  // Completed marketplace transactions.
   const completedListingsCount =
     adminListings.filter(
       (listing) =>
@@ -476,7 +506,6 @@ setProperties(
         listing.status === 'Leased',
     ).length;
 
-  // Approved percentage.
   const approvalPercentage =
     totalListings > 0
       ? Math.round(
@@ -486,7 +515,6 @@ setProperties(
         )
       : 0;
 
-  // Pending review percentage.
   const reviewPercentage =
     totalListings > 0
       ? Math.round(
@@ -496,7 +524,6 @@ setProperties(
         )
       : 0;
 
-  // Draft percentage.
   const draftPercentage =
     totalListings > 0
       ? Math.round(
@@ -506,7 +533,6 @@ setProperties(
         )
       : 0;
 
-  // Toggle one row using the internal Property ID.
   const toggleSelection = (
     id: string,
   ) => {
@@ -526,7 +552,6 @@ setProperties(
     );
   };
 
-  // Select all currently visible Properties.
   const toggleAll = () => {
     if (
       selectedRows.size ===
@@ -535,6 +560,7 @@ setProperties(
       setSelectedRows(
         new Set(),
       );
+
       return;
     }
 
@@ -548,91 +574,75 @@ setProperties(
     );
   };
 
-  // Open the correct action modal and preserve Listing Detail notes.
+  /**
+   * Open the correct confirmation/rejection workflow.
+   */
   const handleReviewAction = (
     type:
       | 'approve'
       | 'return'
       | 'hold'
-      | 'reject',
+      | 'reject'
+      | 'publish',
     notes = '',
   ) => {
-    // Preserve the notes typed inside the Listing Detail Modal.
     setReviewNotes(
       notes.trim(),
     );
 
-    // Approval uses the confirmation modal.
     if (type === 'approve') {
-      setApprovalModalOpen(
-        true,
-      );
+      setApprovalModalOpen(true);
       return;
     }
 
-    // Reject uses the real backend approval/rejection endpoint.
     if (type === 'reject') {
-      setActionType(
-        'reject',
-      );
-
-      setReasonModalOpen(
-        true,
-      );
-
+      setActionType('reject');
+      setReasonModalOpen(true);
       return;
     }
 
-    // Return/Hold are not backed by supported Property lifecycle states yet.
+    if (type === 'publish') {
+      setPublishModalOpen(true);
+      return;
+    }
+
     showToast({
       type: 'info',
-      title: 'Workflow Not Available Yet',
+      title:
+        'Workflow Not Available Yet',
       description:
-        'Return and Hold require dedicated backend workflow states. They have not been mapped to another action.',
+        'Return and Hold require dedicated backend workflow states.',
     });
   };
 
-  // Approve one or many real Properties through the backend.
+  /**
+   * Approve one or many Pending Review Properties.
+   */
   const handleApprove = async () => {
     try {
-      // Prevent duplicate clicks while the backend action is running.
       setIsActionLoading(true);
 
-      // Determine whether this is a bulk approval or a single Property.
       const ids =
         actionTarget === 'bulk'
-          ? Array.from(
-              selectedRows,
-            )
+          ? Array.from(selectedRows)
           : actionTarget
             ? [actionTarget]
             : [];
 
-      // Stop if no Property was selected.
       if (ids.length === 0) {
         return;
       }
 
-      // Only Properties already in Pending Review can be approved by the backend.
-      const selectedListings =
+      const approvableListings =
         adminListings.filter(
           (listing) =>
-            ids.includes(
-              listing.id,
-            ),
-        );
-
-      const approvableListings =
-        selectedListings.filter(
-          (listing) =>
+            ids.includes(listing.id) &&
             listing.status ===
-            'Pending Review',
+              'Pending Review',
         );
 
-      // Tell the Admin why nothing can be approved.
       if (
-        approvableListings.length ===
-        0
+        approvableListings.length === 0
       ) {
         showToast({
           type: 'info',
@@ -644,50 +654,31 @@ setProperties(
         return;
       }
 
-      // Use the notes from the Listing Detail Modal as the real reviewNotes value.
-      const formattedReviewNotes =
+      const notes =
         reviewNotes.trim();
 
-      // Approve every eligible Property through the existing approval API.
       for (const listing of approvableListings) {
         await propertyApi.approveProperty(
           listing.id,
           {
-            decision:
-              'Approved',
-
-            // Persist the actual notes entered by the Admin.
-            reviewNotes:
-              formattedReviewNotes,
+            decision: 'Approved',
+            reviewNotes: notes,
           },
         );
       }
 
-      // Reload the real Property collection after successful approval.
       await loadProperties();
 
-      // Clear selected rows after the backend succeeds.
       setSelectedRows(
         new Set(),
       );
 
-      // Close the confirmation modal.
-      setApprovalModalOpen(
-        false,
-      );
-
-      // Clear the action target.
-      setActionTarget(
-        null,
-      );
-
-      // Clear the saved review notes.
+      setApprovalModalOpen(false);
+      setActionTarget(null);
       setReviewNotes('');
 
-      // Tell the Admin the action succeeded.
       showToast({
-        type:
-          'success',
+        type: 'success',
         title:
           approvableListings.length ===
           1
@@ -700,13 +691,11 @@ setProperties(
             : `${approvableListings.length} Properties were approved successfully.`,
       });
     } catch (error: any) {
-      // Log the actual backend failure.
       console.error(
         'Failed to approve Property:',
         error,
       );
 
-      // Show the server's real error message when available.
       showToast({
         type: 'error',
         title: 'Approval Failed',
@@ -717,56 +706,131 @@ setProperties(
           'The Property could not be approved.',
       });
     } finally {
-      // Allow another action after the request finishes.
-      setIsActionLoading(
-        false,
-      );
+      setIsActionLoading(false);
     }
   };
 
-  // Reject one or many real Properties through the backend.
+  /**
+   * Publish one Approved Property.
+   */
+  const handlePublish = async () => {
+    try {
+      setIsActionLoading(true);
+
+      const id =
+        actionTarget &&
+        actionTarget !== 'bulk'
+          ? actionTarget
+          : null;
+
+      if (!id) {
+        showToast({
+          type: 'error',
+          title: 'Listing Not Selected',
+          description:
+            'Select an approved Property before publishing.',
+        });
+
+        return;
+      }
+
+      const listing =
+        adminListings.find(
+          (item) =>
+            item.id === id,
+        );
+
+      if (!listing) {
+        showToast({
+          type: 'error',
+          title: 'Listing Not Found',
+          description:
+            'The selected Property could not be found.',
+        });
+
+        return;
+      }
+
+      if (
+        listing.status !==
+        'Approved'
+      ) {
+        showToast({
+          type: 'info',
+          title: 'Cannot Publish',
+          description:
+            'Only Approved Properties can be published.',
+        });
+
+        return;
+      }
+
+      await propertyApi.publishProperty(
+        id,
+      );
+
+      await loadProperties();
+
+      setPublishModalOpen(false);
+      setActionTarget(null);
+      setReviewNotes('');
+
+      showToast({
+        type: 'success',
+        title: 'Property Published',
+        description:
+          'The Property was published successfully.',
+      });
+    } catch (error: any) {
+      console.error(
+        'Failed to publish Property:',
+        error,
+      );
+
+      showToast({
+        type: 'error',
+        title: 'Publish Failed',
+        description:
+          error?.message ||
+          error?.response?.data
+            ?.message ||
+          'The Property could not be published.',
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  /**
+   * Reject one or many Pending Review Properties.
+   */
   const handleReject = async (
     reason: string,
   ) => {
     try {
-      // Prevent repeated submissions while rejecting.
       setIsActionLoading(true);
 
-      // Determine the target Property IDs.
       const ids =
         actionTarget === 'bulk'
-          ? Array.from(
-              selectedRows,
-            )
+          ? Array.from(selectedRows)
           : actionTarget
             ? [actionTarget]
             : [];
 
-      // Stop if no Property is selected.
       if (ids.length === 0) {
         return;
       }
 
-      // Reject only Properties currently waiting for review.
-      const selectedListings =
+      const rejectableListings =
         adminListings.filter(
           (listing) =>
-            ids.includes(
-              listing.id,
-            ),
-        );
-
-      const rejectableListings =
-        selectedListings.filter(
-          (listing) =>
+            ids.includes(listing.id) &&
             listing.status ===
-            'Pending Review',
+              'Pending Review',
         );
 
-      // Tell the Admin when none of the selected records can be rejected.
       if (
-        rejectableListings.length ===
-        0
+        rejectableListings.length === 0
       ) {
         showToast({
           type: 'info',
@@ -778,7 +842,6 @@ setProperties(
         return;
       }
 
-      // Keep both note sources instead of losing the Listing Detail notes.
       const detailNotes =
         reviewNotes.trim();
 
@@ -790,46 +853,29 @@ setProperties(
           .filter(Boolean)
           .join('\n\n');
 
-      // Reject every eligible Property through the real approval endpoint.
       for (const listing of rejectableListings) {
         await propertyApi.approveProperty(
           listing.id,
           {
-            decision:
-              'Rejected',
-
-            // Persist both the Listing Detail notes and rejection reason.
+            decision: 'Rejected',
             reviewNotes:
               finalReviewNotes,
           },
         );
       }
 
-      // Reload the real Property collection after the rejection.
       await loadProperties();
 
-      // Clear selected rows.
       setSelectedRows(
         new Set(),
       );
 
-      // Close the rejection modal.
-      setReasonModalOpen(
-        false,
-      );
-
-      // Clear the action target.
-      setActionTarget(
-        null,
-      );
-
-      // Clear the stored Listing Detail notes.
+      setReasonModalOpen(false);
+      setActionTarget(null);
       setReviewNotes('');
 
-      // Notify the Admin.
       showToast({
-        type:
-          'success',
+        type: 'success',
         title:
           rejectableListings.length ===
           1
@@ -842,13 +888,11 @@ setProperties(
             : `${rejectableListings.length} Properties were rejected successfully.`,
       });
     } catch (error: any) {
-      // Log the actual rejection failure.
       console.error(
         'Failed to reject Property:',
         error,
       );
 
-      // Display the backend error.
       showToast({
         type: 'error',
         title: 'Rejection Failed',
@@ -859,41 +903,32 @@ setProperties(
           'The Property could not be rejected.',
       });
     } finally {
-      // Allow another action after completion.
-      setIsActionLoading(
-        false,
-      );
+      setIsActionLoading(false);
     }
   };
 
-  // Assign a Property to a real Agency through the backend.
+  /**
+   * Assign an Owner-originated Property to an Agency.
+   */
   const handleAgencyAssignment = async (
     agencyId: string,
   ) => {
     try {
-      // Prevent duplicate assignment requests.
       setIsActionLoading(true);
 
-      // Assignment requires a real Property ID.
       if (!assignmentListing) {
         return;
       }
 
-      // Call the existing Admin/Super Admin Agency assignment endpoint.
       await propertyApi.assignPropertyToAgency(
         assignmentListing.id,
         agencyId,
       );
 
-      // Reload the real Properties after the assignment succeeds.
       await loadProperties();
 
-      // Close the assignment modal.
-      setAssignmentListing(
-        null,
-      );
+      setAssignmentListing(null);
 
-      // Notify the Admin.
       showToast({
         type: 'success',
         title: 'Agency Assigned',
@@ -901,13 +936,11 @@ setProperties(
           `${assignmentListing.title} was assigned successfully.`,
       });
     } catch (error: any) {
-      // Log the real backend failure.
       console.error(
         'Failed to assign Agency:',
         error,
       );
 
-      // Display the server's real error.
       showToast({
         type: 'error',
         title: 'Assignment Failed',
@@ -918,14 +951,50 @@ setProperties(
           'The Property could not be assigned to the Agency.',
       });
     } finally {
-      // Allow another assignment after the request completes.
-      setIsActionLoading(
-        false,
-      );
+      setIsActionLoading(false);
     }
   };
 
-  // Display the loading state while the first Property request is running.
+  /**
+   * Super Admin management mode uses the shared ListingTable
+   * menu. Connect only the workflows that currently have
+   * real backend support.
+   */
+  const handleManagementAction = (
+    action: string,
+    item: AdminListing,
+  ) => {
+    if (
+      action === 'view_listing'
+    ) {
+      setPreviewListing(item);
+      return;
+    }
+
+    if (action === 'publish') {
+      setActionTarget(item.id);
+      handleReviewAction(
+        'publish',
+      );
+      return;
+    }
+
+    if (
+      action === 'agent_assignment'
+    ) {
+      setAssignmentListing(item);
+      return;
+    }
+
+    showToast({
+      type: 'info',
+      title:
+        'Workflow Not Available Yet',
+      description:
+        `${action} is not connected to a real Property workflow yet.`,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -940,25 +1009,21 @@ setProperties(
           </h2>
         </div>
 
-        {/* KPI loading skeletons. */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({
             length: 4,
-          }).map(
-            (_, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 animate-pulse"
-              >
-                <div className="h-4 w-28 rounded bg-white/10" />
-                <div className="mt-4 h-8 w-20 rounded bg-white/10" />
-                <div className="mt-4 h-3 w-32 rounded bg-white/10" />
-              </div>
-            ),
-          )}
+          }).map((_, index) => (
+            <div
+              key={index}
+              className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 animate-pulse"
+            >
+              <div className="h-4 w-28 rounded bg-white/10" />
+              <div className="mt-4 h-8 w-20 rounded bg-white/10" />
+              <div className="mt-4 h-3 w-32 rounded bg-white/10" />
+            </div>
+          ))}
         </div>
 
-        {/* Analytics loading skeletons. */}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-navy-800/50 p-6 animate-pulse">
             <div className="h-5 w-64 rounded bg-white/10" />
@@ -976,33 +1041,29 @@ setProperties(
           </div>
         </div>
 
-        {/* Listing table loading skeleton. */}
         <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 animate-pulse">
           <div className="h-5 w-48 rounded bg-white/10" />
 
           <div className="mt-6 space-y-4">
             {Array.from({
               length: 5,
-            }).map(
-              (_, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-4 gap-4"
-                >
-                  <div className="h-5 rounded bg-white/10" />
-                  <div className="h-5 rounded bg-white/10" />
-                  <div className="h-5 rounded bg-white/10" />
-                  <div className="h-5 rounded bg-white/10" />
-                </div>
-              ),
-            )}
+            }).map((_, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-4 gap-4"
+              >
+                <div className="h-5 rounded bg-white/10" />
+                <div className="h-5 rounded bg-white/10" />
+                <div className="h-5 rounded bg-white/10" />
+                <div className="h-5 rounded bg-white/10" />
+              </div>
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
-  // Display a clear error when the Property collection cannot be loaded.
   if (loadError) {
     return (
       <div className="space-y-6">
@@ -1131,7 +1192,7 @@ setProperties(
 
         <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
           <ActivityTimeline
-            title="Recently Verified"
+            title="Recently Approved"
             items={adminListings
               .filter(
                 (listing) =>
@@ -1142,7 +1203,8 @@ setProperties(
               .map((listing) => ({
                 title:
                   listing.title,
-                desc: `Owned by ${listing.owner}`,
+                desc:
+                  `Owner: ${listing.owner}`,
                 time: 'Recently',
                 color:
                   'text-emerald-400',
@@ -1286,48 +1348,60 @@ setProperties(
       <ListingTable
         data={filteredListings}
         mode={mode}
-        selectedRows={selectedRows}
+        selectedRows={
+          selectedRows
+        }
         onToggleSelection={
           toggleSelection
         }
-        onToggleAll={toggleAll}
+        onToggleAll={
+          toggleAll
+        }
         onReview={(item) =>
           setPreviewListing(item)
         }
         onApprove={(item) => {
           setActionTarget(item.id);
-
           handleReviewAction(
             'approve',
           );
         }}
         onReject={(item) => {
           setActionTarget(item.id);
-
           handleReviewAction(
             'reject',
+          );
+        }}
+        onPublish={(item) => {
+          setActionTarget(item.id);
+          handleReviewAction(
+            'publish',
           );
         }}
         onAssignAgency={(item) =>
           setAssignmentListing(item)
         }
+        onMenuAction={(
+          action,
+          item,
+        ) =>
+          handleManagementAction(
+            action,
+            item,
+          )
+        }
       />
 
       <ConfirmationModal
-        isOpen={approvalModalOpen}
+        isOpen={
+          approvalModalOpen
+        }
         onClose={() => {
-          if (
-            !isActionLoading
-          ) {
+          if (!isActionLoading) {
             setApprovalModalOpen(
               false,
             );
-
-            setActionTarget(
-              null,
-            );
-
-            // Clear notes if the Admin cancels approval.
+            setActionTarget(null);
             setReviewNotes('');
           }
         }}
@@ -1343,13 +1417,38 @@ setProperties(
         message={
           actionTarget ===
           'bulk'
-            ? `Are you sure you want to approve these ${selectedRows.size} properties? Only Properties currently pending review can be approved.`
-            : 'Are you sure you want to approve this Property? It must currently be pending review.'
+            ? `Are you sure you want to approve these ${selectedRows.size} properties?`
+            : 'Are you sure you want to approve this Property?'
         }
         confirmText={
           isActionLoading
             ? 'Approving...'
             : 'Approve'
+        }
+      />
+
+      <ConfirmationModal
+        isOpen={
+          publishModalOpen
+        }
+        onClose={() => {
+          if (!isActionLoading) {
+            setPublishModalOpen(
+              false,
+            );
+            setActionTarget(null);
+            setReviewNotes('');
+          }
+        }}
+        onConfirm={
+          handlePublish
+        }
+        title="Publish Property"
+        message="Are you sure you want to publish this Approved Property? It will become visible in the public marketplace."
+        confirmText={
+          isActionLoading
+            ? 'Publishing...'
+            : 'Publish'
         }
       />
 
@@ -1361,18 +1460,11 @@ setProperties(
           actionType
         }
         onClose={() => {
-          if (
-            !isActionLoading
-          ) {
+          if (!isActionLoading) {
             setReasonModalOpen(
               false,
             );
-
-            setActionTarget(
-              null,
-            );
-
-            // Clear notes if the Admin cancels rejection.
+            setActionTarget(null);
             setReviewNotes('');
           }
         }}
@@ -1380,7 +1472,6 @@ setProperties(
           reason,
           type,
         ) => {
-          // Only the Reject action currently has a matching backend workflow.
           if (
             type === 'reject'
           ) {
@@ -1400,32 +1491,26 @@ setProperties(
           !!previewListing
         }
         onClose={() =>
-          setPreviewListing(
-            null,
-          )
+          setPreviewListing(null)
         }
         listing={
           previewListing
         }
-        onAction={(type, notes) => {
-          // Close the detail modal before opening the next review modal.
+        onAction={(
+          type,
+          notes,
+        ) => {
           setPreviewListing(
             null,
           );
 
-          // Preserve the actual notes entered in the Listing Detail Modal.
           setReviewNotes(
             notes.trim(),
           );
 
-          // Continue with the selected backend review action.
-          setTimeout(
-            () =>
-              handleReviewAction(
-                type,
-                notes,
-              ),
-            150,
+          handleReviewAction(
+            type,
+            notes,
           );
         }}
       />
@@ -1435,9 +1520,7 @@ setProperties(
           !!assignmentListing
         }
         onClose={() =>
-          setAssignmentListing(
-            null,
-          )
+          setAssignmentListing(null)
         }
         listing={
           assignmentListing

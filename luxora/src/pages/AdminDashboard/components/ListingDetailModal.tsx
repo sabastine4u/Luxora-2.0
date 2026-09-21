@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+
 import { Modal } from '../../../components/ui/Modal';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
+
 import {
   MapPin,
   Home,
@@ -16,6 +18,7 @@ import {
   User,
   Building2,
 } from 'lucide-react';
+
 import type { AdminListing } from '../../../types/admin';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 
@@ -23,46 +26,26 @@ export interface ListingDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   listing: AdminListing | null;
-  // Pass the admin's verification notes together with the selected action.
+
+  // Pass the admin's review notes with the selected action.
   onAction?: (
-    actionType: 'approve' | 'return' | 'hold' | 'reject',
-    notes: string
+   actionType:
+  | 'approve'
+  | 'return'
+  | 'hold'
+  | 'reject'
+  | 'publish',
+    notes: string,
   ) => void;
 }
 
-// These optional fields allow the modal to work with newer real-property
-// data without forcing the older AdminListing type to contain every field.
+// Only fields that are not already part of AdminListing are added here.
+// This keeps the modal compatible with the older listing structure.
 type ListingWithDetails = AdminListing & {
-  propertyType?: string;
-  transactionType?: string;
-  description?: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  area?: number;
-  size?: number;
-  lotSize?: number;
-  priceFrequency?: string;
-  images?: string[];
+  area?: number | null;
+  size?: number | null;
+  lotSize?: number | null;
   amenities?: string[];
-  verificationLevel?: string;
-  assignmentStatus?: string;
-  agency?: {
-    _id?: string;
-    id?: string;
-    name?: string;
-  } | null;
-  agent?: {
-    _id?: string;
-    id?: string;
-    name?: string;
-  } | null;
-  documents?: Array<{
-    name?: string;
-    type?: string;
-    size?: string;
-    url?: string;
-    status?: string;
-  }>;
 };
 
 export function ListingDetailModal({
@@ -73,34 +56,54 @@ export function ListingDetailModal({
 }: ListingDetailModalProps) {
   const [notes, setNotes] = useState('');
 
-  // Convert the incoming listing into the extended view type.
   const detailedListing = listing as ListingWithDetails | null;
 
-  // Refresh the notes whenever a different listing is opened.
   useEffect(() => {
     setNotes(listing?.verification?.notes || '');
   }, [listing]);
 
-  if (!detailedListing) return null;
+  if (!detailedListing) {
+    return null;
+  }
 
   const isPendingReview =
     detailedListing.status === 'Pending Review' ||
     detailedListing.verification?.status === 'Pending Review';
 
-  const propertyImages = detailedListing.images?.filter(Boolean) || [];
+  const propertyImages =
+    detailedListing.images?.filter(Boolean) || [];
 
- // Normalize documents from either source into one consistent shape.
-const documents = (
-  detailedListing.documents ||
-  detailedListing.verification?.documents ||
-  []
-).map((doc) => ({
-  name: doc.name,
-  type: doc.type,
-  size: doc.size,
-  url: 'url' in doc ? doc.url : undefined,
-  status: 'status' in doc ? doc.status : undefined,
-}));
+  // Use the real Property documents first.
+  // Fall back to the older verification document structure when necessary.
+  const documents = detailedListing.documents?.length
+    ? detailedListing.documents.map((document, index) => ({
+      name:
+        document.title ||
+        `Document ${index + 1}`,
+      type: document.verified
+        ? 'Verified Document'
+        : 'Document',
+      size: document.uploadedAt
+        ? new Date(
+          document.uploadedAt,
+        ).toLocaleDateString()
+        : undefined,
+      url: document.url,
+      status: document.verified
+        ? 'Verified'
+        : undefined,
+    }))
+    : (
+      detailedListing.verification?.documents || []
+    ).map((document, index) => ({
+      name:
+        document.name ||
+        `Document ${index + 1}`,
+      type: document.type || 'Document',
+      size: document.size,
+      url: undefined,
+      status: undefined,
+    }));
 
   const agencyName =
     detailedListing.agency?.name ||
@@ -112,10 +115,12 @@ const documents = (
     'Unassigned';
 
   const propertyType =
-    detailedListing.propertyType || 'Property';
+    detailedListing.propertyType ||
+    'Property';
 
   const transactionType =
-    detailedListing.transactionType || 'Not specified';
+    detailedListing.transactionType ||
+    'Not specified';
 
   const verificationLevel =
     detailedListing.verificationLevel ||
@@ -129,10 +134,15 @@ const documents = (
 
   const bedrooms = detailedListing.bedrooms;
   const bathrooms = detailedListing.bathrooms;
+
+  // Prefer the real Property field.
+  // Keep older fallbacks for compatibility.
   const propertySize =
+    detailedListing.propertySize ??
     detailedListing.area ??
     detailedListing.size ??
-    detailedListing.lotSize;
+    detailedListing.lotSize ??
+    null;
 
   return (
     <Modal
@@ -145,44 +155,49 @@ const documents = (
       size="5xl"
       actionButton={
         <div className="flex flex-wrap gap-2 justify-end">
-          {/* Only show rejection when the property is actually awaiting review. */}
           {isPendingReview && (
             <GhostButton
               size="sm"
               className="text-rose-400 hover:text-rose-300 hover:bg-rose-400/10"
-              // Send the notes from the listing modal with the reject action.
-              onClick={() => onAction?.('reject', notes)}
+              onClick={() =>
+                onAction?.('reject', notes)
+              }
             >
               <XCircle className="h-4 w-4 mr-2" />
               Reject
             </GhostButton>
           )}
 
-          {/* The current backend does not have a real Hold workflow yet. */}
-
-          {/* Only show approval when the property is awaiting admin review. */}
           {isPendingReview && (
             <GoldButton
               size="sm"
               className="bg-emerald-500 hover:bg-emerald-400 text-white"
-              // Send the notes from the listing modal with the approve action.
-              onClick={() => onAction?.('approve', notes)}
+              onClick={() =>
+                onAction?.('approve', notes)
+              }
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve
             </GoldButton>
           )}
+          {detailedListing.status === 'Approved' && (
+  <GoldButton
+    size="sm"
+    className="bg-emerald-500 hover:bg-emerald-400 text-white"
+    onClick={() =>
+      onAction?.('publish', '')
+    }
+  >
+    <CheckCircle className="h-4 w-4 mr-2" />
+    Publish
+  </GoldButton>
+)}
         </div>
       }
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        {/* ================================================================
-            LEFT COLUMN
-            Property details, gallery, documents and notes
-        ================================================================ */}
+        {/* LEFT COLUMN */}
         <div className="lg:col-span-2 space-y-8">
-
           {/* Property Information */}
           <div>
             <h4 className="text-sm font-semibold text-ink/50 uppercase tracking-wider mb-4">
@@ -191,7 +206,6 @@ const documents = (
 
             <div className="rounded-2xl border border-white/10 bg-navy-900/50 p-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-
                 <div>
                   <h3 className="text-xl font-bold text-cream">
                     {detailedListing.title}
@@ -199,13 +213,15 @@ const documents = (
 
                   <div className="flex items-center gap-1 text-sm text-ink/60 mt-1">
                     <MapPin className="h-4 w-4" />
-                    {detailedListing.location || 'Location not provided'}
+                    {detailedListing.location ||
+                      'Location not provided'}
                   </div>
 
                   <div className="text-sm text-ink/60 mt-2">
                     Owner:{' '}
                     <span className="font-semibold text-cream">
-                      {detailedListing.owner || 'Unknown'}
+                      {detailedListing.owner ||
+                        'Unknown'}
                     </span>
                   </div>
 
@@ -216,7 +232,9 @@ const documents = (
 
                     {detailedListing.assignment?.status && (
                       <EnterpriseStatusBadge
-                        status={detailedListing.assignment.status}
+                        status={
+                          detailedListing.assignment.status
+                        }
                       />
                     )}
                   </div>
@@ -224,48 +242,104 @@ const documents = (
 
                 <div className="text-left md:text-right">
                   <div className="text-2xl font-bold text-gold-400">
-                    {detailedListing.price || 'Price not provided'}
+                    {detailedListing.price ||
+                      'Price not provided'}
                   </div>
 
                   <div className="text-xs text-ink/50 uppercase tracking-wider mt-1">
-                    {detailedListing.priceFrequency || 'Pricing'}
+                    {detailedListing.priceFrequency ||
+                      'Pricing'}
                   </div>
                 </div>
               </div>
 
-              {/* Real property specifications */}
+              {/* Property specifications */}
               <div className="flex flex-wrap gap-4 mt-6">
-
                 {bedrooms !== undefined && (
                   <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
                     <Bed className="h-4 w-4 text-ink/40" />
-                    {bedrooms} {bedrooms === 1 ? 'Bed' : 'Beds'}
+                    {bedrooms}{' '}
+                    {bedrooms === 1
+                      ? 'Bed'
+                      : 'Beds'}
                   </div>
                 )}
 
                 {bathrooms !== undefined && (
                   <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
                     <Bath className="h-4 w-4 text-ink/40" />
-                    {bathrooms} {bathrooms === 1 ? 'Bath' : 'Baths'}
+                    {bathrooms}{' '}
+                    {bathrooms === 1
+                      ? 'Bath'
+                      : 'Baths'}
                   </div>
                 )}
 
-                {propertySize !== undefined && (
+                {propertySize != null && (
                   <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
                     <Square className="h-4 w-4 text-ink/40" />
-                    {propertySize.toLocaleString()} sqft
+                    {propertySize.toLocaleString()}{' '}
+                    {detailedListing.propertySizeUnit ||
+                      'sqm'}
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
-                  <Home className="h-4 w-4 text-ink/40" />
-                  {propertyType}
-                </div>
+                {propertyType && (
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
+                    <Home className="h-4 w-4 text-ink/40" />
+                    {propertyType}
+                  </div>
+                )}
 
-                <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
-                  <Building2 className="h-4 w-4 text-ink/40" />
-                  {transactionType}
-                </div>
+                {transactionType && (
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
+                    <Building2 className="h-4 w-4 text-ink/40" />
+                    {transactionType}
+                  </div>
+                )}
+
+                {detailedListing.toilets !==
+                  undefined && (
+                    <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
+                      <Home className="h-4 w-4 text-ink/40" />
+                      {detailedListing.toilets}{' '}
+                      {detailedListing.toilets === 1
+                        ? 'Toilet'
+                        : 'Toilets'}
+                    </div>
+                  )}
+
+                {detailedListing.parkingSpaces !==
+                  undefined && (
+                    <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
+                      <Building2 className="h-4 w-4 text-ink/40" />
+                      {detailedListing.parkingSpaces}{' '}
+                      {detailedListing.parkingSpaces === 1
+                        ? 'Parking Space'
+                        : 'Parking Spaces'}
+                    </div>
+                  )}
+
+                {detailedListing.yearBuilt != null && (
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
+                    <Clock className="h-4 w-4 text-ink/40" />
+                    Built {detailedListing.yearBuilt}
+                  </div>
+                )}
+
+                {detailedListing.furnishing && (
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
+                    <Home className="h-4 w-4 text-ink/40" />
+                    {detailedListing.furnishing}
+                  </div>
+                )}
+
+                {detailedListing.propertyCondition && (
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-cream">
+                    <CheckCircle className="h-4 w-4 text-ink/40" />
+                    {detailedListing.propertyCondition}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -293,26 +367,30 @@ const documents = (
 
             {propertyImages.length > 0 ? (
               <div className="grid grid-cols-3 gap-3">
-                {propertyImages.slice(0, 5).map((image, index) => (
-                  <div
-                    key={`${image}-${index}`}
-                    className={
-                      index === 0
-                        ? 'col-span-2 row-span-2 overflow-hidden rounded-xl border border-white/10 bg-navy-900/50 aspect-video'
-                        : 'overflow-hidden rounded-xl border border-white/10 bg-navy-900/50 aspect-video'
-                    }
-                  >
-                    <img
-                      src={image}
-                      alt={`${detailedListing.title} ${index + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ))}
+                {propertyImages
+                  .slice(0, 5)
+                  .map((image, index) => (
+                    <div
+                      key={`${image}-${index}`}
+                      className={
+                        index === 0
+                          ? 'col-span-2 row-span-2 overflow-hidden rounded-xl border border-white/10 bg-navy-900/50 aspect-video'
+                          : 'overflow-hidden rounded-xl border border-white/10 bg-navy-900/50 aspect-video'
+                      }
+                    >
+                      <img
+                        src={image}
+                        alt={`${detailedListing.title} ${index + 1
+                          }`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center rounded-xl bg-navy-900/50 border border-white/10 aspect-video">
                 <ImageIcon className="h-12 w-12 text-ink/20" />
+
                 <p className="mt-3 text-sm text-ink/40">
                   No property images available
                 </p>
@@ -340,19 +418,23 @@ const documents = (
 
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-cream truncate">
-                          {doc.name || 'Unnamed document'}
+                          {doc.name ||
+                            'Unnamed document'}
                         </div>
 
                         <div className="text-xs text-ink/50">
                           {doc.type || 'Document'}
-                          {doc.size ? ` • ${doc.size}` : ''}
+                          {doc.size
+                            ? ` • ${doc.size}`
+                            : ''}
                         </div>
 
                         {doc.status && (
                           <div
-                            className={`text-[11px] mt-1 ${doc.status.toLowerCase() === 'verified'
-                              ? 'text-emerald-400'
-                              : 'text-yellow-400'
+                            className={`text-[11px] mt-1 ${doc.status.toLowerCase() ===
+                                'verified'
+                                ? 'text-emerald-400'
+                                : 'text-yellow-400'
                               }`}
                           >
                             {doc.status}
@@ -390,15 +472,16 @@ const documents = (
 
             <textarea
               value={notes}
-              onChange={(event) => setNotes(event.target.value)}
+              onChange={(event) =>
+                setNotes(event.target.value)
+              }
               placeholder="Add verification comments..."
               className="w-full h-32 rounded-xl border border-white/10 bg-navy-900/50 p-4 text-sm text-cream placeholder:text-ink/40 focus:border-gold-400/50 focus:outline-none resize-none"
             />
 
-            {/* These notes are passed to the existing approval/rejection workflow
-    and saved by the backend as reviewNotes. */}
             <p className="mt-2 text-xs text-ink/40">
-              These notes will be included in the approval or rejection review.
+              These notes will be included in the
+              approval or rejection review.
             </p>
           </div>
 
@@ -410,13 +493,20 @@ const documents = (
 
             <div className="rounded-xl border border-white/10 bg-navy-900/50 p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
                 <div>
                   <div className="text-xs text-ink/60 mb-1">
                     Assignment Status
                   </div>
 
-                  <EnterpriseStatusBadge status={assignmentStatus} />
+                  {detailedListing.origin === 'agent' ? (
+                    <div className="text-sm font-semibold text-ink/60">
+                      Not Applicable
+                    </div>
+                  ) : (
+                    <EnterpriseStatusBadge
+                      status={assignmentStatus}
+                    />
+                  )}
                 </div>
 
                 <div>
@@ -441,40 +531,44 @@ const documents = (
                   </div>
                 </div>
 
-                {detailedListing.assignment?.assignedBy && (
-                  <div>
-                    <div className="text-xs text-ink/60 mb-1">
-                      Assigned By
-                    </div>
+                {detailedListing.assignment
+                  ?.assignedBy && (
+                    <div>
+                      <div className="text-xs text-ink/60 mb-1">
+                        Assigned By
+                      </div>
 
-                    <div className="font-semibold text-cream">
-                      {detailedListing.assignment.assignedBy}
+                      <div className="font-semibold text-cream">
+                        {
+                          detailedListing.assignment
+                            .assignedBy
+                        }
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {detailedListing.assignment?.assignedAt && (
-                  <div>
-                    <div className="text-xs text-ink/60 mb-1">
-                      Assigned At
-                    </div>
+                {detailedListing.assignment
+                  ?.assignedAt && (
+                    <div>
+                      <div className="text-xs text-ink/60 mb-1">
+                        Assigned At
+                      </div>
 
-                    <div className="font-semibold text-cream">
-                      {detailedListing.assignment.assignedAt}
+                      <div className="font-semibold text-cream">
+                        {
+                          detailedListing.assignment
+                            .assignedAt
+                        }
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* ================================================================
-            RIGHT COLUMN
-            Verification and workflow information
-        ================================================================ */}
+        {/* RIGHT COLUMN */}
         <div className="space-y-8 lg:border-l lg:border-white/10 lg:pl-8">
-
           {/* Verification Status */}
           <div>
             <h4 className="text-sm font-semibold text-ink/50 uppercase tracking-wider mb-4">
@@ -486,14 +580,38 @@ const documents = (
                 Verification Level
               </div>
 
-              <EnterpriseStatusBadge status={verificationLevel} />
+              <EnterpriseStatusBadge
+                status={verificationLevel}
+              />
 
               <div className="mt-5 text-xs text-ink/50">
                 Property Status
               </div>
 
               <div className="mt-2">
-                <EnterpriseStatusBadge status={detailedListing.status} />
+                <EnterpriseStatusBadge
+                  status={detailedListing.status}
+                />
+              </div>
+
+              <div className="mt-5 text-xs text-ink/50">
+                Listing Origin
+              </div>
+
+              <div className="mt-2 text-sm font-semibold text-cream">
+                {detailedListing.origin === 'agent'
+                  ? 'Agent'
+                  : detailedListing.origin ||
+                  'Unknown'}
+              </div>
+
+              <div className="mt-5 text-xs text-ink/50">
+                Created By Role
+              </div>
+
+              <div className="mt-2 text-sm font-semibold text-cream">
+                {detailedListing.createdByRole ||
+                  'Unknown'}
               </div>
             </div>
           </div>
@@ -504,40 +622,43 @@ const documents = (
               Verification Checklist
             </h4>
 
-            {detailedListing.verification?.checklist?.length ? (
+            {detailedListing.verification?.checklist
+              ?.length ? (
               <div className="space-y-3">
-                {detailedListing.verification.checklist.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-3"
-                  >
+                {detailedListing.verification.checklist.map(
+                  (item) => (
                     <div
-                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${item.checked
-                        ? 'border-emerald-400/50 bg-emerald-400/10'
-                        : 'border-white/20 bg-navy-900'
-                        }`}
+                      key={item.id}
+                      className="flex items-start gap-3"
                     >
-                      {item.checked && (
-                        <CheckCircle className="h-3 w-3 text-emerald-400" />
-                      )}
-                    </div>
+                      <div
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${item.checked
+                            ? 'border-emerald-400/50 bg-emerald-400/10'
+                            : 'border-white/20 bg-navy-900'
+                          }`}
+                      >
+                        {item.checked && (
+                          <CheckCircle className="h-3 w-3 text-emerald-400" />
+                        )}
+                      </div>
 
-                    <span
-                      className={`text-sm ${item.checked
-                        ? 'text-cream'
-                        : 'text-ink/60'
-                        }`}
-                    >
-                      {item.text}
-                    </span>
-                  </div>
-                ))}
+                      <span
+                        className={`text-sm ${item.checked
+                            ? 'text-cream'
+                            : 'text-ink/60'
+                          }`}
+                      >
+                        {item.text}
+                      </span>
+                    </div>
+                  ),
+                )}
               </div>
             ) : (
               <div className="rounded-xl border border-white/10 bg-navy-900/50 p-4">
                 <p className="text-sm text-ink/50">
-                  No verification checklist has been recorded for this
-                  property.
+                  No verification checklist has been
+                  recorded for this property.
                 </p>
               </div>
             )}
@@ -549,42 +670,51 @@ const documents = (
               Verification History
             </h4>
 
-            {detailedListing.verification?.history?.length ? (
+            {detailedListing.verification?.history
+              ?.length ? (
               <div className="space-y-6">
-                {detailedListing.verification.history.map((event, index) => (
-                  <div key={`${event.title}-${index}`} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="h-2.5 w-2.5 rounded-full bg-gold-400" />
+                {detailedListing.verification.history.map(
+                  (event, index) => (
+                    <div
+                      key={`${event.title}-${index}`}
+                      className="flex gap-4"
+                    >
+                      <div className="flex flex-col items-center">
+                        <div className="h-2.5 w-2.5 rounded-full bg-gold-400" />
 
-                      {index <
-                        detailedListing.verification!.history.length - 1 && (
-                          <div className="h-full w-px bg-white/10 mt-2" />
-                        )}
-                    </div>
-
-                    <div className="pb-2 text-sm">
-                      <div className="text-cream font-medium">
-                        {event.title}
+                        {index <
+                          detailedListing.verification
+                            .history.length -
+                          1 && (
+                            <div className="h-full w-px bg-white/10 mt-2" />
+                          )}
                       </div>
 
-                      <div className="text-ink/50 text-xs flex items-center gap-1 mt-1">
-                        <Clock className="h-3 w-3" />
-                        {event.time} • {event.type}
+                      <div className="pb-2 text-sm">
+                        <div className="text-cream font-medium">
+                          {event.title}
+                        </div>
+
+                        <div className="text-ink/50 text-xs flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3" />
+                          {event.time} • {event.type}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             ) : (
               <div className="rounded-xl border border-white/10 bg-navy-900/50 p-4">
                 <p className="text-sm text-ink/50">
-                  No verification history has been recorded yet.
+                  No verification history has been recorded
+                  yet.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Assignment summary */}
+          {/* Current Assignment */}
           <div className="pt-8 border-t border-white/10">
             <h4 className="text-sm font-semibold text-ink/50 uppercase tracking-wider mb-4">
               Current Assignment
@@ -624,9 +754,10 @@ const documents = (
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </Modal>
   );
 }
+
+export default ListingDetailModal;

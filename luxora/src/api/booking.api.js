@@ -21,6 +21,21 @@ cancelBooking: (bookingId) =>
   http.patch(`/bookings/${bookingId}/cancel`),
 
 
+// GET /bookings/agent -> viewing requests for the authenticated Agent.
+getAgentBookings: () =>
+  http.get('/bookings/agent'),
+
+// PATCH /bookings/:bookingId/confirm -> Agent confirms a viewing request.
+confirmBooking: (bookingId) =>
+  http.patch(`/bookings/${bookingId}/confirm`),
+
+
+rejectBooking: (bookingId) =>
+  http.patch(`/bookings/${bookingId}/reject`),
+
+completeBooking: (bookingId) =>
+  http.patch(`/bookings/${bookingId}/complete`),
+
 // PATCH /bookings/:bookingId/reschedule -> reschedules the Buyer's viewing request.
 rescheduleBooking: (bookingId, rescheduleData) =>
   http.patch(`/bookings/${bookingId}/reschedule`, rescheduleData),

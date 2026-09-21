@@ -3020,7 +3020,7 @@ export const adminNav: NavItem[] = [
   { label: 'Overview', icon: 'LayoutDashboard' },
   { label: 'Messages', icon: 'MessageSquare', badge: '5' },
   { label: 'Listings', icon: 'Building2' },
-  { label: 'Verification Center', icon: 'ShieldCheck'},
+  { label: 'Verification Center', icon: 'ShieldCheck' },
   { label: 'Owners', icon: 'UserCircle' },
   { label: 'Buyers', icon: 'Heart' },
   { label: 'Agents', icon: 'Users' },
@@ -3041,7 +3041,11 @@ export const superAdminNav: NavItem[] = [
   { label: 'Procurement', displayLabel: 'Procurement Oversight', icon: 'ShoppingCart' },
   { label: 'Finance', displayLabel: 'Finance Oversight', icon: 'Landmark' },
   { label: 'Reports', icon: 'FileBarChart' },
-  { label: 'Fraud Alerts', icon: 'ShieldAlert', badge: '3' },
+  // Fraud monitoring has no verified backend source yet.
+  {
+    label: 'Fraud Alerts',
+    icon: 'ShieldAlert',
+  },
   { label: 'Verification', displayLabel: 'Pending Reviews', icon: 'ShieldCheck' },
   { label: 'Assignment Oversight', icon: 'Briefcase' },
   { label: 'Marketplace Oversight', icon: 'Building2' },

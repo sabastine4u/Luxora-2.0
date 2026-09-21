@@ -29,6 +29,7 @@ import { ActivityTimeline } from '../../../components/dashboard/shared/timelines
 import { ListingDetailModal } from './modals/ListingDetailModal';
 import { ROUTES } from '../../../constants/routes';
 import { agentApi } from '../../../api/agent.api';
+import { propertyApi } from '../../../api/property.api';
 import { useToast } from '../../../contexts/ToastContext';
 
 interface AgentProperty {
@@ -45,6 +46,18 @@ interface AgentProperty {
   currency?: string;
   priceType?: string;
   priceFrequency?: string;
+
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  toilets?: number | null;
+  parkingSpaces?: number | null;
+  propertySize?: number | null;
+  propertySizeUnit?: string;
+  yearBuilt?: number | null;
+  furnishing?: string;
+  propertyCondition?: string;
+  amenities?: string[];
+
   images?: string[];
   coverImage?: string | null;
   videoUrl?: string | null;
@@ -65,6 +78,7 @@ interface AgentProperty {
   status?: string;
   availabilityStatus?: string;
   assignmentStatus?: string;
+  origin?: string;
   assignedAt?: string;
   assignmentRespondedAt?: string;
   createdAt?: string;
@@ -107,6 +121,17 @@ interface ListingRow {
   virtualTourUrl: string;
   brochureUrl: string;
   floorPlans: string[];
+
+  bedrooms: number | null;
+  bathrooms: number | null;
+  toilets: number | null;
+  parkingSpaces: number | null;
+  propertySize: number | null;
+  propertySizeUnit: string;
+  yearBuilt: number | null;
+  furnishing: string;
+  propertyCondition: string;
+  amenities: string[];
 }
 
 export default function MyListings() {
@@ -249,9 +274,11 @@ export default function MyListings() {
         verificationLevel:
           property.verificationLevel || 'Unverified',
 
-        // Preserve the accepted assignment state.
+        // Preserve the real assignment state.
         assignmentStatus:
-          property.assignmentStatus || 'Agent Accepted',
+          property.origin === 'agent'
+            ? 'Self Created'
+            : property.assignmentStatus || 'Agent Accepted',
 
         // Prefer the cover image, then fall back to the first Property image.
         coverImage:
@@ -281,6 +308,18 @@ export default function MyListings() {
 
         // Preserve available floor plans.
         floorPlans: property.floorPlans || [],
+
+        // Preserve the real Property specifications.
+        bedrooms: property.bedrooms ?? null,
+        bathrooms: property.bathrooms ?? null,
+        toilets: property.toilets ?? null,
+        parkingSpaces: property.parkingSpaces ?? null,
+        propertySize: property.propertySize ?? null,
+        propertySizeUnit: property.propertySizeUnit || 'sqm',
+        yearBuilt: property.yearBuilt ?? null,
+        furnishing: property.furnishing || '—',
+        propertyCondition: property.propertyCondition || '—',
+        amenities: property.amenities || [],
       };
     });
   }, [properties]);
@@ -299,7 +338,12 @@ export default function MyListings() {
   // Calculate the total portfolio value from the real Property prices.
   const portfolioValue = useMemo(() => {
     const total = properties.reduce((sum, property) => {
-      return sum + (typeof property.price === 'number' ? property.price : 0);
+      return (
+        sum +
+        (typeof property.price === 'number'
+          ? property.price
+          : 0)
+      );
     }, 0);
 
     return new Intl.NumberFormat('en-NG', {
@@ -366,17 +410,23 @@ export default function MyListings() {
 
   const readyToPublishPercentage = Math.min(
     100,
-    Math.round((readyToPublishCount / portfolioCount) * 100),
+    Math.round(
+      (readyToPublishCount / portfolioCount) * 100,
+    ),
   );
 
   const activeMarketingPercentage = Math.min(
     100,
-    Math.round((activeMarketingCount / portfolioCount) * 100),
+    Math.round(
+      (activeMarketingCount / portfolioCount) * 100,
+    ),
   );
 
   const needsOptimizationPercentage = Math.min(
     100,
-    Math.round((needsOptimizationCount / portfolioCount) * 100),
+    Math.round(
+      (needsOptimizationCount / portfolioCount) * 100,
+    ),
   );
 
   // Calculate the percentage of Listings containing at least one useful image.
@@ -545,11 +595,62 @@ export default function MyListings() {
     setSelectedListing(listing);
   };
 
+  // Submit an Agent Accepted Owner property for administrative review.
+  const handleSubmitForReview = async (
+    propertyId: string,
+  ) => {
+    try {
+      const response =
+        await propertyApi.submitPropertyForReview(
+          propertyId,
+        );
+
+      const updatedProperty =
+        response?.property;
+
+      if (!updatedProperty?._id) {
+        throw new Error(
+          'The property was not returned after review submission.',
+        );
+      }
+
+      setProperties((currentProperties) =>
+        currentProperties.map((property) =>
+          property._id === propertyId
+            ? {
+                ...property,
+                ...updatedProperty,
+                status: 'Pending Review',
+              }
+            : property,
+        ),
+      );
+
+      showToast({
+        type: 'success',
+        title: 'Property Submitted for Review',
+        description:
+          'The property has been sent to Admin/Super Admin for review.',
+      });
+
+      setSelectedListing(null);
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'Submission Failed',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Unable to submit the property for review.',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <DashboardHeader
         name="Listing Workflow Intelligence"
-        subtitle="My Listings contains properties that are currently assigned to you and have been accepted for active management."
+        subtitle="My Listings contains properties you created yourself and properties assigned to you by your Agency after you accepted them."
         actions={
           <div className="flex gap-3">
             <GhostButton className="flex items-center gap-2">
@@ -558,7 +659,9 @@ export default function MyListings() {
             </GhostButton>
 
             <GoldButton
-              onClick={() => navigate(ROUTES.CREATE_LISTING)}
+              onClick={() =>
+                navigate(ROUTES.CREATE_LISTING)
+              }
               className="flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -584,10 +687,10 @@ export default function MyListings() {
           <p className="text-sm text-ink/80 leading-relaxed mb-4">
             Your portfolio currently contains{' '}
             <strong className="text-emerald-400">
-              {properties.length} accepted{' '}
+              {properties.length}{' '}
               {properties.length === 1
                 ? 'property'
-                : 'properties'}
+                : 'properties'} in your listing portfolio
             </strong>
             . Average content completeness is{' '}
             <strong className="text-gold-400">
@@ -960,7 +1063,9 @@ export default function MyListings() {
                 {!loading && properties.length === 0 && (
                   <GoldButton
                     className="mt-5"
-                    onClick={() => navigate(ROUTES.CREATE_LISTING)}
+                    onClick={() =>
+                      navigate(ROUTES.CREATE_LISTING)
+                    }
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Listing
@@ -1095,6 +1200,7 @@ export default function MyListings() {
         isOpen={!!selectedListing}
         onClose={() => setSelectedListing(null)}
         listing={selectedListing}
+        onSubmitReview={handleSubmitForReview}
       />
     </div>
   );

@@ -12,12 +12,15 @@ export const PROPERTY_TYPES = [
   { value: 'Apartment', label: 'Apartment' },
   { value: 'Duplex', label: 'Duplex' },
   { value: 'Studio', label: 'Studio' },
-  { value: 'Villa', label: 'Villa' },
-  { value: 'Penthouse', label: 'Penthouse' },
-  { value: 'Maisonette', label: 'Maisonette' },
+  { value: 'Mini Flat', label: 'Mini Flat' },
+  { value: 'Self Contain', label: 'Self Contain' },
+  { value: 'Short Let', label: 'Short Let' },
+  { value: 'Student Housing', label: 'Student Housing' },
+  { value: 'Affordable Rental', label: 'Affordable Rental' },
+  { value: 'Family House', label: 'Family House' },
   { value: 'Land', label: 'Land' },
+  { value: 'Warehouse', label: 'Warehouse' },
   { value: 'Office Space', label: 'Office Space' },
-  { value: 'Commercial', label: 'Commercial' },
 ];
 
 export const PROPERTY_SUB_TYPES: Record<string, { value: string, label: string }[]> = {

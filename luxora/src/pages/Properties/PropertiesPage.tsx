@@ -37,15 +37,16 @@ export default function PropertiesPage() {
     viewMode,
     setViewMode,
     resetFilters,
-    itemsPerPage
-  } = usePropertySearch({ 
+    itemsPerPage,
+    isLoading
+  } = usePropertySearch({
     initialItemsPerPage: 9
   });
 
 
 
   return (
-    <PageLayout>
+   <PageLayout footerVariant="compact">
       <Container className="pt-24 md:pt-32">
         <Breadcrumb
           items={[
@@ -53,7 +54,7 @@ export default function PropertiesPage() {
             { label: 'Properties' },
           ]}
         />
-        
+
         <PageHeader
           title="Explore Properties"
           description="Discover verified luxury homes, apartments, and commercial spaces across prime locations."
@@ -77,7 +78,7 @@ export default function PropertiesPage() {
           beds={beds} setBeds={setBeds}
           baths={baths} setBaths={setBaths}
         >
-          <PropertyFilterChips 
+          <PropertyFilterChips
             search={search} setSearch={setSearch}
             listingType={listingType} setListingType={setListingType}
             type={type} setType={setType}
@@ -100,15 +101,15 @@ export default function PropertiesPage() {
 
           {/* Bottom Bar: Results Count & Sort */}
           <div className="mt-4 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center">
-            <PropertyResultsSummary 
-              filteredCount={filteredProperties.length} 
+            <PropertyResultsSummary
+              filteredCount={filteredProperties.length}
               currentPage={page}
               itemsPerPage={itemsPerPage}
               listingType={listingType}
               location={filterLocation}
               type={type}
             />
-            
+
             <div className="flex items-center gap-4">
               <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
               <PropertySortControls sort={sort} setSort={setSort} />
@@ -123,14 +124,15 @@ export default function PropertiesPage() {
           <div className="flex flex-col lg:flex-row h-[calc(100vh-160px)]">
             <div className="w-full lg:w-1/2 xl:w-2/5 h-[50vh] lg:h-full overflow-y-auto px-4 py-6 lg:p-8 custom-scrollbar">
               <PropertyGrid
-                properties={paginatedProperties}
-                viewMode="list"
-                onClearFilters={resetFilters}
-              >
-                <PropertyPagination 
-                  currentPage={page} 
-                  totalPages={totalPages} 
-                  onPageChange={goToPage} 
+  properties={paginatedProperties}
+  viewMode="list"
+  isLoading={isLoading}
+  onClearFilters={resetFilters}
+>
+                <PropertyPagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
                 />
               </PropertyGrid>
             </div>
@@ -142,15 +144,16 @@ export default function PropertiesPage() {
       ) : (
         <Section noPadding className="pb-24 md:pb-32">
           <Container>
-            <PropertyGrid
-              properties={paginatedProperties}
-              viewMode={viewMode}
-              onClearFilters={resetFilters}
-            >
-              <PropertyPagination 
-                currentPage={page} 
-                totalPages={totalPages} 
-                onPageChange={goToPage} 
+           <PropertyGrid
+  properties={paginatedProperties}
+  viewMode={viewMode}
+  isLoading={isLoading}
+  onClearFilters={resetFilters}
+>
+              <PropertyPagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={goToPage}
               />
             </PropertyGrid>
           </Container>

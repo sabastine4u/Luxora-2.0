@@ -1,11 +1,29 @@
-// Import the shared HTTP client so the Agency JWT
-// is automatically attached to authenticated requests.
 import http from './http';
 
-// Keep Agency-specific API calls centralized in one file.
 export const agencyApi = {
+    // ==========================================
+    // PUBLIC MARKETPLACE
+    // ==========================================
+
+    // GET /agencies/public
+    // Public Agency directory.
+    getPublicAgencies: (params = {}) =>
+        http.get('/agencies/public', {
+            params,
+        }),
+
+    // GET /agencies/public/:slug
+    // Public Agency profile.
+    getPublicAgency: (slug) =>
+        http.get(`/agencies/public/${slug}`),
+
+    // ==========================================
+    // AUTHENTICATED AGENCY
+    // ==========================================
+
     // GET /agencies/me
-    // Retrieves the Agency business profile for the logged-in Agency account.
+    // Retrieves the Agency business profile for the
+    // currently logged-in Agency account.
     getMyAgency: () =>
         http.get('/agencies/me'),
 

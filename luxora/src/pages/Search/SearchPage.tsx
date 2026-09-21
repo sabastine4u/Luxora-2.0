@@ -40,7 +40,7 @@ export default function SearchPage() {
   } = usePropertySearch({ initialItemsPerPage: 6 });
 
   return (
-    <PageLayout>
+   <PageLayout footerVariant="compact">
       <div className="flex min-h-screen pt-20">
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto bg-navy-900/50">

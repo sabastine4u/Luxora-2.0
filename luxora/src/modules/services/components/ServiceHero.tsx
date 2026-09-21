@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ServiceImage } from './ServiceImage';
 import { Container } from '../../../components/layout';
 import { GoldButton } from '../../../components/ui/ui';
 import { ArrowRight, MessageSquare } from 'lucide-react';
@@ -13,12 +14,16 @@ export function ServiceHero({ data }: { data: ServiceData }) {
   return (
     <section className="relative min-h-[80vh] flex items-center pt-24 pb-12 overflow-hidden bg-navy-900">
       <div className="absolute inset-0 bg-navy-900">
-        <img 
-          src={data.heroImage || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80'} 
-          alt={data.name} 
+        <ServiceImage
+          src={
+            data.heroImage ||
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80'
+          }
+          alt={data.name}
           loading="eager"
           fetchPriority="high"
-          className="w-full h-full object-cover opacity-40" 
+          wrapperClassName="absolute inset-0 h-full w-full"
+          className="h-full w-full object-cover opacity-40"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-navy-900 via-navy-900/60 to-transparent" />
       </div>
@@ -38,8 +43,8 @@ export function ServiceHero({ data }: { data: ServiceData }) {
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </GoldButton>
             )}
-            
-            <button 
+
+            <button
               onClick={() => navigate(cta.contactAction)}
               className="px-8 py-3 flex items-center justify-center gap-2 rounded-full border border-white/20 text-cream font-medium hover:bg-white/5 transition-colors"
             >

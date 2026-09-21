@@ -133,38 +133,47 @@ export default function Agencies() {
   const [isLoadingAgencies, setIsLoadingAgencies] =
     useState(true);
 
+    const [agencyLoadError, setAgencyLoadError] =
+  useState<string | null>(null);
+
   /*
    * Load all Agencies from the backend.
    */
   const fetchAgencies = useCallback(async () => {
-    try {
-      setIsLoadingAgencies(true);
+  try {
+    setIsLoadingAgencies(true);
+    setAgencyLoadError(null);
 
-      const response =
-        await adminApi.getAgencies();
+    const response =
+      await adminApi.getAgencies();
 
-      const fetchedAgencies =
-        (response.agencies || []) as ApiAgency[];
+    const fetchedAgencies =
+      (response.agencies || []) as ApiAgency[];
 
-      setApiAgencies(fetchedAgencies);
+    setApiAgencies(fetchedAgencies);
 
-      setAgencies(
-        fetchedAgencies.map(
-          mapAgencyToAdminAgency,
-        ),
-      );
-    } catch (error) {
-      console.error(
-        "Failed to load agencies:",
-        error,
-      );
+    setAgencies(
+      fetchedAgencies.map(
+        mapAgencyToAdminAgency,
+      ),
+    );
+  } catch (error: any) {
+    console.error(
+      "Failed to load agencies:",
+      error,
+    );
 
-      setApiAgencies([]);
-      setAgencies([]);
-    } finally {
-      setIsLoadingAgencies(false);
-    }
-  }, []);
+    setApiAgencies([]);
+    setAgencies([]);
+
+    setAgencyLoadError(
+      error?.message ||
+        "Unable to load agencies right now.",
+    );
+  } finally {
+    setIsLoadingAgencies(false);
+  }
+}, []);
 
   useEffect(() => {
     void fetchAgencies();
@@ -446,20 +455,44 @@ export default function Agencies() {
           />
 
           {isLoadingAgencies ? (
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-navy-800/50">
-              <div className="space-y-4 p-6">
-                {Array.from({
-                  length: 5,
-                }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-12 animate-pulse rounded-xl bg-white/5"
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <DataTable
+  <div className="overflow-hidden rounded-2xl border border-white/10 bg-navy-800/50">
+    <div className="space-y-4 p-6">
+      {Array.from({
+        length: 5,
+      }).map((_, index) => (
+        <div
+          key={index}
+          className="h-12 animate-pulse rounded-xl bg-white/5"
+        />
+      ))}
+    </div>
+  </div>
+) : agencyLoadError ? (
+  <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-6">
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <SearchX className="mb-4 h-10 w-10 text-rose-400/70" />
+
+      <h3 className="text-lg font-bold text-cream">
+        Unable to load agencies
+      </h3>
+
+      <p className="mt-2 max-w-md text-sm text-ink/60">
+        {agencyLoadError}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => {
+          void fetchAgencies();
+        }}
+        className="mt-5 rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-navy-900 transition-colors hover:bg-gold-300"
+      >
+        Retry
+      </button>
+    </div>
+  </div>
+) : (
+  <DataTable
               data={filteredAgencies}
               keyExtractor={(agency) =>
                 agency.id

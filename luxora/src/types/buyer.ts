@@ -18,6 +18,7 @@ export interface SavedProperty {
 
 export interface ViewingRequest {
   id: string | number;
+  propertyId: string;
   propertyTitle: string;
   location: string;
   propertyType: string;

@@ -42,15 +42,15 @@ import NotFoundPage from '../pages/NotFound/NotFoundPage'
 import CreateListingPage from '../pages/Dashboard/CreateListing/CreateListingPage'
 import { ROUTES } from '../constants/routes'
 import { ProtectedRoute } from '../components/auth/ProtectedRoute'
-import { 
-  ROLES, 
-  MANAGEMENT_ALLOWED_ROLES, 
-  PROCUREMENT_ALLOWED_ROLES, 
-  FINANCE_ALLOWED_ROLES, 
-  INTELLIGENCE_ALLOWED_ROLES, 
-  PROPERTY_MANAGEMENT_ALLOWED_ROLES, 
-  HOME_SERVICES_ALLOWED_ROLES, 
-  ALL_ENTERPRISE_ALLOWED_ROLES 
+import {
+  ROLES,
+  MANAGEMENT_ALLOWED_ROLES,
+  PROCUREMENT_ALLOWED_ROLES,
+  FINANCE_ALLOWED_ROLES,
+  INTELLIGENCE_ALLOWED_ROLES,
+  PROPERTY_MANAGEMENT_ALLOWED_ROLES,
+  HOME_SERVICES_ALLOWED_ROLES,
+  ALL_ENTERPRISE_ALLOWED_ROLES
 } from '../constants/roles'
 import { DEPARTMENTS } from '../constants/departments'
 
@@ -80,58 +80,63 @@ export default function AppRoutes() {
       <Route path={ROUTES.SERVICE_PROPERTY_INTELLIGENCE} element={<PropertyIntelligencePage />} />
 
       {/* Protected Dashboard Routes */}
-      <Route path={ROUTES.CREATE_LISTING} element={<ProtectedRoute allowedRoles={[ROLES.AGENT, ROLES.ADMIN, ROLES.SUPER_ADMIN]}><CreateListingPage /></ProtectedRoute>} />
+      <Route path={ROUTES.CREATE_LISTING} element={<ProtectedRoute allowedRoles={[
+        ROLES.OWNER,
+        ROLES.AGENT,
+        ROLES.ADMIN,
+        ROLES.SUPER_ADMIN
+      ]}><CreateListingPage /></ProtectedRoute>} />
       <Route path={ROUTES.BUYER_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.BUYER]}><BuyerDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.OWNER_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.OWNER]}><OwnerDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.AGENT_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.AGENT]}><AgentDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.AGENCY_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.AGENCY]}><AgencyDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.ADMIN_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><AdminDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.SUPER_ADMIN_DASHBOARD} element={<ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}><SuperAdminDashboardPage /></ProtectedRoute>} />
-      
+
       <Route path={ROUTES.MANAGEMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={MANAGEMENT_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.MANAGEMENT]}><ManagementDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.PROCUREMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={PROCUREMENT_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.PROCUREMENT]}><ProcurementDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.FINANCE_DASHBOARD} element={<ProtectedRoute allowedRoles={FINANCE_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.FINANCE]}><FinanceDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.INTELLIGENCE_DASHBOARD} element={<ProtectedRoute allowedRoles={INTELLIGENCE_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.PROPERTY_INTELLIGENCE]}><IntelligenceDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.PROPERTY_MANAGEMENT_DASHBOARD} element={<ProtectedRoute allowedRoles={PROPERTY_MANAGEMENT_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.PROPERTY_MANAGEMENT]}><PropertyManagementDashboardPage /></ProtectedRoute>} />
       <Route path={ROUTES.HOME_SERVICES_DASHBOARD} element={<ProtectedRoute allowedRoles={HOME_SERVICES_ALLOWED_ROLES} allowedDepartments={[DEPARTMENTS.HOME_SERVICES]}><HomeServicesDashboardPage /></ProtectedRoute>} />
-      
+
       <Route path={ROUTES.COMMUNICATION_CENTER} element={<ProtectedRoute allowedRoles={ALL_ENTERPRISE_ALLOWED_ROLES}><CommunicationCenterPage /></ProtectedRoute>} />
       <Route path={ROUTES.NOTIFICATION_CENTER} element={<ProtectedRoute allowedRoles={ALL_ENTERPRISE_ALLOWED_ROLES}><NotificationCenterPage /></ProtectedRoute>} />
       <Route path={ROUTES.WORKFLOW_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER]}><WorkflowCenterPage /></ProtectedRoute>} />
       <Route path={ROUTES.DOCUMENT_CENTER} element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY, ROLES.FINANCE, ROLES.PROCUREMENT]}><DocumentCenterPage /></ProtectedRoute>} />
-      <Route 
-        path={ROUTES.CRM_CENTER} 
+      <Route
+        path={ROUTES.CRM_CENTER}
         element={
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.AGENCY]}>
             <CRMCenterPage />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path={ROUTES.FINANCE_CENTER} 
+      <Route
+        path={ROUTES.FINANCE_CENTER}
         element={
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.FINANCE, ROLES.MANAGER]}>
             <FinanceCenterPage />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path={ROUTES.COMPLIANCE_CENTER} 
+      <Route
+        path={ROUTES.COMPLIANCE_CENTER}
         element={
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER]}>
             <ComplianceCenterPage />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path={ROUTES.HR_CENTER} 
+      <Route
+        path={ROUTES.HR_CENTER}
         element={
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER]}>
             <HRCenterPage />
           </ProtectedRoute>
-        } 
+        }
       />
-        
+
       {/* Module Routes */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

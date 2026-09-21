@@ -211,3 +211,5 @@ export function getAgencyPortfolioStats(properties: Property[]) {
     latestProperties
   };
 }
+
+

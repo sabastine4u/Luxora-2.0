@@ -1,5 +1,15 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Home, Phone } from 'lucide-react';
+import {
+  useState,
+  useMemo,
+  useEffect,
+} from 'react';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Home,
+  Phone,
+} from 'lucide-react';
 import { GhostButton, GoldButton } from '../../../components/ui/ui';
 import { EmptyState } from '../../../components/layout';
 import { useNavigate } from 'react-router-dom';
@@ -14,20 +24,18 @@ import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { RescheduleViewingModal } from './modals/RescheduleViewingModal';
 import type { ViewingRequest } from '../../../types';
 
-
-
-
-// Describe the Booking shape returned by the backend.
 interface BackendBooking {
   _id: string;
   viewingDate: string;
   viewingTime: string;
   message: string;
   status: string;
+
   property: {
     _id: string;
     title: string;
     propertyType?: string;
+    transactionType?: string;
     city?: string;
     state?: string;
     area?: string;
@@ -36,233 +44,575 @@ interface BackendBooking {
     images?: string[];
   };
 }
+
+/*
+ * Preserve the real MongoDB property ID while
+ * keeping the existing shared Buyer ViewingRequest shape.
+ */
+type BuyerViewingRequest =
+  ViewingRequest & {
+    propertyId: string;
+  };
+
 export default function ViewingRequests() {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  // Store the viewing requests retrieved from the backend.
-  const [viewings, setViewings] = useState<ViewingRequest[]>([]);
+  const [viewings, setViewings] = useState<
+    BuyerViewingRequest[]
+  >([]);
 
-  // Track whether the viewing requests are currently being loaded.
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [filterType, setFilterType] = useState('All');
-  const [filterDate, setFilterDate] = useState('All');
-  const [sortBy, setSortBy] = useState('upcoming');
+  const [isLoading, setIsLoading] =
+    useState(true);
 
-  const [selectedViewing, setSelectedViewing] = useState<ViewingRequest | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const [isCancelOpen, setIsCancelOpen] = useState(false);
-  // Load the authenticated Buyer's viewing requests from the backend.
+  const [searchQuery, setSearchQuery] =
+    useState('');
+
+  const [filterStatus, setFilterStatus] =
+    useState('All');
+
+  const [filterType, setFilterType] =
+    useState('All');
+
+  const [filterDate, setFilterDate] =
+    useState('All');
+
+  const [sortBy, setSortBy] =
+    useState('upcoming');
+
+  const [selectedViewing, setSelectedViewing] =
+    useState<BuyerViewingRequest | null>(
+      null,
+    );
+
+  const [isDrawerOpen, setIsDrawerOpen] =
+    useState(false);
+
+  const [isRescheduleOpen, setIsRescheduleOpen] =
+    useState(false);
+
+  const [isCancelOpen, setIsCancelOpen] =
+    useState(false);
+
+  /*
+   * Load the authenticated Buyer's real
+   * viewing requests from the Booking API.
+   */
   useEffect(() => {
     const loadViewingRequests = async () => {
       try {
-        // Request the Buyer's viewing requests from the API.
-        const response = await bookingApi.getMyBookings();
+        setIsLoading(true);
 
-        // Inspect the exact response returned by the booking API.
-        console.log('MY BOOKINGS RESPONSE:', response);
+        const response =
+          await bookingApi.getMyBookings();
 
-        // Read the bookings from the API response data.
+        console.log(
+          'MY BOOKINGS RESPONSE:',
+          response,
+        );
+
         const bookings: BackendBooking[] =
-          (response as any).data?.bookings ?? [];
+          (response as any)?.data?.bookings ??
+          [];
 
-        // Convert backend bookings into the shape already used by this UI.
-        const mappedViewings: ViewingRequest[] = bookings.map((booking) => ({
-          id: booking._id,
-          propertyTitle: booking.property?.title || 'Property',
-          propertyType: booking.property?.propertyType || 'Unknown',
-          location: [
-            booking.property?.area,
-            booking.property?.city,
-            booking.property?.state,
-          ]
-            .filter(Boolean)
-            .join(', ') || booking.property?.address || 'Location unavailable',
-          agent: 'Assigned Agent',
-          date: booking.viewingDate.split('T')[0],
-          time: booking.viewingTime,
-          status: booking.status as ViewingRequest['status'],
-          image:
-            booking.property?.coverImage ||
-            booking.property?.images?.[0] ||
-            '',
-          meetingPoint:
-            booking.property?.address || 'Property address',
-          instructions: 'Please arrive at the scheduled viewing time.',
-          agentNotes: '',
-          specialRequests: booking.message || '',
-          summary: booking.property?.title || 'Property viewing request',
-        }));
+        const mappedViewings: BuyerViewingRequest[] =
+          bookings.map((booking) => ({
+            /*
+             * Real Booking ID.
+             */
+            id: booking._id,
 
-        // Store the converted requests for the existing table and filters.
+            /*
+             * Real property MongoDB ID.
+             *
+             * This is what powers the exact
+             * View Property navigation.
+             */
+            propertyId:
+              booking.property?._id || '',
+
+            propertyTitle:
+              booking.property?.title ||
+              'Property',
+
+            propertyType:
+              booking.property?.propertyType ||
+              'Unknown',
+
+            location:
+              [
+                booking.property?.area,
+                booking.property?.city,
+                booking.property?.state,
+              ]
+                .filter(Boolean)
+                .join(', ') ||
+              booking.property?.address ||
+              'Location unavailable',
+
+            agent:
+              'Assigned Agent',
+
+            date:
+              booking.viewingDate?.split(
+                'T',
+              )[0] || '',
+
+            time:
+              booking.viewingTime ||
+              'Time unavailable',
+
+            status:
+              booking.status as ViewingRequest['status'],
+
+            image:
+              booking.property?.coverImage ||
+              booking.property?.images?.[0] ||
+              '',
+
+            meetingPoint:
+              booking.property?.address ||
+              'Property address',
+
+            instructions:
+              'Please arrive at the scheduled viewing time.',
+
+            agentNotes:
+              '',
+
+            specialRequests:
+              booking.message || '',
+
+            summary:
+              booking.property?.title ||
+              'Property viewing request',
+          }));
+
         setViewings(mappedViewings);
       } catch (error) {
-        // Log the API failure so we can diagnose it without breaking the dashboard.
-        console.error('Failed to load viewing requests:', error);
+        console.error(
+          'Failed to load viewing requests:',
+          error,
+        );
 
-        // Keep the dashboard empty when the request fails.
         setViewings([]);
+
+        showToast({
+          type: 'error',
+          title:
+            'Unable to load viewing requests',
+          description:
+            'We could not retrieve your viewing requests.',
+        });
       } finally {
-        // Stop the loading state after the API request finishes.
         setIsLoading(false);
       }
     };
 
-    // Load the Buyer's viewing requests when the component mounts.
     loadViewingRequests();
-  }, []);
+  }, [showToast]);
 
-  const filteredAndSortedViewings = useMemo(() => {
-    let result = [...viewings];
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(v =>
-        v.propertyTitle.toLowerCase().includes(q) ||
-        v.agent.toLowerCase().includes(q) ||
-        v.location.toLowerCase().includes(q)
-      );
-    }
-    if (filterStatus !== 'All') result = result.filter(v => v.status === filterStatus);
-    if (filterType !== 'All') result = result.filter(v => v.propertyType === filterType);
-    if (filterDate !== 'All') {
-      const today = new Date().toISOString().split('T')[0];
-      if (filterDate === 'Past') result = result.filter(v => v.date < today);
-      else if (filterDate === 'Upcoming') result = result.filter(v => v.date >= today);
-    }
-    result.sort((a, b) => {
-      if (sortBy === 'newest') return b.date.localeCompare(a.date);
-      if (sortBy === 'oldest') return a.date.localeCompare(b.date);
-      if (sortBy === 'upcoming') {
-        const today = new Date().toISOString().split('T')[0];
-        const aUp = a.date >= today;
-        const bUp = b.date >= today;
-        if (aUp && !bUp) return -1;
-        if (!aUp && bUp) return 1;
-        return a.date.localeCompare(b.date);
+  /*
+   * Filter and sort the real Booking records.
+   */
+  const filteredAndSortedViewings =
+    useMemo(() => {
+      let result = [...viewings];
+
+      if (searchQuery) {
+        const q =
+          searchQuery.toLowerCase();
+
+        result =
+          result.filter(
+            (viewing) =>
+              viewing.propertyTitle
+                .toLowerCase()
+                .includes(q) ||
+              viewing.agent
+                .toLowerCase()
+                .includes(q) ||
+              viewing.location
+                .toLowerCase()
+                .includes(q),
+          );
       }
-      if (sortBy === 'completed') {
-        if (a.status === 'Completed' && b.status !== 'Completed') return -1;
-        if (a.status !== 'Completed' && b.status === 'Completed') return 1;
+
+      if (
+        filterStatus !== 'All'
+      ) {
+        result =
+          result.filter(
+            (viewing) =>
+              viewing.status ===
+              filterStatus,
+          );
+      }
+
+      if (
+        filterType !== 'All'
+      ) {
+        result =
+          result.filter(
+            (viewing) =>
+              viewing.propertyType ===
+              filterType,
+          );
+      }
+
+      if (
+        filterDate !== 'All'
+      ) {
+        const today =
+          new Date()
+            .toISOString()
+            .split('T')[0];
+
+        if (
+          filterDate === 'Past'
+        ) {
+          result =
+            result.filter(
+              (viewing) =>
+                viewing.date < today,
+            );
+        } else if (
+          filterDate === 'Upcoming'
+        ) {
+          result =
+            result.filter(
+              (viewing) =>
+                viewing.date >= today,
+            );
+        }
+      }
+
+      result.sort((a, b) => {
+        if (
+          sortBy === 'newest'
+        ) {
+          return b.date.localeCompare(
+            a.date,
+          );
+        }
+
+        if (
+          sortBy === 'oldest'
+        ) {
+          return a.date.localeCompare(
+            b.date,
+          );
+        }
+
+        if (
+          sortBy === 'upcoming'
+        ) {
+          const today =
+            new Date()
+              .toISOString()
+              .split('T')[0];
+
+          const aUp =
+            a.date >= today;
+
+          const bUp =
+            b.date >= today;
+
+          if (
+            aUp &&
+            !bUp
+          ) {
+            return -1;
+          }
+
+          if (
+            !aUp &&
+            bUp
+          ) {
+            return 1;
+          }
+
+          return a.date.localeCompare(
+            b.date,
+          );
+        }
+
+        if (
+          sortBy === 'completed'
+        ) {
+          if (
+            a.status ===
+              'Completed' &&
+            b.status !==
+              'Completed'
+          ) {
+            return -1;
+          }
+
+          if (
+            a.status !==
+              'Completed' &&
+            b.status ===
+              'Completed'
+          ) {
+            return 1;
+          }
+
+          return 0;
+        }
+
         return 0;
-      }
-      return 0;
-    });
-    return result;
-  }, [viewings, searchQuery, filterStatus, filterType, filterDate, sortBy]);
+      });
 
-  const uniqueStatuses = ['All', 'Pending', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'];
-  // Build the property-type filter from the Buyer's real viewing requests.
-  const uniqueTypes = ['All', ...new Set(viewings.map((v) => v.propertyType))];
-  const uniqueDates = ['All', 'Upcoming', 'Past'];
+      return result;
+    }, [
+      viewings,
+      searchQuery,
+      filterStatus,
+      filterType,
+      filterDate,
+      sortBy,
+    ]);
 
+  const uniqueStatuses = [
+    'All',
+    'Pending',
+    'Confirmed',
+    'Rescheduled',
+    'Completed',
+    'Cancelled',
+  ];
+
+  const uniqueTypes = [
+    'All',
+    ...new Set(
+      viewings.map(
+        (viewing) =>
+          viewing.propertyType,
+      ),
+    ),
+  ];
+
+  const uniqueDates = [
+    'All',
+    'Upcoming',
+    'Past',
+  ];
+
+  /*
+   * Buyer reschedule action.
+   */
   const handleRescheduleSubmit = async (
     date: string,
     time: string,
-    _notes: string,
+    notes: string,
   ) => {
-    try {
-      // Reschedule the selected viewing request through the backend.
-      await bookingApi.rescheduleBooking(selectedViewing!.id, {
-        viewingDate: date,
-        viewingTime: time,
-      });
+    if (!selectedViewing) {
+      return;
+    }
 
-      // Update the local request so the table immediately reflects the new schedule.
+    try {
+      /*
+       * Use the real Booking API.
+       */
+      await bookingApi.rescheduleBooking(
+        selectedViewing.id,
+        {
+          viewingDate: date,
+          viewingTime: time,
+        },
+      );
+
+      /*
+       * Update the local table immediately.
+       */
       setViewings((current) =>
         current.map((viewing) =>
-          viewing.id === selectedViewing!.id
+          viewing.id ===
+          selectedViewing.id
             ? {
-              ...viewing,
-              date,
-              time,
-              status: 'Rescheduled',
-            }
+                ...viewing,
+                date,
+                time,
+                status:
+                  'Rescheduled',
+                specialRequests:
+                  notes ||
+                  viewing.specialRequests,
+              }
             : viewing,
         ),
       );
 
-      // Keep the selected viewing details synchronized with the updated data.
-      setSelectedViewing((current) =>
-        current
-          ? {
-            ...current,
-            date,
-            time,
-            status: 'Rescheduled',
-          }
-          : current,
+      setSelectedViewing(
+        (current) =>
+          current
+            ? {
+                ...current,
+                date,
+                time,
+                status:
+                  'Rescheduled',
+                specialRequests:
+                  notes ||
+                  current.specialRequests,
+              }
+            : current,
       );
 
-      // Close the reschedule modal and details drawer after a successful update.
-      setIsRescheduleOpen(false);
-      setIsDrawerOpen(false);
+      setIsRescheduleOpen(
+        false,
+      );
 
-      // Confirm the successful reschedule to the Buyer.
+      setIsDrawerOpen(
+        false,
+      );
+
       showToast({
         type: 'success',
-        title: 'Viewing Rescheduled',
-        description: 'Your viewing has been rescheduled successfully.',
+        title:
+          'Viewing Rescheduled',
+        description:
+          'Your viewing has been rescheduled successfully.',
       });
     } catch (error) {
-      // Log the backend failure for debugging.
-      console.error('Failed to reschedule viewing:', error);
+      console.error(
+        'Failed to reschedule viewing:',
+        error,
+      );
 
-      // Tell the Buyer that the reschedule could not be completed.
       showToast({
         type: 'error',
-        title: 'Reschedule Failed',
-        description: 'We could not reschedule this viewing. Please try again.',
+        title:
+          'Reschedule Failed',
+        description:
+          'We could not reschedule this viewing. Please try again.',
       });
     }
   };
 
-  const handleCancelConfirm = async () => {
-    try {
-      // Cancel the selected viewing request through the backend.
-      await bookingApi.cancelBooking(selectedViewing!.id);
+  /*
+   * Buyer cancellation action.
+   */
+  const handleCancelConfirm =
+    async () => {
+      if (!selectedViewing) {
+        return;
+      }
 
-      // Update the local request so the table immediately shows Cancelled.
-      setViewings((current) =>
-        current.map((viewing) =>
-          viewing.id === selectedViewing!.id
-            ? { ...viewing, status: 'Cancelled' }
-            : viewing,
-        ),
-      );
+      try {
+        await bookingApi.cancelBooking(
+          selectedViewing.id,
+        );
 
-      // Close both the confirmation modal and details drawer.
-      setIsCancelOpen(false);
-      setIsDrawerOpen(false);
+        setViewings((current) =>
+          current.map((viewing) =>
+            viewing.id ===
+            selectedViewing.id
+              ? {
+                  ...viewing,
+                  status:
+                    'Cancelled',
+                }
+              : viewing,
+          ),
+        );
 
-      // Confirm the cancellation to the Buyer.
-      showToast({
-        type: 'success',
-        title: 'Viewing Cancelled',
-        description: 'Your viewing has been cancelled.',
-      });
-    } catch (error) {
-      // Log the cancellation failure for debugging.
-      console.error('Failed to cancel viewing:', error);
+        setSelectedViewing(
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  status:
+                    'Cancelled',
+                }
+              : current,
+        );
 
-      // Tell the Buyer that the cancellation could not be completed.
+        setIsCancelOpen(false);
+        setIsDrawerOpen(false);
+
+        showToast({
+          type: 'success',
+          title:
+            'Viewing Cancelled',
+          description:
+            'Your viewing has been cancelled.',
+        });
+      } catch (error) {
+        console.error(
+          'Failed to cancel viewing:',
+          error,
+        );
+
+        showToast({
+          type: 'error',
+          title:
+            'Cancellation Failed',
+          description:
+            'We could not cancel this viewing. Please try again.',
+        });
+      }
+    };
+
+  /*
+   * Navigate to the exact public property page
+   * associated with the Booking.
+   */
+  const handleViewProperty = () => {
+    if (
+      !selectedViewing?.propertyId
+    ) {
       showToast({
         type: 'error',
-        title: 'Cancellation Failed',
-        description: 'We could not cancel this viewing. Please try again.',
+        title:
+          'Property Unavailable',
+        description:
+          'This viewing request is not linked to a property record.',
       });
+
+      return;
     }
+
+    const propertyRoute =
+      ROUTES.PROPERTY_DETAILS.replace(
+        ':id',
+        selectedViewing.propertyId,
+      );
+
+    setIsDrawerOpen(false);
+
+    navigate(propertyRoute);
   };
+
+  /*
+   * Contact Agent currently takes the Buyer
+   * to the dashboard until the dedicated
+   * communication workflow is connected.
+   */
+  const handleContactAgent =
+    () => {
+      setIsDrawerOpen(false);
+
+      navigate(
+        ROUTES.BUYER_DASHBOARD,
+      );
+    };
 
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-bold text-cream">Viewing Requests</h2>
-        <p className="text-sm text-ink/60">Manage your upcoming and past property tours.</p>
+        <h2 className="font-heading text-2xl font-bold text-cream">
+          Viewing Requests
+        </h2>
+
+        <p className="text-sm text-ink/60">
+          Manage your upcoming and past
+          property tours.
+        </p>
       </div>
 
+      {/* Filters */}
       <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 backdrop-blur-md space-y-4">
         <DataTableToolbar
           searchValue={searchQuery}
@@ -271,30 +621,119 @@ export default function ViewingRequests() {
           actions={
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 pt-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">Status</label>
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none">
-                  {uniqueStatuses.map((t) => <option key={t} value={t}>{t}</option>)}
+                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">
+                  Status
+                </label>
+
+                <select
+                  value={filterStatus}
+                  onChange={(e) =>
+                    setFilterStatus(
+                      e.target.value,
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none"
+                >
+                  {uniqueStatuses.map(
+                    (status) => (
+                      <option
+                        key={status}
+                        value={
+                          status
+                        }
+                      >
+                        {status}
+                      </option>
+                    ),
+                  )}
                 </select>
               </div>
+
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">Property Type</label>
-                <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none">
-                  {uniqueTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">
+                  Property Type
+                </label>
+
+                <select
+                  value={filterType}
+                  onChange={(e) =>
+                    setFilterType(
+                      e.target.value,
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none"
+                >
+                  {uniqueTypes.map(
+                    (type) => (
+                      <option
+                        key={type}
+                        value={type}
+                      >
+                        {type}
+                      </option>
+                    ),
+                  )}
                 </select>
               </div>
+
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">Date</label>
-                <select value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none">
-                  {uniqueDates.map((t) => <option key={t} value={t}>{t}</option>)}
+                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">
+                  Date
+                </label>
+
+                <select
+                  value={filterDate}
+                  onChange={(e) =>
+                    setFilterDate(
+                      e.target.value,
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none"
+                >
+                  {uniqueDates.map(
+                    (date) => (
+                      <option
+                        key={date}
+                        value={
+                          date
+                        }
+                      >
+                        {date}
+                      </option>
+                    ),
+                  )}
                 </select>
               </div>
+
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">Sort By</label>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none">
-                  <option value="upcoming">Upcoming First</option>
-                  <option value="newest">Date (Newest First)</option>
-                  <option value="oldest">Date (Oldest First)</option>
-                  <option value="completed">Completed First</option>
+                <label className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold pl-1">
+                  Sort By
+                </label>
+
+                <select
+                  value={sortBy}
+                  onChange={(e) =>
+                    setSortBy(
+                      e.target.value,
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-2.5 text-sm text-cream focus:outline-none"
+                >
+                  <option value="upcoming">
+                    Upcoming First
+                  </option>
+
+                  <option value="newest">
+                    Date (Newest First)
+                  </option>
+
+                  <option value="oldest">
+                    Date (Oldest First)
+                  </option>
+
+                  <option value="completed">
+                    Completed First
+                  </option>
                 </select>
               </div>
             </div>
@@ -302,6 +741,7 @@ export default function ViewingRequests() {
         />
       </div>
 
+      {/* Loading */}
       {isLoading ? (
         <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
           <div className="flex items-center justify-center py-12 text-sm text-ink/60">
@@ -311,153 +751,403 @@ export default function ViewingRequests() {
       ) : filteredAndSortedViewings.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-12">
           <EmptyState
-            icon={<Calendar className="h-12 w-12 text-gold-400" />}
+            icon={
+              <Calendar className="h-12 w-12 text-gold-400" />
+            }
             title="No viewing requests yet."
             description="When you request to view properties, they will appear here."
             actionLabel="Browse Properties"
-            onAction={() => navigate(ROUTES.PROPERTIES)}
+            onAction={() =>
+              navigate(
+                ROUTES.PROPERTIES,
+              )
+            }
           />
         </div>
       ) : (
         <div className="w-full">
           <DataTable
-            data={filteredAndSortedViewings}
-            keyExtractor={(viewing) => viewing.id}
+            data={
+              filteredAndSortedViewings
+            }
+            keyExtractor={(
+              viewing,
+            ) => viewing.id}
             columns={[
               {
-                header: "Property",
-                render: (viewing) => (
+                header: 'Property',
+                render: (
+                  viewing,
+                ) => (
                   <div className="flex items-center gap-3">
-                    <img src={viewing.image} alt={viewing.propertyTitle} className="h-10 w-10 rounded-lg object-cover hidden sm:block" />
-                    <div className="font-semibold">{viewing.propertyTitle}</div>
+                    {viewing.image ? (
+                      <img
+                        src={
+                          viewing.image
+                        }
+                        alt={
+                          viewing.propertyTitle
+                        }
+                        className="h-10 w-10 rounded-lg object-cover hidden sm:block"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-lg bg-navy-900 border border-white/10 hidden sm:flex items-center justify-center">
+                        <Home className="h-4 w-4 text-gold-400" />
+                      </div>
+                    )}
+
+                    <div className="font-semibold text-cream">
+                      {
+                        viewing.propertyTitle
+                      }
+                    </div>
                   </div>
-                )
+                ),
               },
+
               {
-                header: "Location",
-                render: (viewing) => <span className="text-ink/80">{viewing.location}</span>
+                header: 'Location',
+                render: (
+                  viewing,
+                ) => (
+                  <span className="text-ink/80">
+                    {
+                      viewing.location
+                    }
+                  </span>
+                ),
               },
+
               {
-                header: "Agent",
-                render: (viewing) => <span className="text-ink/80">{viewing.agent}</span>
+                header: 'Agent',
+                render: (
+                  viewing,
+                ) => (
+                  <span className="text-ink/80">
+                    {viewing.agent}
+                  </span>
+                ),
               },
+
               {
-                header: "Schedule",
-                render: (viewing) => (
+                header: 'Schedule',
+                render: (
+                  viewing,
+                ) => (
                   <div className="flex flex-col gap-1 text-xs">
-                    <span className="flex items-center gap-1 text-cream"><Calendar className="h-3 w-3 text-gold-400" /> {viewing.date}</span>
-                    <span className="flex items-center gap-1 text-cream"><Clock className="h-3 w-3 text-gold-400" /> {viewing.time}</span>
+                    <span className="flex items-center gap-1 text-cream">
+                      <Calendar className="h-3 w-3 text-gold-400" />
+                      {
+                        viewing.date
+                      }
+                    </span>
+
+                    <span className="flex items-center gap-1 text-cream">
+                      <Clock className="h-3 w-3 text-gold-400" />
+                      {
+                        viewing.time
+                      }
+                    </span>
                   </div>
-                )
+                ),
               },
+
               {
-                header: "Status",
-                render: (viewing) => <EnterpriseStatusBadge status={viewing.status} />
+                header: 'Status',
+                render: (
+                  viewing,
+                ) => (
+                  <EnterpriseStatusBadge
+                    status={
+                      viewing.status
+                    }
+                  />
+                ),
               },
+
               {
-                header: <div className="text-right">Actions</div>,
-                className: "text-right",
-                render: (viewing) => (
+                header: (
+                  <div className="text-right">
+                    Actions
+                  </div>
+                ),
+
+                className:
+                  'text-right',
+
+                render: (
+                  viewing,
+                ) => (
                   <button
-                    onClick={() => { setSelectedViewing(viewing); setIsDrawerOpen(true); }}
+                    onClick={() => {
+                      setSelectedViewing(
+                        viewing,
+                      );
+
+                      setIsDrawerOpen(
+                        true,
+                      );
+                    }}
                     className="inline-flex h-8 items-center justify-center rounded-lg border border-white/10 px-3 text-xs font-semibold hover:bg-white/5 hover:text-gold-400 transition-colors"
                   >
                     View Details
                   </button>
-                )
-              }
+                ),
+              },
             ]}
           />
         </div>
       )}
 
+      {/* Viewing Details */}
       {selectedViewing && (
         <EnterpriseDetailDrawer
           isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={() =>
+            setIsDrawerOpen(
+              false,
+            )
+          }
           title="Viewing Details"
           subtitle={`Property: ${selectedViewing.propertyTitle}`}
           footerActions={
             <>
-              <GoldButton size="sm" onClick={() => navigate(ROUTES.PROPERTIES)}><Home className="h-4 w-4 mr-2" /> View Property</GoldButton>
-              <GhostButton size="sm" onClick={() => { setIsDrawerOpen(false); navigate(ROUTES.BUYER_DASHBOARD); }}><Phone className="h-4 w-4 mr-2" /> Contact Agent</GhostButton>
-              {selectedViewing.status !== 'Completed' && selectedViewing.status !== 'Cancelled' && (
-                <>
-                  <GhostButton size="sm" className="text-purple-400 hover:text-purple-300 border-purple-400/30" onClick={() => setIsRescheduleOpen(true)}>Reschedule</GhostButton>
-                  <GhostButton size="sm" className="text-rose-400 hover:text-rose-300 border-rose-400/30" onClick={() => setIsCancelOpen(true)}>Cancel</GhostButton>
-                </>
-              )}
+              <GoldButton
+                size="sm"
+                onClick={
+                  handleViewProperty
+                }
+              >
+                <Home className="h-4 w-4 mr-2" />
+                View Property
+              </GoldButton>
+
+              <GhostButton
+                size="sm"
+                onClick={
+                  handleContactAgent
+                }
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Contact Agent
+              </GhostButton>
+
+              {selectedViewing.status !==
+                'Completed' &&
+                selectedViewing.status !==
+                  'Cancelled' && (
+                  <>
+                    <GhostButton
+                      size="sm"
+                      className="text-purple-400 hover:text-purple-300 border-purple-400/30"
+                      onClick={() => {
+                        setIsDrawerOpen(
+                          false,
+                        );
+
+                        setIsRescheduleOpen(
+                          true,
+                        );
+                      }}
+                    >
+                      Reschedule
+                    </GhostButton>
+
+                    <GhostButton
+                      size="sm"
+                      className="text-rose-400 hover:text-rose-300 border-rose-400/30"
+                      onClick={() =>
+                        setIsCancelOpen(
+                          true,
+                        )
+                      }
+                    >
+                      Cancel
+                    </GhostButton>
+                  </>
+                )}
             </>
           }
         >
           <div className="space-y-6">
-            <div className="rounded-xl overflow-hidden">
-              <img src={selectedViewing.image} alt={selectedViewing.propertyTitle} className="w-full h-48 object-cover" />
+            {/* Property Image */}
+            <div className="rounded-xl overflow-hidden bg-navy-900 border border-white/5">
+              {selectedViewing.image ? (
+                <img
+                  src={
+                    selectedViewing.image
+                  }
+                  alt={
+                    selectedViewing.propertyTitle
+                  }
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-48 flex items-center justify-center">
+                  <Home className="h-12 w-12 text-gold-400" />
+                </div>
+              )}
             </div>
 
+            {/* Schedule */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-navy-900/50 rounded-xl p-3 border border-white/5 flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-gold-400" />
+
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold">Date</span>
-                  <div className="text-sm text-cream mt-0.5 font-medium">{selectedViewing.date}</div>
+                  <span className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold">
+                    Date
+                  </span>
+
+                  <div className="text-sm text-cream mt-0.5 font-medium">
+                    {
+                      selectedViewing.date
+                    }
+                  </div>
                 </div>
               </div>
+
               <div className="bg-navy-900/50 rounded-xl p-3 border border-white/5 flex items-center gap-3">
                 <Clock className="h-5 w-5 text-gold-400" />
+
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold">Time</span>
-                  <div className="text-sm text-cream mt-0.5 font-medium">{selectedViewing.time}</div>
+                  <span className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold">
+                    Time
+                  </span>
+
+                  <div className="text-sm text-cream mt-0.5 font-medium">
+                    {
+                      selectedViewing.time
+                    }
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Status */}
             <div className="bg-navy-900/50 rounded-xl p-3 border border-white/5 flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-wider text-ink/50 font-semibold">
                 Status
               </span>
 
-              <EnterpriseStatusBadge status={selectedViewing.status} />
-            </div>
-            <div>
-              <h4 className="font-semibold text-gold-400 mb-1 flex items-center gap-2"><MapPin className="h-4 w-4" /> Meeting Point</h4>
-              <p className="text-sm text-cream/80">{selectedViewing.meetingPoint}</p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-gold-400 mb-1">Viewing Instructions</h4>
-              <p className="text-sm text-cream/80">{selectedViewing.instructions}</p>
+              <EnterpriseStatusBadge
+                status={
+                  selectedViewing.status
+                }
+              />
             </div>
 
+            {/* Meeting Point */}
             <div>
-              <h4 className="font-semibold text-gold-400 mb-1">Agent Notes</h4>
-              <p className="text-sm text-cream/80">{selectedViewing.agentNotes || 'No agent notes provided.'}</p>
+              <h4 className="font-semibold text-gold-400 mb-1 flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Meeting Point
+              </h4>
+
+              <p className="text-sm text-cream/80">
+                {
+                  selectedViewing.meetingPoint
+                }
+              </p>
             </div>
 
+            {/* Instructions */}
             <div>
-              <h4 className="font-semibold text-gold-400 mb-1">Special Requests</h4>
-              <p className="text-sm text-cream/80">{selectedViewing.specialRequests || 'No special requests.'}</p>
+              <h4 className="font-semibold text-gold-400 mb-1">
+                Viewing Instructions
+              </h4>
+
+              <p className="text-sm text-cream/80">
+                {
+                  selectedViewing.instructions
+                }
+              </p>
             </div>
 
+            {/* Agent Notes */}
+            <div>
+              <h4 className="font-semibold text-gold-400 mb-1">
+                Agent Notes
+              </h4>
+
+              <p className="text-sm text-cream/80">
+                {selectedViewing.agentNotes ||
+                  'No agent notes provided.'}
+              </p>
+            </div>
+
+            {/* Special Requests */}
+            <div>
+              <h4 className="font-semibold text-gold-400 mb-1">
+                Special Requests
+              </h4>
+
+              <p className="text-sm text-cream/80">
+                {
+                  selectedViewing.specialRequests ||
+                  'No special requests.'
+                }
+              </p>
+            </div>
+
+            {/* Property Summary */}
             <div className="pt-4 border-t border-white/5">
-              <h4 className="font-semibold text-gold-400 mb-1">Property Summary</h4>
-              <p className="text-sm text-cream/80">{selectedViewing.summary}</p>
+              <h4 className="font-semibold text-gold-400 mb-1">
+                Property Summary
+              </h4>
+
+              <p className="text-sm text-cream/80">
+                {
+                  selectedViewing.summary
+                }
+              </p>
+            </div>
+
+            {/* Exact Property ID */}
+            <div className="pt-4 border-t border-white/5">
+              <h4 className="font-semibold text-gold-400 mb-1">
+                Property Reference
+              </h4>
+
+              <p className="text-xs text-ink/50 break-all">
+                {
+                  selectedViewing.propertyId
+                }
+              </p>
             </div>
           </div>
         </EnterpriseDetailDrawer>
       )}
 
       <RescheduleViewingModal
-        isOpen={isRescheduleOpen}
-        onClose={() => setIsRescheduleOpen(false)}
-        onSubmit={handleRescheduleSubmit}
-        viewing={selectedViewing}
+        isOpen={
+          isRescheduleOpen
+        }
+        onClose={() =>
+          setIsRescheduleOpen(
+            false,
+          )
+        }
+        onSubmit={
+          handleRescheduleSubmit
+        }
+        viewing={
+          selectedViewing
+        }
       />
 
       <ConfirmationModal
-        isOpen={isCancelOpen}
-        onClose={() => setIsCancelOpen(false)}
-        onConfirm={handleCancelConfirm}
+        isOpen={
+          isCancelOpen
+        }
+        onClose={() =>
+          setIsCancelOpen(
+            false,
+          )
+        }
+        onConfirm={
+          handleCancelConfirm
+        }
         title="Cancel Viewing"
         message={`Are you sure you want to cancel your viewing for ${selectedViewing?.propertyTitle} on ${selectedViewing?.date}?`}
         confirmText="Cancel Viewing"

@@ -2,6 +2,7 @@ export { ServiceLayout } from './ServiceLayout';
 export { ServiceHero } from './ServiceHero';
 export { ServiceOverview } from './ServiceOverview';
 export { FeatureGrid } from './FeatureGrid';
+export { ServiceImage } from './ServiceImage';
 export { DashboardShowcase } from './DashboardShowcase';
 export { CTASection } from './CTASection';
 export { BenefitsSection } from './BenefitsSection';

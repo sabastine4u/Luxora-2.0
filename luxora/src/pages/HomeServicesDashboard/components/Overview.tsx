@@ -50,10 +50,12 @@ export default function Overview() {
     useState<HomeServicesOverview | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadOverview = async () => {
     try {
       setIsLoading(true);
+      setError(null);
 
       const response = await homeServicesApi.getOverview();
 
@@ -63,6 +65,8 @@ export default function Overview() {
         'Failed to load Home Services overview:',
         error,
       );
+      setOverview(null);
+      setError('Unable to load Home Services overview.');
     } finally {
       setIsLoading(false);
     }
@@ -98,15 +102,21 @@ export default function Overview() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-rose-400/25 bg-rose-400/10 p-4 text-sm text-rose-200">
+          {error} <button className="ml-2 underline" onClick={() => void loadOverview()}>Retry</button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <KPICard
           title="Total Monthly Revenue"
           value={
             isLoading
               ? 'Loading...'
-              : formatCurrency(
-                  summary?.totalMonthlyRevenue || 0,
-                )
+              : summary?.totalMonthlyRevenue === undefined
+                ? '—'
+                : formatCurrency(summary.totalMonthlyRevenue)
           }
           trend=""
           icon={DollarSign}
@@ -117,7 +127,7 @@ export default function Overview() {
           value={
             isLoading
               ? 'Loading...'
-              : String(summary?.activeProviders || 0)
+              : summary?.activeProviders === undefined ? '—' : String(summary.activeProviders)
           }
           trend=""
           icon={Users}
@@ -128,7 +138,7 @@ export default function Overview() {
           value={
             isLoading
               ? 'Loading...'
-              : String(summary?.pendingRequests || 0)
+              : summary?.pendingRequests === undefined ? '—' : String(summary.pendingRequests)
           }
           trend=""
           icon={Wrench}
@@ -139,7 +149,7 @@ export default function Overview() {
           value={
             isLoading
               ? 'Loading...'
-              : String(summary?.jobsCompleted || 0)
+              : summary?.jobsCompleted === undefined ? '—' : String(summary.jobsCompleted)
           }
           trend=""
           icon={CheckCircle2}

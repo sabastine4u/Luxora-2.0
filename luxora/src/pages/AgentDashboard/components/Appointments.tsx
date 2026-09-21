@@ -24,28 +24,32 @@ import { AppointmentDetailModal } from './modals/AppointmentDetailModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EmptyState } from '../../../components/layout/EmptyState';
-import { agentApi } from '../../../api/agent.api';
+import { bookingApi } from '../../../api/booking.api';
 
 interface AppointmentType extends Record<string, unknown> {
   id: string;
-  inquiryId: string;
+  inquiryId?: string;
+
   clientName: string;
   clientEmail: string;
   clientPhone: string;
+
   propertyId: string | null;
   title: string;
   propertyType: string;
   transactionType: string;
+
   scheduledDate: string;
   scheduledTime: string;
+
   date: string;
   time: string;
+
   location: string;
+
   status: string;
-  appointmentStatus:
-    | 'Scheduled'
-    | 'Completed'
-    | 'Cancelled';
+  appointmentStatus: string;
+
   priority: string;
   source: string;
   message: string;
@@ -73,15 +77,15 @@ export default function Appointments() {
   // Store the current appointment search text.
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Store real appointments returned by the backend.
+  // Store real Buyer viewing requests returned by the Booking API.
   const [appointments, setAppointments] = useState<
     AppointmentType[]
   >([]);
 
-  // Track whether the initial appointment request is still running.
+  // Track whether the initial booking request is still running.
   const [loading, setLoading] = useState(true);
 
-  // Store the appointment currently opened in the details modal.
+  // Store the booking currently opened in the details modal.
   const [selectedAppt, setSelectedAppt] =
     useState<AppointmentType | null>(null);
 
@@ -93,126 +97,253 @@ export default function Appointments() {
       data?: Record<string, unknown>;
     } | null>(null);
 
-  // Load real appointments for the authenticated Agent.
+  /*
+   * Load real Buyer viewing requests for the
+   * authenticated Agent.
+   */
   useEffect(() => {
     const loadAppointments = async () => {
       try {
-        // Request scheduled viewing appointments from the backend.
+        setLoading(true);
+
         const response =
-          await agentApi.getMyAppointments();
+          await bookingApi.getAgentBookings();
 
-        // Read the unwrapped appointment collection returned by the HTTP client.
-        const appointmentRecords =
-          response.appointments || [];
+        /*
+         * Booking API response:
+         *
+         * {
+         *   status: "success",
+         *   results: number,
+         *   data: {
+         *     bookings: []
+         *   }
+         * }
+         */
+        const bookingRecords =
+          (response as any)?.data?.bookings ?? [];
 
-        // Convert backend appointments into the shape expected by this page.
         const mappedAppointments: AppointmentType[] =
-          appointmentRecords.map(
-            (appointment: any) => ({
-              // Stable appointment identifier.
-              id: appointment.id,
+          bookingRecords.map((booking: any) => {
+            const property =
+              booking.property || {};
 
-              // Existing Inquiry identifier behind this appointment.
-              inquiryId: appointment.inquiryId,
+            const buyer =
+              booking.buyer || {};
 
-              // Client information.
+            const viewingDate =
+              booking.viewingDate || '';
+
+            const parsedDate =
+              viewingDate
+                ? new Date(viewingDate)
+                : null;
+
+            const formattedDate =
+              parsedDate &&
+              !Number.isNaN(
+                parsedDate.getTime(),
+              )
+                ? parsedDate.toLocaleDateString(
+                    'en-GB',
+                    {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    },
+                  )
+                : 'Date unavailable';
+
+            const location = [
+              property.area,
+              property.city,
+              property.state,
+            ]
+              .filter(Boolean)
+              .join(', ');
+
+            return {
+              /*
+               * Booking ID is now the primary identifier.
+               */
+              id:
+                booking._id ||
+                booking.id,
+
+              /*
+               * Kept only so the existing detail modal
+               * remains compatible until we convert it
+               * completely to Booking.
+               */
+              inquiryId: '',
+
+              /*
+               * Buyer information from the real Booking.
+               */
               clientName:
-                appointment.clientName ||
-                'Unknown Client',
+                buyer.fullName ||
+                'Unknown Buyer',
+
               clientEmail:
-                appointment.clientEmail || '',
+                buyer.email || '',
+
               clientPhone:
-                appointment.clientPhone || '',
+                buyer.phone || '',
 
-              // Property information.
+              /*
+               * Real property information.
+               */
               propertyId:
-                appointment.propertyId || null,
+                property._id ||
+                null,
+
               title:
-                appointment.title ||
+                property.title ||
                 'Property Viewing',
+
               propertyType:
-                appointment.propertyType ||
+                property.propertyType ||
                 'Unknown',
+
               transactionType:
-                appointment.transactionType ||
+                property.transactionType ||
                 'Unknown',
 
-              // Stored appointment schedule.
+              /*
+               * Raw backend schedule values.
+               */
               scheduledDate:
-                appointment.scheduledDate || '',
-              scheduledTime:
-                appointment.scheduledTime || '',
+                viewingDate,
 
-              // Already formatted display values from the backend.
+              scheduledTime:
+                booking.viewingTime ||
+                '',
+
+              /*
+               * Display schedule values.
+               */
               date:
-                appointment.date ||
-                'Date unavailable',
+                formattedDate,
+
               time:
-                appointment.time ||
+                booking.viewingTime ||
                 'Time unavailable',
 
-              // Appointment location.
+              /*
+               * Build the location from the
+               * real property record.
+               */
               location:
-                appointment.location ||
+                location ||
+                property.address ||
                 'Location unavailable',
 
-              // Existing Inquiry/Lead status.
+              /*
+               * Booking lifecycle status.
+               */
               status:
-                appointment.status || 'Scheduled',
+                booking.status ||
+                'Pending',
 
-              // IMPORTANT:
-              // Keep the actual appointment lifecycle status
-              // separately from the Lead status.
               appointmentStatus:
-                appointment.appointmentStatus ||
-                'Scheduled',
+                booking.status ||
+                'Pending',
 
-              // Backend does not currently store appointment priority,
-              // so use a neutral display fallback.
+              /*
+               * Booking currently has no priority field.
+               */
               priority:
-                appointment.priority ||
                 'Standard',
 
-              // Preserve the Inquiry source and message.
+              /*
+               * Identify this as a Buyer booking.
+               */
               source:
-                appointment.source || 'Unknown',
+                'Buyer Viewing Request',
+
               message:
-                appointment.message || '',
+                booking.message ||
+                '',
 
-              // Notes returned by backend use addedAt.
-              notes:
-                appointment.notes || [],
+              /*
+               * Booking does not currently expose
+               * appointment notes.
+               */
+              notes: [],
 
-              // Preserve Inquiry activity history.
-              activities:
-                appointment.activities || [],
+              /*
+               * Create a minimal activity entry
+               * from the real Booking timestamp.
+               */
+              activities: [
+                {
+                  action:
+                    'Viewing Request Created',
 
-              // Preserve timestamps.
+                  description:
+                    'Buyer submitted a viewing request for this property.',
+
+                  performedBy:
+                    buyer.fullName ||
+                    'Buyer',
+
+                  createdAt:
+                    booking.createdAt ||
+                    '',
+                },
+
+                /*
+                 * Add a confirmation activity when
+                 * the Agent has already confirmed it.
+                 */
+                ...(booking.status ===
+                  'Confirmed'
+                  ? [
+                      {
+                        action:
+                          'Viewing Request Confirmed',
+
+                        description:
+                          'Agent confirmed the Buyer viewing request.',
+
+                        performedBy:
+                          'Assigned Agent',
+
+                        createdAt:
+                          booking.updatedAt ||
+                          '',
+                      },
+                    ]
+                  : []),
+              ],
+
               createdAt:
-                appointment.createdAt || '',
-              updatedAt:
-                appointment.updatedAt || '',
-            }),
-          );
+                booking.createdAt ||
+                '',
 
-        // Replace the previous appointment collection with real backend data.
-        setAppointments(mappedAppointments);
+              updatedAt:
+                booking.updatedAt ||
+                '',
+            };
+          });
+
+        setAppointments(
+          mappedAppointments,
+        );
       } catch (error) {
-        // Keep the existing page usable if the appointment request fails.
         console.error(
-          'Failed to load Agent appointments:',
+          'Failed to load Agent viewing requests:',
           error,
         );
 
         showToast({
           type: 'error',
           title:
-            'Unable to load appointments',
+            'Unable to load viewing requests',
           description:
-            'We could not retrieve your scheduled appointments.',
+            'We could not retrieve your Buyer viewing requests.',
         });
       } finally {
-        // End loading state whether the request succeeds or fails.
         setLoading(false);
       }
     };
@@ -244,7 +375,12 @@ export default function Appointments() {
     setActiveWorkflow(null);
   };
 
-  // Filter the real appointments using the existing search field.
+  /*
+   * Search the real Booking collection by:
+   * - Buyer
+   * - Property title
+   * - Location
+   */
   const filteredAppts =
     appointments.filter(
       (appointment) =>
@@ -274,8 +410,10 @@ export default function Appointments() {
 
   /*
    * Keep the appointment list synchronized after
-   * Complete, Cancel, or Reschedule actions from
-   * AppointmentDetailModal.
+   * actions from AppointmentDetailModal.
+   *
+   * The modal will be converted to the Booking API
+   * in the next step.
    */
   const handleAppointmentUpdated = (
     updates: Partial<AppointmentType>,
@@ -291,15 +429,14 @@ export default function Appointments() {
               return appointment;
             }
 
-            const updatedAppointment =
-              {
-                ...appointment,
-                ...updates,
-              };
+            const updatedAppointment = {
+              ...appointment,
+              ...updates,
+            };
 
             /*
-             * Keep the formatted table date synchronized
-             * when the appointment is rescheduled.
+             * Keep the display date synchronized
+             * when a booking is rescheduled.
              */
             if (
               updates.scheduledDate
@@ -327,9 +464,7 @@ export default function Appointments() {
             }
 
             /*
-             * The backend already gives us the display
-             * time string, so use the new scheduled time
-             * when one was supplied.
+             * Keep the display time synchronized.
              */
             if (
               updates.scheduledTime
@@ -338,74 +473,148 @@ export default function Appointments() {
                 updates.scheduledTime;
             }
 
+            /*
+             * Keep status fields synchronized.
+             */
+            if (
+              updates.status
+            ) {
+              updatedAppointment.appointmentStatus =
+                updates.status;
+
+              updatedAppointment.status =
+                updates.status;
+            }
+
             return updatedAppointment;
           },
         ),
     );
+
+    /*
+     * Keep the selected booking synchronized too.
+     */
+    if (selectedAppt) {
+      setSelectedAppt({
+        ...selectedAppt,
+        ...updates,
+      });
+    }
   };
 
-  // Existing appointment preparation checklist.
+  /*
+   * Existing preparation checklist.
+   *
+   * This remains untouched for now because the
+   * next step is converting the detail/action flow.
+   */
   const prepChecklist = [
     {
       task:
-        'Review Tony Elumelu property comps',
+        'Review property details before viewing',
       completed: false,
     },
     {
       task:
-        'Send virtual link to Sarah Smith',
-      completed: true,
+        'Confirm Buyer viewing request',
+      completed:
+        appointments.some(
+          (appointment) =>
+            appointment.appointmentStatus ===
+            'Confirmed',
+        ),
     },
     {
       task:
-        'Print Aliko Dangote contracts',
+        'Prepare viewing notes',
       completed: false,
     },
   ];
 
-  // Existing conflict alerts panel.
+  /*
+   * Existing conflict alerts panel.
+   *
+   * These are UI planning helpers and are not yet
+   * backed by a route-planning service.
+   */
   const conflictAlerts = [
     {
-      title: 'Tight Travel Buffer',
+      title: 'Schedule Review',
       desc:
-        'Only 15 mins between Victoria Island and Lekki Phase 1.',
+        'Review your confirmed viewing times before starting the day.',
       severity: 'Medium',
     },
   ];
 
-  // Existing daily route planner.
+  /*
+   * Keep the existing daily route planner UI.
+   */
   const dailyRoute = [
     {
-      time: '10:00 AM',
+      time: '09:00 AM',
       location:
-        'Victoria Island Office',
+        'Agent Workspace',
       type: 'Start',
     },
-    {
-      time: '11:30 AM',
-      location:
-        'Skyline Penthouse (Viewing)',
-      type: 'Stop 1',
-    },
-    {
-      time: '02:00 PM',
-      location:
-        'Lekki Phase 1 Villa (Viewing)',
-      type: 'Stop 2',
-    },
+    ...appointments
+      .filter(
+        (appointment) =>
+          appointment.appointmentStatus ===
+            'Pending' ||
+          appointment.appointmentStatus ===
+            'Confirmed',
+      )
+      .slice(0, 2)
+      .map(
+        (appointment) => ({
+          time:
+            appointment.time,
+
+          location:
+            appointment.title,
+
+          type:
+            'Viewing',
+        }),
+      ),
     {
       time: '04:00 PM',
       location:
-        'Victoria Island Office',
+        'Agent Workspace',
       type: 'End',
     },
   ];
+
+  /*
+   * Derive a few simple counts from the real Booking
+   * collection instead of hardcoding those counts.
+   */
+  const pendingCount =
+    appointments.filter(
+      (appointment) =>
+        appointment.appointmentStatus ===
+        'Pending',
+    ).length;
+
+  const confirmedCount =
+    appointments.filter(
+      (appointment) =>
+        appointment.appointmentStatus ===
+        'Confirmed',
+    ).length;
+
+  const completedCount =
+    appointments.filter(
+      (appointment) =>
+        appointment.appointmentStatus ===
+        'Completed',
+    ).length;
 
   return (
     <div className="space-y-6 pb-12">
       <DashboardHeader
         name="Schedule & Planning Intelligence"
-        subtitle="Optimize your daily route, prepare for meetings, and maximize schedule efficiency."
+        subtitle="Optimize your daily route, prepare for meetings, and manage Buyer viewing requests."
         actions={
           <div className="flex gap-3">
             <GhostButton
@@ -437,7 +646,7 @@ export default function Appointments() {
         }
       />
 
-      {/* INTELLIGENCE HEADER: SCHEDULE UTILIZATION & METRICS */}
+      {/* INTELLIGENCE HEADER */}
       <div className="grid md:grid-cols-4 gap-6">
         <div className="md:col-span-2 bg-gradient-to-br from-navy-800 to-navy-900 border border-white/10 rounded-2xl p-6 flex flex-col justify-center h-full">
           <div className="flex items-center gap-3 mb-4">
@@ -446,49 +655,56 @@ export default function Appointments() {
             </div>
 
             <h4 className="font-bold text-cream text-lg">
-              Daily Schedule Optimizer
+              Viewing Request Schedule
             </h4>
           </div>
 
           <p className="text-sm text-ink/80 leading-relaxed mb-4">
-            Your schedule today is{' '}
+            You currently have{' '}
             <strong className="text-blue-400">
-              75% booked
-            </strong>
-            . You have a{' '}
-            <strong className="text-orange-400">
-              tight travel buffer
+              {pendingCount} pending
             </strong>{' '}
-            between your 11:30 AM and 2:00 PM viewings.
-            Consider moving your admin tasks to the 4:00 PM
-            block for maximum productivity.
+            Buyer viewing request
+            {pendingCount === 1
+              ? ''
+              : 's'} and{' '}
+            <strong className="text-emerald-400">
+              {confirmedCount} confirmed
+            </strong>{' '}
+            viewing
+            {confirmedCount === 1
+              ? ''
+              : 's'}.
           </p>
 
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/10">
             <div>
               <div className="text-xs text-ink/60 mb-1">
-                Total Meetings
+                Total Requests
               </div>
+
               <div className="text-lg font-bold text-cream">
-                3
+                {appointments.length}
               </div>
             </div>
 
             <div>
               <div className="text-xs text-ink/60 mb-1">
-                Est. Travel Time
+                Pending
               </div>
+
               <div className="text-lg font-bold text-blue-400">
-                1.5h
+                {pendingCount}
               </div>
             </div>
 
             <div>
               <div className="text-xs text-ink/60 mb-1">
-                Focus Time
+                Completed
               </div>
+
               <div className="text-lg font-bold text-emerald-400">
-                2h
+                {completedCount}
               </div>
             </div>
           </div>
@@ -498,52 +714,91 @@ export default function Appointments() {
           <div>
             <h3 className="text-sm font-semibold text-ink/60 mb-4 flex items-center gap-2">
               <PieChart className="h-4 w-4 text-purple-400" />
-              Weekly Schedule Heatmap
+              Booking Status
             </h3>
 
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-cream font-medium">
-                    Mornings (High Energy)
+                    Pending
                   </span>
-                  <span className="text-emerald-400">
-                    60% Booked
-                  </span>
-                </div>
 
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-400 w-[60%] rounded-full"></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-cream font-medium">
-                    Afternoons (Meetings)
-                  </span>
                   <span className="text-blue-400">
-                    85% Booked
+                    {pendingCount}
                   </span>
                 </div>
 
                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-400 w-[85%] rounded-full"></div>
+                  <div
+                    className="h-full bg-blue-400 rounded-full"
+                    style={{
+                      width:
+                        appointments.length > 0
+                          ? `${
+                              (pendingCount /
+                                appointments.length) *
+                              100
+                            }%`
+                          : '0%',
+                    }}
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-cream font-medium">
-                    Evenings (Admin/Follow-up)
+                    Confirmed
                   </span>
-                  <span className="text-gold-400">
-                    30% Booked
+
+                  <span className="text-emerald-400">
+                    {confirmedCount}
                   </span>
                 </div>
 
                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-gold-400 w-[30%] rounded-full"></div>
+                  <div
+                    className="h-full bg-emerald-400 rounded-full"
+                    style={{
+                      width:
+                        appointments.length > 0
+                          ? `${
+                              (confirmedCount /
+                                appointments.length) *
+                              100
+                            }%`
+                          : '0%',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-cream font-medium">
+                    Completed
+                  </span>
+
+                  <span className="text-gold-400">
+                    {completedCount}
+                  </span>
+                </div>
+
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gold-400 rounded-full"
+                    style={{
+                      width:
+                        appointments.length > 0
+                          ? `${
+                              (completedCount /
+                                appointments.length) *
+                              100
+                            }%`
+                          : '0%',
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -552,50 +807,86 @@ export default function Appointments() {
 
         <div className="md:col-span-1 rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
           <h3 className="text-sm font-semibold text-ink/60 mb-4 text-center">
-            Appointment Completion Summary
+            Viewing Summary
           </h3>
 
           <div className="flex-1 flex flex-col justify-center gap-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-ink/60">
-                Success / Showed
-              </span>
-
-              <span className="text-sm font-medium text-emerald-400">
-                92%
-              </span>
-            </div>
-
-            <div className="w-full bg-white/5 rounded-full h-1.5">
-              <div className="bg-emerald-400 h-1.5 rounded-full w-[92%]"></div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-ink/60">
-                Rescheduled
+                Pending
               </span>
 
               <span className="text-sm font-medium text-blue-400">
-                5%
+                {pendingCount}
               </span>
             </div>
 
             <div className="w-full bg-white/5 rounded-full h-1.5">
-              <div className="bg-blue-400 h-1.5 rounded-full w-[5%]"></div>
+              <div
+                className="bg-blue-400 h-1.5 rounded-full"
+                style={{
+                  width:
+                    appointments.length > 0
+                      ? `${
+                          (pendingCount /
+                            appointments.length) *
+                          100
+                        }%`
+                      : '0%',
+                }}
+              />
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-ink/60">
-                No-Show
+                Confirmed
               </span>
 
-              <span className="text-sm font-medium text-rose-400">
-                3%
+              <span className="text-sm font-medium text-emerald-400">
+                {confirmedCount}
               </span>
             </div>
 
             <div className="w-full bg-white/5 rounded-full h-1.5">
-              <div className="bg-rose-400 h-1.5 rounded-full w-[3%]"></div>
+              <div
+                className="bg-emerald-400 h-1.5 rounded-full"
+                style={{
+                  width:
+                    appointments.length > 0
+                      ? `${
+                          (confirmedCount /
+                            appointments.length) *
+                          100
+                        }%`
+                      : '0%',
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-ink/60">
+                Completed
+              </span>
+
+              <span className="text-sm font-medium text-gold-400">
+                {completedCount}
+              </span>
+            </div>
+
+            <div className="w-full bg-white/5 rounded-full h-1.5">
+              <div
+                className="bg-gold-400 h-1.5 rounded-full"
+                style={{
+                  width:
+                    appointments.length > 0
+                      ? `${
+                          (completedCount /
+                            appointments.length) *
+                          100
+                        }%`
+                      : '0%',
+                }}
+              />
             </div>
           </div>
         </div>
@@ -604,34 +895,34 @@ export default function Appointments() {
       {/* KPI CARDS */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Meetings This Week"
-          value="18"
-          trend="8 Viewings, 10 Calls"
+          title="Viewing Requests"
+          value={String(appointments.length)}
+          trend={`${pendingCount} pending`}
           trendColor="text-blue-400"
           icon={CalendarIcon}
         />
 
         <KPICard
-          title="Avg Travel Time"
-          value="2.5h/day"
-          trend="Optimize routes"
-          trendColor="text-orange-400"
-          icon={Route}
-        />
-
-        <KPICard
-          title="High Priority"
-          value="5"
-          trend="Requires prep today"
-          trendColor="text-gold-400"
-          icon={AlertCircle}
-        />
-
-        <KPICard
-          title="Meeting Conversion"
-          value="24%"
-          trend="Lead to Offer"
+          title="Confirmed Viewings"
+          value={String(confirmedCount)}
+          trend="Buyer requests confirmed"
           trendColor="text-emerald-400"
+          icon={CalendarClock}
+        />
+
+        <KPICard
+          title="Completed Viewings"
+          value={String(completedCount)}
+          trend="Inspection history"
+          trendColor="text-gold-400"
+          icon={ListTodo}
+        />
+
+        <KPICard
+          title="Buyer Requests"
+          value={String(appointments.length)}
+          trend="Real Booking records"
+          trendColor="text-blue-400"
           icon={TrendingUp}
         />
       </div>
@@ -642,14 +933,13 @@ export default function Appointments() {
           <DataTableToolbar
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
-            searchPlaceholder="Search by client or title..."
+            searchPlaceholder="Search by buyer, property or location..."
           />
 
           {loading ? (
-            // Keep the appointment table area visually stable while data loads.
             <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-8 text-center">
               <div className="text-sm text-ink/60">
-                Loading appointments...
+                Loading viewing requests...
               </div>
             </div>
           ) : filteredAppts.length > 0 ? (
@@ -685,7 +975,7 @@ export default function Appointments() {
                 },
 
                 {
-                  header: 'Client & Details',
+                  header: 'Buyer & Property',
                   render: (
                     appt: AppointmentType,
                   ) => (
@@ -721,10 +1011,7 @@ export default function Appointments() {
                       </div>
 
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-white/5 text-ink/60 border border-white/10 uppercase tracking-wider">
-                        {appt.location ===
-                        'Virtual'
-                          ? 'Virtual'
-                          : 'Viewing'}
+                        Viewing
                       </span>
                     </div>
                   ),
@@ -735,14 +1022,7 @@ export default function Appointments() {
                   render: (
                     appt: AppointmentType,
                   ) => (
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                        appt.priority ===
-                        'High'
-                          ? 'bg-orange-400/10 text-orange-400 border border-orange-400/20'
-                          : 'bg-white/5 text-ink/60 border border-white/10'
-                      }`}
-                    >
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-white/5 text-ink/60 border border-white/10">
                       {appt.priority}
                     </span>
                   ),
@@ -791,8 +1071,8 @@ export default function Appointments() {
               icon={
                 <CalendarIcon className="h-8 w-8 text-gold-400" />
               }
-              title="No appointments scheduled."
-              description="Scheduled property viewings will appear here."
+              title="No viewing requests found."
+              description="Buyer viewing requests for your assigned properties will appear here."
             />
           )}
         </div>
@@ -802,7 +1082,7 @@ export default function Appointments() {
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-orange-400" />
-              Time Conflict Alerts
+              Schedule Alerts
             </h3>
 
             <div className="space-y-3">
@@ -828,7 +1108,7 @@ export default function Appointments() {
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
               <ListTodo className="h-4 w-4 text-emerald-400" />
-              Appointment Prep
+              Viewing Prep
             </h3>
 
             <div className="space-y-3">
@@ -863,12 +1143,12 @@ export default function Appointments() {
               className="w-full text-xs py-2 mt-4"
               onClick={() =>
                 handleAction(
-                  'Generate Agendas',
-                  'generate_agendas',
+                  'Generate Viewing Agenda',
+                  'generate_viewing_agenda',
                 )
               }
             >
-              Generate Agendas
+              Generate Agenda
             </GoldButton>
           </div>
 

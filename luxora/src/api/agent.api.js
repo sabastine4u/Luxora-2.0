@@ -2,6 +2,25 @@ import http from "./http";
 
 // Define the Agent API methods used by the Agency and Agent dashboards.
 export const agentApi = {
+
+
+    // ==========================================
+// PUBLIC MARKETPLACE
+// ==========================================
+
+// GET /agents/public
+// Public Agent directory with optional Agency filtering.
+getPublicAgents: (params = {}) =>
+    http.get("/agents/public", {
+        params,
+    }),
+
+// GET /agents/public/:slug
+// Public Agent profile.
+getPublicAgent: (slug) =>
+    http.get(`/agents/public/${slug}`),
+
+
     // Create an Agent and send the complete onboarding form to the backend.
     createAgent: (agentData) =>
         http.post("/agents", agentData),

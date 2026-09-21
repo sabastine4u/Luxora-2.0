@@ -141,3 +141,31 @@ export interface ActivityItem {
   active: boolean;
   type?: string;
 }
+
+export interface PublicAgent {
+  id: string;
+  slug: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  avatar?: string | null;
+  verified: boolean;
+  status: string;
+  yearsOfExperience: number;
+  level?: string | null;
+  department?: string | null;
+  branch?: string | null;
+  specializations: string[];
+  serviceStates: string[];
+  neighborhoods: string[];
+  coverageRadius?: string | null;
+  createdAt: string;
+  agency?: {
+    id: string;
+    name: string;
+    status: string;
+  } | null;
+  listingCount: number;
+  activeMarkets: string[];
+  propertyTypes: string[];
+}

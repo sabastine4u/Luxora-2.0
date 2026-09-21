@@ -206,7 +206,18 @@ export function usePropertySearch({
   const status = getParam('status', 'Any');
 
   // Read advanced filter arrays and flags.
-  const amenities = getArrayParam('amenities', []);
+  const amenitiesParam = searchParams.get('amenities');
+
+const amenities = useMemo(
+  () =>
+    amenitiesParam
+      ? amenitiesParam
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [],
+  [amenitiesParam],
+);
   const mortgageSupport = getBoolParam(
     'mortgageSupport',
     false,
@@ -242,10 +253,19 @@ export function usePropertySearch({
     'Any',
   );
 
-  const paymentPlan = getArrayParam(
-    'paymentPlan',
-    [],
-  );
+  const paymentPlanParam =
+  searchParams.get('paymentPlan');
+
+const paymentPlan = useMemo(
+  () =>
+    paymentPlanParam
+      ? paymentPlanParam
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [],
+  [paymentPlanParam],
+);
 
   // Read backend pagination state from the URL.
   const page = getNumParam('page', 1);

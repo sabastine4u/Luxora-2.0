@@ -1,4 +1,5 @@
 import { Container } from '../../../components/layout';
+import { ServiceImage } from './ServiceImage';
 import type { ServiceData } from '../types';
 
 export function ServiceOverview({ data }: { data: ServiceData }) {
@@ -28,13 +29,15 @@ export function ServiceOverview({ data }: { data: ServiceData }) {
             </div>
           </div>
           <div className="relative">
-            <div className="aspect-square rounded-3xl overflow-hidden border border-white/10 relative">
-               <img 
-                 src="https://images.unsplash.com/photo-1556156653-e5a7c69cc263?auto=format&fit=crop&q=80" 
-                 alt="Overview" 
-                 className="w-full h-full object-cover"
-               />
-               <div className="absolute inset-0 bg-navy-900/20 mix-blend-multiply" />
+            <div className="relative">
+              <ServiceImage
+                src="https://images.unsplash.com/photo-1556156653-e5a7c69cc263?auto=format&fit=crop&q=80"
+                alt="Overview"
+                wrapperClassName="aspect-square rounded-3xl border border-white/10"
+                className="h-full w-full object-cover"
+              />
+
+              <div className="pointer-events-none absolute inset-0 rounded-3xl bg-navy-900/20 mix-blend-multiply" />
             </div>
             {/* Decorative element */}
             <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-gold-500/10 rounded-full blur-3xl" />

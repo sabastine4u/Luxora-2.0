@@ -1,8 +1,10 @@
+import { useSession } from '../../../../contexts/SessionContext';
 import { Input } from '../../../../components/ui/Input';
 import { Select } from '../../../../components/ui/Select';
 import { ImageUploader } from '../../../../components/ui/ImageUploader';
 import type { ListingDraft } from '../types';
 import { LISTING_SOURCES } from '../../../../constants/propertyOptions';
+import { ROLES } from '../../../../constants/roles';
 
 interface Props {
   draft: ListingDraft;
@@ -10,13 +12,22 @@ interface Props {
 }
 
 export function OwnershipStep({ draft, onChange }: Props) {
+  const { user } = useSession();
+
+  const isOwner = user?.role === ROLES.OWNER;
   const source = draft.listingSource || 'Private Owner';
 
   const renderAssignedProperty = () => (
     <div className="space-y-4">
       <div className="p-4 bg-navy-800 border border-white/10 rounded-xl">
-        <h4 className="text-sm font-semibold text-white mb-2">Internal Assignment</h4>
-        <p className="text-sm text-ink/70 mb-4">This property was assigned internally. Ownership details are managed by the assigning administrator.</p>
+        <h4 className="text-sm font-semibold text-white mb-2">
+          Internal Assignment
+        </h4>
+
+        <p className="text-sm text-ink/70 mb-4">
+          This property was assigned internally. Ownership details are
+          managed by the assigning administrator.
+        </p>
       </div>
     </div>
   );
@@ -24,35 +35,42 @@ export function OwnershipStep({ draft, onChange }: Props) {
   const renderPrivateOwner = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Legal Owner Full Name"
-          placeholder="e.g. John Doe"
-          value={draft.ownerName}
-          onChange={(e) => onChange({ ownerName: e.target.value })}
-        />
-        <Input
-          label="Owner Contact Information (Internal Use Only)"
-          placeholder="e.g. +234..."
-          value={draft.ownerReference}
-          onChange={(e) => onChange({ ownerReference: e.target.value })}
-        />
+        <div className="rounded-xl border border-white/10 bg-navy-800/60 p-4">
+          <p className="text-xs uppercase tracking-wider text-ink/50 mb-1">
+            Registered Owner
+          </p>
+
+          <p className="text-sm font-medium text-white">
+            {user?.name || 'Authenticated Owner'}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-navy-800/60 p-4">
+          <p className="text-xs uppercase tracking-wider text-ink/50 mb-1">
+            Contact Email
+          </p>
+
+          <p className="text-sm font-medium text-white">
+            {user?.email || '—'}
+          </p>
+        </div>
       </div>
     </div>
   );
 
   const renderOrganizationFields = () => {
-    let orgLabel = "Organization Name";
-    let repLabel = "Representative Name";
+    let orgLabel = 'Organization Name';
+    let repLabel = 'Representative Name';
 
     if (source === 'Developer Project') {
-      orgLabel = "Developer Company";
-      repLabel = "Project Name";
+      orgLabel = 'Developer Company';
+      repLabel = 'Project Name';
     } else if (source === 'Bank Property') {
-      orgLabel = "Bank Name";
-      repLabel = "Asset Manager Name";
+      orgLabel = 'Bank Name';
+      repLabel = 'Asset Manager Name';
     } else if (source === 'Government Property') {
-      orgLabel = "Government Agency";
-      repLabel = "Department / Representative";
+      orgLabel = 'Government Agency';
+      repLabel = 'Department / Representative';
     }
 
     return (
@@ -62,13 +80,18 @@ export function OwnershipStep({ draft, onChange }: Props) {
             label={orgLabel}
             placeholder="Enter name..."
             value={draft.organizationName}
-            onChange={(e) => onChange({ organizationName: e.target.value })}
+            onChange={(e) =>
+              onChange({ organizationName: e.target.value })
+            }
           />
+
           <Input
             label={repLabel}
             placeholder="Enter representative..."
             value={draft.organizationRep}
-            onChange={(e) => onChange({ organizationRep: e.target.value })}
+            onChange={(e) =>
+              onChange({ organizationRep: e.target.value })
+            }
           />
         </div>
       </div>
@@ -79,41 +102,95 @@ export function OwnershipStep({ draft, onChange }: Props) {
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-heading font-semibold text-white">Ownership Information</h2>
+          <h2 className="text-2xl font-heading font-semibold text-white">
+            {isOwner ? 'Property Ownership' : 'Ownership Information'}
+          </h2>
+
           <span className="px-2.5 py-1 rounded-full bg-gold-500/20 text-gold-400 text-xs font-semibold uppercase tracking-wider">
-            {source}
+            {isOwner ? 'Private Owner' : source}
           </span>
         </div>
-        <p className="text-ink/70 mt-1">Provide details on the property ownership and verification source.</p>
+
+        <p className="text-ink/70 mt-1">
+          {isOwner
+            ? 'Confirm your ownership details and provide the documents required for verification.'
+            : 'Provide details on the property ownership and verification source.'}
+        </p>
       </div>
 
       <div className="space-y-6 bg-navy-900/50 p-6 rounded-2xl border border-white/5">
-        <Select
-          label="Listing Source"
-          options={LISTING_SOURCES}
-          value={source}
-          onChange={(e) => onChange({ listingSource: e.target.value })}
-        />
+        {isOwner ? (
+          <div className="rounded-xl border border-white/10 bg-navy-800/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-ink/50 mb-1">
+              Listing Source
+            </p>
+
+            <p className="text-sm font-medium text-white">
+              Private Owner
+            </p>
+
+            <p className="mt-1 text-xs text-ink/50">
+              This property will be submitted as your Owner property
+              request.
+            </p>
+          </div>
+        ) : (
+          <Select
+            label="Listing Source"
+            options={LISTING_SOURCES}
+            value={source}
+            onChange={(e) =>
+              onChange({ listingSource: e.target.value })
+            }
+          />
+        )}
 
         <div className="pt-4 border-t border-white/10 space-y-6">
-          {source === 'Assigned Property' && renderAssignedProperty()}
+          {source === 'Assigned Property' &&
+            renderAssignedProperty()}
+
           {source === 'Private Owner' && renderPrivateOwner()}
-          {['Agency Portfolio', 'Developer Project', 'Bank Property', 'Corporate Property', 'Government Property'].includes(source) && renderOrganizationFields()}
-          
+
+          {[
+            'Agency Portfolio',
+            'Developer Project',
+            'Bank Property',
+            'Corporate Property',
+            'Government Property',
+          ].includes(source) && renderOrganizationFields()}
+
           {source !== 'Assigned Property' && (
             <div className="space-y-6 pt-2">
               <ImageUploader
                 label="Verification Documents (C of O, Deed of Assignment, etc.)"
                 maxFiles={5}
                 value={draft.ownershipVerification}
-                onChange={(docs) => onChange({ ownershipVerification: docs })}
+                onChange={(docs) =>
+                  onChange({
+                    ownershipVerification: docs,
+                  })
+                }
               />
+
               <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-5 h-5 text-blue-400 mt-0.5 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
+
                 <p className="text-sm text-blue-200/80 leading-relaxed">
-                  All submitted documents are heavily encrypted and routed strictly to the internal Legal & Compliance team.
+                  All submitted documents are heavily encrypted and
+                  routed strictly to the internal Legal & Compliance
+                  team.
                 </p>
               </div>
             </div>
@@ -123,4 +200,3 @@ export function OwnershipStep({ draft, onChange }: Props) {
     </div>
   );
 }
-

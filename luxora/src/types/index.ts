@@ -14,6 +14,7 @@ export type IconProps = SVGProps<SVGSVGElement>;
 
 export * from './agent';
 export * from './property';
+export * from './agency';
 export * from './propertyManager';
 export * from './homeServices';
 export * from './buyer';

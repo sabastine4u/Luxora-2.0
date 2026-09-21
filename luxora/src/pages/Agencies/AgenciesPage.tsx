@@ -1,106 +1,322 @@
-import { useState, useMemo } from 'react';
-import { Search, MapPin, Briefcase, SlidersHorizontal, ChevronDown } from 'lucide-react';
-import { PageLayout, Container, Section, Breadcrumb } from '../../components/layout';
-import { agencies } from '../../data/luxoraData';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Search,
+  MapPin,
+  Briefcase,
+  SlidersHorizontal,
+  ChevronDown,
+} from 'lucide-react';
+
+import {
+  PageLayout,
+  Container,
+  Section,
+  Breadcrumb,
+} from '../../components/layout';
+
 import { AgencyCard } from '../../components/agency/AgencyCard';
 import { EmptyState } from '../../components/layout/EmptyState';
 import { PropertyPagination } from '../../components/property/PropertyPagination';
+import { agencyApi } from '../../api/agency.api';
+
+import type { PublicAgency } from '../../types';
 
 const ITEMS_PER_PAGE = 9;
 
+type SortOption =
+  | 'Most Listings'
+  | 'Alphabetical'
+  | 'Newest';
+
 export default function AgenciesPage() {
+  const [agencies, setAgencies] = useState<PublicAgency[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('All');
   const [selectedSpec, setSelectedSpec] = useState('All');
-  const [sortBy, setSortBy] = useState('Highest Rated');
+
+  const [sortBy, setSortBy] =
+    useState<SortOption>('Most Listings');
+
   const [currentPage, setCurrentPage] = useState(1);
 
-  const cities = ['All', 'Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Enugu'];
-  const specializations = ['All', 'Luxury', 'Residential', 'Commercial', 'Land', 'Student Housing'];
-  const sortOptions = ['Highest Rated', 'Most Listings', 'Alphabetical', 'Newest'];
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAgencies = async () => {
+      try {
+        setIsLoading(true);
+
+        const response = await agencyApi.getPublicAgencies({
+          page: 1,
+          limit: 100,
+        });
+
+        if (!mounted) return;
+
+        const agencyList = Array.isArray(
+          response?.agencies,
+        )
+          ? response.agencies
+          : [];
+
+        setAgencies(agencyList);
+      } catch (error) {
+        console.error(
+          'Failed to load public agencies:',
+          error,
+        );
+
+        if (!mounted) return;
+
+        setAgencies([]);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAgencies();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const cities = useMemo(() => {
+    const values = agencies.flatMap(
+      (agency) => agency.serviceAreas || [],
+    );
+
+    return [
+      'All',
+      ...Array.from(new Set(values)).sort(
+        (a, b) => a.localeCompare(b),
+      ),
+    ];
+  }, [agencies]);
+
+  const specializations = useMemo(() => {
+    const values = agencies.flatMap(
+      (agency) => agency.specializations || [],
+    );
+
+    return [
+      'All',
+      ...Array.from(new Set(values)).sort(
+        (a, b) => a.localeCompare(b),
+      ),
+    ];
+  }, [agencies]);
 
   const filteredAgencies = useMemo(() => {
     let result = [...agencies];
 
-    // Search by name
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(a => a.name.toLowerCase().includes(q));
+    const query =
+      searchQuery.trim().toLowerCase();
+
+    if (query) {
+      result = result.filter((agency) => {
+        return (
+          agency.name
+            .toLowerCase()
+            .includes(query) ||
+          agency.serviceAreas.some((area) =>
+            area.toLowerCase().includes(query),
+          ) ||
+          agency.specializations.some(
+            (specialization) =>
+              specialization
+                .toLowerCase()
+                .includes(query),
+          )
+        );
+      });
     }
 
-    // Sort
+    if (selectedCity !== 'All') {
+      result = result.filter((agency) =>
+        agency.serviceAreas.some(
+          (area) =>
+            area.toLowerCase() ===
+            selectedCity.toLowerCase(),
+        ),
+      );
+    }
+
+    if (selectedSpec !== 'All') {
+      result = result.filter((agency) =>
+        agency.specializations.some(
+          (specialization) =>
+            specialization.toLowerCase() ===
+            selectedSpec.toLowerCase(),
+        ),
+      );
+    }
+
     result.sort((a, b) => {
       switch (sortBy) {
-        case 'Highest Rated': return b.rating - a.rating;
-        case 'Most Listings': return b.listings - a.listings;
-        case 'Alphabetical': return a.name.localeCompare(b.name);
-        // 'Newest' doesn't exist in data, default to alphabetical
-        case 'Newest': return a.name.localeCompare(b.name);
-        default: return 0;
+        case 'Alphabetical':
+          return a.name.localeCompare(b.name);
+
+        case 'Newest':
+          return (
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime()
+          );
+
+        case 'Most Listings':
+        default:
+          return (
+            b.listingCount -
+            a.listingCount
+          );
       }
     });
 
-    // We don't have city/specialization in mock data for Agency,
-    // so we just return the result (which acts like 'All' applies to everyone).
-    // If we wanted strict filtering, we'd need to add those fields to the mock data.
-
     return result;
-  }, [searchQuery, sortBy]); // Note: city and spec are omitted from deps intentionally
+  }, [
+    agencies,
+    searchQuery,
+    selectedCity,
+    selectedSpec,
+    sortBy,
+  ]);
 
-  const totalPages = Math.ceil(filteredAgencies.length / ITEMS_PER_PAGE);
-  const currentAgencies = filteredAgencies.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchQuery,
+    selectedCity,
+    selectedSpec,
+    sortBy,
+  ]);
+
+  const totalPages = Math.ceil(
+    filteredAgencies.length / ITEMS_PER_PAGE,
+  );
+
+  const currentAgencies =
+    filteredAgencies.slice(
+      (currentPage - 1) *
+        ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE,
+    );
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCity('All');
+    setSelectedSpec('All');
+    setSortBy('Most Listings');
+    setCurrentPage(1);
+  };
 
   return (
-    <PageLayout>
+   <PageLayout footerVariant="compact">
       {/* Hero Section */}
-      <div className="relative pt-32 pb-20 bg-navy-900 border-b border-white/5 overflow-hidden">
-        <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-gold-500/5 blur-[120px] pointer-events-none" />
+      <div className="relative overflow-hidden border-b border-white/5 bg-navy-900 pb-20 pt-32">
+        <div className="pointer-events-none absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-gold-500/5 blur-[120px]" />
+
         <Container className="relative z-10">
-          <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Agencies' }]} />
+          <Breadcrumb
+            items={[
+              {
+                label: 'Home',
+                href: '/',
+              },
+              {
+                label: 'Agencies',
+              },
+            ]}
+          />
+
           <div className="mt-8 max-w-3xl">
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-cream mb-6 tracking-tight">
-              Luxora <span className="gold-text">Partner Agencies</span>
+            <h1 className="mb-6 font-heading text-4xl font-bold tracking-tight text-cream sm:text-5xl lg:text-6xl">
+              Luxora{' '}
+              <span className="gold-text">
+                Partner Agencies
+              </span>
             </h1>
-            <p className="text-lg text-ink/70 leading-relaxed mb-10">
-              Discover Nigeria's most prestigious real estate agencies. Every partner is thoroughly vetted to ensure premium service, transparency, and access to the nation's finest properties.
+
+            <p className="mb-10 text-lg leading-relaxed text-ink/70">
+              Discover real estate agencies operating
+              across the Luxora marketplace and explore
+              their published listings and active agents.
             </p>
           </div>
-          
+
           {/* Search Bar */}
-          <div className="bg-navy-800/80 backdrop-blur-xl border border-white/10 p-3 rounded-2xl sm:rounded-full flex flex-col sm:flex-row gap-3 shadow-2xl max-w-4xl relative z-20">
-            <div className="flex-1 relative flex items-center bg-navy-900/50 rounded-xl sm:rounded-full px-4 py-3 sm:py-0 border border-white/5">
-              <Search className="h-5 w-5 text-gold-400 shrink-0" />
+          <div className="relative z-20 flex max-w-4xl flex-col gap-3 rounded-2xl border border-white/10 bg-navy-800/80 p-3 shadow-2xl backdrop-blur-xl sm:flex-row sm:rounded-full">
+            <div className="relative flex flex-1 items-center rounded-xl border border-white/5 bg-navy-900/50 px-4 py-3 sm:rounded-full sm:py-0">
+              <Search className="h-5 w-5 shrink-0 text-gold-400" />
+
               <input
                 type="text"
                 placeholder="Search agencies by name..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-transparent border-none focus:ring-0 text-cream placeholder:text-ink/40 px-3 text-sm"
+                onChange={(event) =>
+                  setSearchQuery(
+                    event.target.value,
+                  )
+                }
+                className="w-full border-none bg-transparent px-3 text-sm text-cream placeholder:text-ink/40 focus:ring-0"
               />
             </div>
-            
-            <div className="sm:w-48 relative flex items-center bg-navy-900/50 rounded-xl sm:rounded-full px-4 py-3 sm:py-0 border border-white/5">
-              <MapPin className="h-4 w-4 text-ink/40 shrink-0" />
+
+            <div className="relative flex items-center rounded-xl border border-white/5 bg-navy-900/50 px-4 py-3 sm:w-52 sm:rounded-full sm:py-0">
+              <MapPin className="h-4 w-4 shrink-0 text-ink/40" />
+
               <select
                 value={selectedCity}
-                onChange={(e) => { setSelectedCity(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-transparent border-none focus:ring-0 text-cream text-sm appearance-none cursor-pointer px-2"
+                onChange={(event) =>
+                  setSelectedCity(
+                    event.target.value,
+                  )
+                }
+                className="w-full cursor-pointer appearance-none border-none bg-transparent px-2 text-sm text-cream focus:ring-0"
               >
-                {cities.map(c => <option key={c} value={c} className="bg-navy-900 text-cream">{c}</option>)}
+                {cities.map((city) => (
+                  <option
+                    key={city}
+                    value={city}
+                    className="bg-navy-900 text-cream"
+                  >
+                    {city}
+                  </option>
+                ))}
               </select>
-              <ChevronDown className="h-4 w-4 text-ink/40 absolute right-4 pointer-events-none" />
+
+              <ChevronDown className="pointer-events-none absolute right-4 h-4 w-4 text-ink/40" />
             </div>
 
-            <div className="sm:w-56 relative flex items-center bg-navy-900/50 rounded-xl sm:rounded-full px-4 py-3 sm:py-0 border border-white/5">
-              <Briefcase className="h-4 w-4 text-ink/40 shrink-0" />
+            <div className="relative flex items-center rounded-xl border border-white/5 bg-navy-900/50 px-4 py-3 sm:w-60 sm:rounded-full sm:py-0">
+              <Briefcase className="h-4 w-4 shrink-0 text-ink/40" />
+
               <select
                 value={selectedSpec}
-                onChange={(e) => { setSelectedSpec(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-transparent border-none focus:ring-0 text-cream text-sm appearance-none cursor-pointer px-2"
+                onChange={(event) =>
+                  setSelectedSpec(
+                    event.target.value,
+                  )
+                }
+                className="w-full cursor-pointer appearance-none border-none bg-transparent px-2 text-sm text-cream focus:ring-0"
               >
-                {specializations.map(s => <option key={s} value={s} className="bg-navy-900 text-cream">{s}</option>)}
+                {specializations.map(
+                  (specialization) => (
+                    <option
+                      key={specialization}
+                      value={specialization}
+                      className="bg-navy-900 text-cream"
+                    >
+                      {specialization}
+                    </option>
+                  ),
+                )}
               </select>
-              <ChevronDown className="h-4 w-4 text-ink/40 absolute right-4 pointer-events-none" />
+
+              <ChevronDown className="pointer-events-none absolute right-4 h-4 w-4 text-ink/40" />
             </div>
           </div>
         </Container>
@@ -108,53 +324,113 @@ export default function AgenciesPage() {
 
       <Section className="py-12 md:py-20">
         <Container>
-          {/* Results Summary & Sort */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
-            <h2 className="text-lg font-medium text-cream flex items-center gap-2">
-              Showing <span className="font-bold text-gold-400">{filteredAgencies.length}</span> Verified Agencies
+          <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <h2 className="flex items-center gap-2 text-lg font-medium text-cream">
+              Showing{' '}
+              <span className="font-bold text-gold-400">
+                {filteredAgencies.length}
+              </span>{' '}
+              Active Agencies
             </h2>
+
             <div className="flex items-center gap-3">
               <SlidersHorizontal className="h-4 w-4 text-ink/50" />
-              <span className="text-sm text-ink/60 hidden sm:inline-block">Sort by:</span>
+
+              <span className="hidden text-sm text-ink/60 sm:inline-block">
+                Sort by:
+              </span>
+
               <div className="relative">
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-navy-800 border border-white/10 rounded-lg text-sm text-cream pl-3 pr-8 py-2 appearance-none cursor-pointer focus:border-gold-400/50 focus:outline-none"
+                  onChange={(event) =>
+                    setSortBy(
+                      event.target.value as SortOption,
+                    )
+                  }
+                  className="cursor-pointer appearance-none rounded-lg border border-white/10 bg-navy-800 py-2 pl-3 pr-8 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                 >
-                  {sortOptions.map(opt => <option key={opt} value={opt} className="bg-navy-900">{opt}</option>)}
+                  <option
+                    value="Most Listings"
+                    className="bg-navy-900"
+                  >
+                    Most Listings
+                  </option>
+
+                  <option
+                    value="Alphabetical"
+                    className="bg-navy-900"
+                  >
+                    Alphabetical
+                  </option>
+
+                  <option
+                    value="Newest"
+                    className="bg-navy-900"
+                  >
+                    Newest
+                  </option>
                 </select>
-                <ChevronDown className="h-4 w-4 text-ink/40 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
               </div>
             </div>
           </div>
 
-          {/* Grid */}
-          {currentAgencies.length > 0 ? (
+          {isLoading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {currentAgencies.map((agency, idx) => (
-                <AgencyCard key={agency.name} agency={agency} index={idx} />
-              ))}
+              {Array.from({ length: 6 }).map(
+                (_, index) => (
+                  <div
+                    key={index}
+                    className="rounded-3xl border border-white/10 bg-navy-800/50 p-5"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="h-14 w-14 animate-pulse rounded-2xl bg-white/10" />
+
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-3/4 animate-pulse rounded bg-white/10" />
+                        <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/5 pt-4">
+                      <div className="h-10 animate-pulse rounded bg-white/10" />
+                      <div className="h-10 animate-pulse rounded bg-white/10" />
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          ) : currentAgencies.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {currentAgencies.map(
+                (agency, index) => (
+                  <AgencyCard
+                    key={agency.id}
+                    agency={agency}
+                    index={index}
+                  />
+                ),
+              )}
             </div>
           ) : (
             <EmptyState
               title="No agencies found"
-              description="We couldn't find any agencies matching your current search and filter criteria."
-              actionLabel="Clear Search"
-              onAction={() => {
-                setSearchQuery('');
-                setSelectedCity('All');
-                setSelectedSpec('All');
-              }}
+              description="We couldn't find any active agencies matching your current search and filters."
+              actionLabel="Clear Filters"
+              onAction={clearFilters}
             />
           )}
 
-          {/* Pagination */}
-          <PropertyPagination 
-            currentPage={currentPage} 
-            totalPages={totalPages} 
-            onPageChange={setCurrentPage} 
-          />
+          {!isLoading &&
+            totalPages > 1 && (
+              <PropertyPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
         </Container>
       </Section>
     </PageLayout>

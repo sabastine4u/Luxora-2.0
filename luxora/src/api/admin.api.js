@@ -131,6 +131,9 @@ export const adminApi = {
   getAdmins: () =>
     http.get('/admin/admins'),
 
+  updateAdmin: (adminId, data) => http.patch(`/admin/admins/${adminId}`, data),
+  updateAdminStatus: (adminId, isActive) => http.patch(`/admin/admins/${adminId}/status`, { isActive }),
+
   // Update the operational status of an Agent.
   updateAgentStatus: (
     agentId,

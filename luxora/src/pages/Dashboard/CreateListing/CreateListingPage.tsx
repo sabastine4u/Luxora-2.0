@@ -28,6 +28,8 @@ import { GoldButton, GhostButton } from '../../../components/ui/ui';
 // Import the dashboard route helper.
 import { getDashboardRoute } from '../../../constants/routes';
 
+import { ROLES } from '../../../constants/roles';
+
 // Import the current authenticated session.
 import { useSession } from '../../../contexts/SessionContext';
 
@@ -48,7 +50,7 @@ const STEPS = [
   '💰 Pricing',
   '🖼 Media',
   '👤 Ownership',
-  '✅ Review & Publish',
+  '✅ Review & Submit',
 ];
 
 // Define the local-storage key used for the saved listing draft.
@@ -222,20 +224,23 @@ export default function CreateListingPage() {
     }
 
     // Assigned properties do not require ownership information from the creator.
-    if (draft.listingSource !== 'Assigned Property') {
-      // Require the owner or organization identity.
-      if (
-        !draft.ownerName.trim() &&
-        !draft.organizationName.trim()
-      ) {
-        return 'Please provide the legal owner or organization name.';
-      }
-
-      // Require ownership verification documents.
-      if (draft.ownershipVerification.length === 0) {
-        return 'Please upload at least one ownership verification document.';
-      }
+   if (draft.listingSource !== 'Assigned Property') {
+  // Owner identity comes from the authenticated session and is
+  // attached by the backend during property creation.
+  if (user?.role !== ROLES.OWNER) {
+    if (
+      !draft.ownerName.trim() &&
+      !draft.organizationName.trim()
+    ) {
+      return 'Please provide the legal owner or organization name.';
     }
+  }
+
+  // Owner submissions still require ownership verification documents.
+  if (draft.ownershipVerification.length === 0) {
+    return 'Please upload at least one ownership verification document.';
+  }
+}
 
     // Lease listings must contain a lease duration.
     if (
@@ -322,33 +327,40 @@ export default function CreateListingPage() {
         propertyPayload,
       )) as unknown as CreatePropertyResponse;
 
-      // Extract the newly created Property ID.
       const propertyId = createResponse.property?._id;
 
-      // Stop when the backend did not return a usable Property ID.
+      // Creation must always return a property ID.
       if (!propertyId) {
         throw new Error(
           'The property was created, but no property ID was returned.',
         );
       }
 
-      // Submit the newly created Draft to the review workflow.
-      const reviewResponse = (
-        await propertyApi.submitPropertyForReview(propertyId)
-      ) as SubmitReviewResponse;
+      // Agent-created listings continue directly into the review workflow.
+      // Owner-created properties stop after creation and remain Draft.
+      if (user?.role === ROLES.AGENT) {
+        const reviewResponse = (
+          await propertyApi.submitPropertyForReview(propertyId)
+        ) as SubmitReviewResponse;
 
-      // Ensure the review submission returned successfully.
-      if (!reviewResponse) {
-        throw new Error(
-          'The property was created, but review submission failed.',
-        );
+        // The Agent review submission must return the created Property.
+        if (!reviewResponse?.property?._id) {
+          throw new Error(
+            'The Agent property review submission did not complete successfully.',
+          );
+        }
       }
 
-      // Remove the local draft after successful submission.
+      // Remove the local draft after successful creation
+      // and, for Agents, successful review submission.
       localStorage.removeItem(STORAGE_KEY);
 
       // Return the creator to the appropriate dashboard.
-      navigate(getDashboardRoute(user?.role));
+      if (user?.role === ROLES.OWNER) {
+        navigate('/owner-dashboard?tab=My%20Property%20Requests');
+      } else {
+        navigate(getDashboardRoute(user?.role));
+      }
     } catch (error) {
       // Log the detailed error for development debugging.
       console.error('Failed to submit property listing:', error);
@@ -428,7 +440,7 @@ export default function CreateListingPage() {
   return (
     <DashboardLayout
       activeTab="Add Listing"
-      onTabChange={() => { }}
+      onTabChange={() => {}}
     >
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Progress Bar */}
@@ -440,19 +452,21 @@ export default function CreateListingPage() {
                 className="flex flex-col items-center relative z-10"
               >
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${index <= currentStep
-                    ? 'bg-gold-500 text-navy-900 shadow-gold'
-                    : 'bg-navy-800 text-ink/50 border border-white/10'
-                    }`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${
+                    index <= currentStep
+                      ? 'bg-gold-500 text-navy-900 shadow-gold'
+                      : 'bg-navy-800 text-ink/50 border border-white/10'
+                  }`}
                 >
                   {index < currentStep ? '✓' : index + 1}
                 </div>
 
                 <span
-                  className={`mt-2 text-xs font-medium uppercase tracking-wider hidden sm:block ${index <= currentStep
-                    ? 'text-gold-400'
-                    : 'text-ink/50'
-                    }`}
+                  className={`mt-2 text-xs font-medium uppercase tracking-wider hidden sm:block ${
+                    index <= currentStep
+                      ? 'text-gold-400'
+                      : 'text-ink/50'
+                  }`}
                 >
                   {step}
                 </span>
@@ -541,8 +555,10 @@ export default function CreateListingPage() {
                     disabled={isSubmitting}
                   >
                     {isSubmitting
-                      ? 'Submitting...'
-                      : 'Submit Listing'}
+  ? 'Submitting...'
+  : user?.role === ROLES.OWNER
+    ? 'Submit Property Request'
+    : 'Submit Listing'}
                   </GoldButton>
                 </>
               )}

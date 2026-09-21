@@ -4,7 +4,21 @@ import {
 
 
 // Hero
-export const propertyTypes = ['Any Type', 'Apartment', 'Duplex', 'Villa', 'Studio', 'Land', 'Office'];
+export const propertyTypes = [
+  'Any Type',
+  'Apartment',
+  'Duplex',
+  'Studio',
+  'Mini Flat',
+  'Self Contain',
+  'Short Let',
+  'Student Housing',
+  'Affordable Rental',
+  'Family House',
+  'Land',
+  'Warehouse',
+  'Office Space',
+];
 export const locations = ['Any Location', 'Lagos', 'Abuja', 'Port Harcourt', 'Lekki', 'Eko Atlantic'];
 export const budgets = ['Any Budget', '₦50M – ₦100M', '₦100M – ₦300M', '₦300M – ₦700M', '₦700M+'];
 

@@ -95,3 +95,20 @@ export interface AgencyAssignment {
   responseDeadline: string;
   status: string; // 'Pending Agent', 'Accepted', 'Declined', 'Unassigned', 'Hold'
 }
+
+export interface PublicAgency {
+  id: string;
+  slug: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  agentCount: number;
+  listingCount: number;
+  serviceAreas: string[];
+  specializations: string[];
+  propertyTypes: string[];
+}

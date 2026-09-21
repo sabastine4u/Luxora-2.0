@@ -16,9 +16,7 @@ import {
   Zap,
   TrendingUp,
   ShieldCheck,
-  AlertTriangle,
   FileText,
-  CheckCircle,
 } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
 import { useSession } from '../../../contexts/SessionContext';
@@ -46,32 +44,45 @@ export default function Overview() {
   const [properties, setProperties] =
     useState<any[]>([]);
 
-  const [verificationSummary, setVerificationSummary] =
-    useState({
-      pending: 0,
-      verified: 0,
-      rejected: 0,
-      revoked: 0,
-    });
+  const [
+    verificationSummary,
+    setVerificationSummary,
+  ] = useState({
+    pending: 0,
+    verified: 0,
+    rejected: 0,
+    revoked: 0,
+  });
 
-  const [verificationQueue, setVerificationQueue] =
+  const [
+    verificationQueue,
+    setVerificationQueue,
+  ] = useState<any[]>([]);
+
+  // Store real System Audit Log records.
+  const [auditLogs, setAuditLogs] =
     useState<any[]>([]);
 
   /*
-   * Complaints are loaded opportunistically when the
-   * current adminApi contains the complaints endpoint.
-   *
-   * This keeps the UI intact without creating a fake
-   * complaint count when the endpoint is unavailable.
+   * Complaints are loaded opportunistically because
+   * the existing Admin API already exposes complaints.
    */
-  const [openComplaintCount, setOpenComplaintCount] =
-    useState<number | null>(null);
+  const [
+    openComplaintCount,
+    setOpenComplaintCount,
+  ] = useState<number | null>(null);
 
   useEffect(() => {
     const loadOverview = async () => {
       try {
         setIsLoading(true);
 
+        /*
+         * Load the core Admin dashboard data together.
+         *
+         * Audit Logs are real records from the backend and
+         * replace the old fabricated "Recent Logins" data.
+         */
         const [
           ownersResponse,
           agenciesResponse,
@@ -79,13 +90,20 @@ export default function Overview() {
           propertiesResponse,
           verificationSummaryResponse,
           verificationQueueResponse,
+          auditLogsResponse,
         ] = await Promise.all([
           adminApi.getOwners(),
           adminApi.getAgencies(),
           adminApi.getAgents(),
           adminApi.getProperties(),
           adminApi.getVerificationCenterSummary(),
-          adminApi.getVerificationQueue('Pending'),
+          adminApi.getVerificationQueue(
+            'Pending',
+          ),
+          adminApi.getAuditLogs({
+            page: 1,
+            limit: 8,
+          }),
         ]);
 
         const ownersData =
@@ -106,14 +124,17 @@ export default function Overview() {
         const verificationQueueData =
           verificationQueueResponse as any;
 
+        const auditLogsData =
+          auditLogsResponse as any;
+
         const ownersList =
           Array.isArray(
             ownersData?.owners,
           )
             ? ownersData.owners
             : Array.isArray(
-              ownersData?.data?.owners,
-            )
+                ownersData?.data?.owners,
+              )
               ? ownersData.data.owners
               : [];
 
@@ -123,8 +144,8 @@ export default function Overview() {
           )
             ? agenciesData.agencies
             : Array.isArray(
-              agenciesData?.data?.agencies,
-            )
+                agenciesData?.data?.agencies,
+              )
               ? agenciesData.data.agencies
               : [];
 
@@ -134,8 +155,8 @@ export default function Overview() {
           )
             ? agentsData.agents
             : Array.isArray(
-              agentsData?.data?.agents,
-            )
+                agentsData?.data?.agents,
+              )
               ? agentsData.data.agents
               : [];
 
@@ -145,8 +166,8 @@ export default function Overview() {
           )
             ? propertiesData.properties
             : Array.isArray(
-              propertiesData?.data?.properties,
-            )
+                propertiesData?.data?.properties,
+              )
               ? propertiesData.data.properties
               : [];
 
@@ -166,9 +187,34 @@ export default function Overview() {
           )
             ? verificationQueueData.verifications
             : Array.isArray(
-              verificationQueueData?.data?.verifications,
-            )
-              ? verificationQueueData.data.verifications
+                verificationQueueData
+                  ?.data?.verifications,
+              )
+              ? verificationQueueData.data
+                  .verifications
+              : [];
+
+        /*
+         * The Audit Log controller returns:
+         *
+         * {
+         *   logs: [],
+         *   pagination: {}
+         * }
+         *
+         * The shared HTTP layer may return the payload
+         * directly, so support both direct and nested forms.
+         */
+        const auditLogList =
+          Array.isArray(
+            auditLogsData?.logs,
+          )
+            ? auditLogsData.logs
+            : Array.isArray(
+                auditLogsData
+                  ?.data?.logs,
+              )
+              ? auditLogsData.data.logs
               : [];
 
         setOwners(
@@ -202,55 +248,55 @@ export default function Overview() {
           verificationList,
         );
 
+        setAuditLogs(
+          auditLogList,
+        );
+
         /*
-         * Complaints were implemented separately from the
-         * uploaded Admin Overview API surface. When the
-         * method exists in the current frontend, use it.
-         *
-         * Otherwise keep the card visible with no fake value.
+         * Complaints are a real backend source.
+         * Keep the metric unavailable when the request
+         * itself cannot be retrieved.
          */
-        const complaintsApi =
-          adminApi as any;
+        try {
+          const complaintsResponse =
+            await adminApi.getComplaints();
 
-        if (
-          typeof complaintsApi.getComplaints ===
-          'function'
-        ) {
-          try {
-            const complaintsResponse =
-              await complaintsApi.getComplaints();
+          const complaintsData =
+            complaintsResponse as any;
 
-            const complaintsData =
-              complaintsResponse as any;
-
-            const complaints =
-              Array.isArray(
-                complaintsData?.complaints,
-              )
-                ? complaintsData.complaints
-                : Array.isArray(
-                  complaintsData?.data?.complaints,
+          const complaints =
+            Array.isArray(
+              complaintsData?.complaints,
+            )
+              ? complaintsData.complaints
+              : Array.isArray(
+                  complaintsData
+                    ?.data?.complaints,
                 )
-                  ? complaintsData.data.complaints
-                  : [];
+                ? complaintsData.data
+                    .complaints
+                : [];
 
-            const activeComplaints =
-              complaints.filter(
-                (complaint: any) =>
-                  complaint.status === 'Open' ||
-                  complaint.status === 'In Progress' ||
-                  complaint.status === 'Escalated',
-              );
+          const activeComplaints =
+            complaints.filter(
+              (complaint: any) =>
+                complaint.status ===
+                  'Open' ||
+                complaint.status ===
+                  'In Progress' ||
+                complaint.status ===
+                  'Escalated',
+            );
 
-            setOpenComplaintCount(
-              activeComplaints.length,
-            );
-          } catch {
-            setOpenComplaintCount(
-              null,
-            );
-          }
-        } else {
+          setOpenComplaintCount(
+            activeComplaints.length,
+          );
+        } catch (complaintError) {
+          console.error(
+            'Failed to load Admin complaints:',
+            complaintError,
+          );
+
           setOpenComplaintCount(
             null,
           );
@@ -266,6 +312,7 @@ export default function Overview() {
         setAgents([]);
         setProperties([]);
         setVerificationQueue([]);
+        setAuditLogs([]);
 
         setVerificationSummary({
           pending: 0,
@@ -282,7 +329,7 @@ export default function Overview() {
       }
     };
 
-    loadOverview();
+    void loadOverview();
   }, []);
 
   /*
@@ -310,42 +357,30 @@ export default function Overview() {
   const activeListings =
     properties.filter(
       (property) =>
-        property.status === 'Published',
+        property.status ===
+        'Published',
     ).length;
 
   const pendingModeration =
     properties.filter(
       (property) =>
-        property.status === 'Pending Review',
+        property.status ===
+        'Pending Review',
     );
 
   const approvedProperties =
     properties.filter(
       (property) =>
-        property.status === 'Approved',
+        property.status ===
+        'Approved',
     ).length;
 
   const rejectedProperties =
     properties.filter(
       (property) =>
-        property.status === 'Rejected',
+        property.status ===
+        'Rejected',
     ).length;
-
-  const totalVerificationRecords =
-    verificationSummary.pending +
-    verificationSummary.verified +
-    verificationSummary.rejected +
-    verificationSummary.revoked;
-
-  const verificationRate =
-    totalVerificationRecords > 0
-      ? Math.round(
-        (
-          verificationSummary.verified /
-          totalVerificationRecords
-        ) * 100,
-      )
-      : 0;
 
   const queueSummary =
     verificationSummary.pending +
@@ -364,21 +399,27 @@ export default function Overview() {
             verification: any,
           ) => {
             const agentName =
-              verification.agent?.fullName ||
-              verification.user?.fullName ||
+              verification.agent
+                ?.fullName ||
+              verification.user
+                ?.fullName ||
               'Agent Verification';
 
             return {
               title:
                 'Agent Verification Pending',
+
               desc:
                 agentName,
+
               time:
                 formatRelativeTime(
                   verification.createdAt,
                 ),
+
               color:
                 'text-gold-400',
+
               icon:
                 ShieldCheck,
             };
@@ -401,111 +442,197 @@ export default function Overview() {
     pendingModeration.slice(0, 3);
 
   /*
-   * Existing UI sections that currently do not have
-   * supporting backend endpoints remain visible.
-   *
-   * These are intentionally NOT removed.
+   * Announcements remain part of the UI, but the
+   * content now reflects real current platform state.
    */
   const announcements = [
     {
-      id: 1,
+      id: 'verification',
       title:
-        'Verification Policy Update',
+        'Verification Queue Update',
       desc:
-        'New guidelines for document verification.',
+        verificationSummary.pending >
+        0
+          ? `${
+              verificationSummary.pending
+            } agent verification request${
+              verificationSummary.pending ===
+              1
+                ? ''
+                : 's'
+            } currently require attention.`
+          : 'No agent verification requests are currently pending.',
       time:
-        'Today, 9:00 AM',
+        verificationSummary.pending >
+        0
+          ? 'Action required'
+          : 'Queue clear',
     },
+
     {
-      id: 2,
+      id: 'moderation',
       title:
-        'System Maintenance',
+        'Property Moderation Update',
       desc:
-        'Scheduled downtime for db upgrade.',
+        pendingModeration.length >
+        0
+          ? `${
+              pendingModeration.length
+            } property submission${
+              pendingModeration.length ===
+              1
+                ? ''
+                : 's'
+            } currently require moderation.`
+          : 'No properties are currently awaiting moderation.',
       time:
-        'Tomorrow, 2:00 AM',
+        pendingModeration.length >
+        0
+          ? 'Action required'
+          : 'Queue clear',
     },
   ];
 
+  /*
+   * Upcoming tasks are derived from actual outstanding
+   * operational queues.
+   */
   const upcomingTasks = [
-    {
-      id: 1,
-      title:
-        'Dispatch Approved Properties',
-      type:
-        'Assignment Hub',
-      due:
-        'Today',
-    },
-    {
-      id: 2,
-      title:
-        'Review Property Submissions',
-      type:
-        'Verification',
-      due:
-        'Today',
-    },
+    ...(verificationSummary.pending >
+    0
+      ? [
+          {
+            id: 'verification',
+            title:
+              'Review Agent Verifications',
+            type:
+              'Verification Center',
+            due: `${
+              verificationSummary.pending
+            } pending`,
+          },
+        ]
+      : []),
+
+    ...(pendingModeration.length >
+    0
+      ? [
+          {
+            id: 'moderation',
+            title:
+              'Review Property Submissions',
+            type:
+              'Moderation Queue',
+            due: `${
+              pendingModeration.length
+            } pending`,
+          },
+        ]
+      : []),
+
+    ...(openComplaintCount !==
+      null &&
+    openComplaintCount > 0
+      ? [
+          {
+            id: 'complaints',
+            title:
+              'Review Open Complaints',
+            type:
+              'Complaints',
+            due: `${
+              openComplaintCount
+            } open`,
+          },
+        ]
+      : []),
   ];
 
-  const recentLogins = [
-    {
-      id: 1,
-      name:
-        'Admin Chidi',
-      role:
-        'Super Admin',
-      time:
-        '10 mins ago',
-      ip:
-        '192.168.1.1',
-    },
-    {
-      id: 2,
-      name:
-        'Moderator Bisi',
-      role:
-        'Moderator',
-      time:
-        '1 hour ago',
-      ip:
-        '10.0.0.5',
-    },
-  ];
+  /*
+   * Use real Audit Log records instead of fabricated
+   * recent login records.
+   */
+  const recentAdministrativeActivity =
+    auditLogs.slice(0, 4);
 
+  /*
+   * Current operational alerts are derived from
+   * real queue/state information.
+   */
   const operationalAlerts = [
     {
-      id: 1,
-      title:
-        'Property Ready for Agency Assignment',
-      level:
-        'Notice',
-      desc:
-        'A property is currently waiting for agency assignment.',
-      color:
-        'text-gold-400',
-    },
-    {
-      id: 2,
+      id: 'verification',
       title:
         'Verification Queue',
-      level:
-        'Warning',
       desc:
-        `${verificationSummary.pending} items currently pending review.`,
+        verificationSummary.pending >
+        0
+          ? `${
+              verificationSummary.pending
+            } agent verification request${
+              verificationSummary.pending ===
+              1
+                ? ''
+                : 's'
+            } require review.`
+          : 'No agent verification requests are currently pending.',
       color:
-        'text-yellow-400',
+        verificationSummary.pending >
+        0
+          ? 'text-yellow-400'
+          : 'text-emerald-400',
     },
+
     {
-      id: 3,
+      id: 'moderation',
       title:
-        'Published Listings',
-      level:
-        'Success',
+        'Property Moderation',
       desc:
-        `${activeListings} properties are currently published.`,
+        pendingModeration.length >
+        0
+          ? `${
+              pendingModeration.length
+            } property submission${
+              pendingModeration.length ===
+              1
+                ? ''
+                : 's'
+            } are awaiting moderation.`
+          : 'No properties are currently awaiting moderation.',
       color:
-        'text-emerald-400',
+        pendingModeration.length >
+        0
+          ? 'text-gold-400'
+          : 'text-emerald-400',
+    },
+
+    {
+      id: 'complaints',
+      title:
+        'Open Complaints',
+      desc:
+        openComplaintCount ===
+        null
+          ? 'Complaint metrics are currently unavailable.'
+          : openComplaintCount >
+              0
+            ? `${
+                openComplaintCount
+              } complaint${
+                openComplaintCount ===
+                1
+                  ? ''
+                  : 's'
+              } currently require attention.`
+            : 'No open complaints require attention.',
+      color:
+        openComplaintCount ===
+        null
+          ? 'text-ink/40'
+          : openComplaintCount >
+              0
+            ? 'text-rose-400'
+            : 'text-emerald-400',
     },
   ];
 
@@ -535,24 +662,24 @@ export default function Overview() {
               Activity,
           },
         ]}
-        showVerifiedBadge={true}
+        showVerifiedBadge={
+          true
+        }
         actions={
-          <>
-            <button
-              onClick={() =>
-                window.location.href =
-                '?tab=Settings'
-              }
-              className="rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-navy-900 hover:bg-gold-300"
-            >
-              Platform Settings
-            </button>
-          </>
+          <button
+            onClick={() =>
+              (window.location.href =
+                '?tab=Settings')
+            }
+            className="rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-navy-900 hover:bg-gold-300"
+          >
+            Platform Settings
+          </button>
         }
       />
 
       <div className="mb-2">
-        <h2 className="text-sm font-semibold text-ink/50 uppercase tracking-wider">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink/50">
           Platform Snapshot
         </h2>
       </div>
@@ -641,10 +768,18 @@ export default function Overview() {
         />
 
         <KPICard
-          title="Platform Health"
-          value="100%"
+          title="Platform Status"
+          value={
+            isLoading
+              ? '—'
+              : 'Online'
+          }
           icon={Activity}
-          trend="Operational"
+          trend={
+            isLoading
+              ? 'Loading...'
+              : 'Admin data connected'
+          }
           trendColor="text-emerald-400"
           iconColor="text-emerald-400"
           backgroundColor="bg-emerald-400/10"
@@ -653,7 +788,7 @@ export default function Overview() {
 
       {/* Operational Scope */}
       <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="mb-4 flex items-center gap-3">
           <ShieldCheck className="h-6 w-6 text-gold-400" />
 
           <h3 className="font-heading text-lg font-bold text-cream">
@@ -661,13 +796,13 @@ export default function Overview() {
           </h3>
         </div>
 
-        <p className="text-sm text-ink/60 mb-6 max-w-3xl">
-          As a {adminRole}, you are responsible for maintaining the integrity,
-          security, and quality of the Luxora platform. Your primary operational
-          duties include:
+        <p className="mb-6 max-w-3xl text-sm text-ink/60">
+          As a {adminRole}, you are responsible for maintaining the
+          integrity, security, and quality of the Luxora platform. Your primary
+          operational duties include:
         </p>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             'Property Verification',
             'User Compliance & KYC',
@@ -697,38 +832,37 @@ export default function Overview() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col justify-center space-y-4">
-          <div className="flex items-center gap-2 mb-2">
+        {/* Moderation Snapshot */}
+        <div className="flex flex-col justify-center space-y-4 rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <div className="mb-2 flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-gold-400" />
 
             <h3 className="font-heading text-lg font-bold text-cream">
-              Weekly Moderation Trends
+              Moderation Snapshot
             </h3>
           </div>
 
-          {/*
-           * Kept exactly in the UI because there is currently
-           * no backend endpoint supplying weekly moderation
-           * history. The values below remain the existing
-           * presentation data until that backend is built.
-           */}
           <SegmentedProgressBar
             segments={[
               {
                 label:
-                  'Approved',
+                  'Published',
                 value:
-                  450,
+                  isLoading
+                    ? 0
+                    : activeListings,
                 color:
                   'bg-emerald-400',
               },
               {
                 label:
-                  'Rejected',
+                  'Approved',
                 value:
-                  120,
+                  isLoading
+                    ? 0
+                    : approvedProperties,
                 color:
-                  'bg-rose-400',
+                  'bg-blue-400',
               },
               {
                 label:
@@ -736,9 +870,19 @@ export default function Overview() {
                 value:
                   isLoading
                     ? 0
-                    : verificationSummary.pending,
+                    : pendingModeration.length,
                 color:
                   'bg-yellow-400',
+              },
+              {
+                label:
+                  'Rejected',
+                value:
+                  isLoading
+                    ? 0
+                    : rejectedProperties,
+                color:
+                  'bg-rose-400',
               },
             ]}
           />
@@ -761,15 +905,17 @@ export default function Overview() {
           <KPICard
             title="Open Complaints"
             value={
-              openComplaintCount === null
+              openComplaintCount ===
+              null
                 ? '—'
                 : openComplaintCount.toLocaleString()
             }
             icon={ShieldAlert}
             trend={
-              openComplaintCount === null
-                ? 'Backend metric unavailable'
-                : 'Requires attention'
+              openComplaintCount ===
+              null
+                ? 'Metric unavailable'
+                : 'Current open workload'
             }
             trendColor="text-rose-400"
             iconColor="text-rose-400"
@@ -779,8 +925,8 @@ export default function Overview() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Pending Verification Widget */}
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+        <div className="flex flex-col rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
             <h3 className="font-heading text-lg font-bold text-cream">
               Pending Verification
             </h3>
@@ -793,12 +939,13 @@ export default function Overview() {
             </GhostButton>
           </div>
 
-          <div className="space-y-4 flex-1">
+          <div className="flex-1 space-y-4">
             {isLoading ? (
               <div className="text-sm text-ink/50">
                 Loading verification queue...
               </div>
-            ) : pendingVerificationItems.length === 0 ? (
+            ) : pendingVerificationItems.length ===
+              0 ? (
               <div className="text-sm text-ink/50">
                 No pending verifications.
               </div>
@@ -808,8 +955,10 @@ export default function Overview() {
                   item: any,
                 ) => {
                   const title =
-                    item.agent?.fullName ||
-                    item.user?.fullName ||
+                    item.agent
+                      ?.fullName ||
+                    item.user
+                      ?.fullName ||
                     'Agent Verification';
 
                   return (
@@ -818,14 +967,14 @@ export default function Overview() {
                         item._id ||
                         item.id
                       }
-                      className="flex items-center justify-between group"
+                      className="group flex items-center justify-between"
                     >
                       <div>
                         <div className="text-sm font-semibold text-cream">
                           {title}
                         </div>
 
-                        <div className="text-xs text-ink/50 mt-0.5">
+                        <div className="mt-0.5 text-xs text-ink/50">
                           Agent Verification
                           {' • '}
                           {formatRelativeTime(
@@ -835,7 +984,8 @@ export default function Overview() {
                       </div>
 
                       <button
-                        className="h-6 w-6 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10"
+                        type="button"
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-100"
                       >
                         <ChevronRight className="h-4 w-4 text-ink/40" />
                       </button>
@@ -848,8 +998,8 @@ export default function Overview() {
         </div>
 
         {/* Pending Moderation Widget */}
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+        <div className="flex flex-col rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
             <h3 className="font-heading text-lg font-bold text-cream">
               Pending Moderation
             </h3>
@@ -862,12 +1012,13 @@ export default function Overview() {
             </GhostButton>
           </div>
 
-          <div className="space-y-4 flex-1">
+          <div className="flex-1 space-y-4">
             {isLoading ? (
               <div className="text-sm text-ink/50">
                 Loading moderation queue...
               </div>
-            ) : pendingModerationItems.length === 0 ? (
+            ) : pendingModerationItems.length ===
+              0 ? (
               <div className="text-sm text-ink/50">
                 No properties pending moderation.
               </div>
@@ -881,7 +1032,7 @@ export default function Overview() {
                       item._id ||
                       item.id
                     }
-                    className="flex items-center justify-between group"
+                    className="group flex items-center justify-between"
                   >
                     <div>
                       <div className="text-sm font-semibold text-cream">
@@ -889,7 +1040,7 @@ export default function Overview() {
                           'Untitled Property'}
                       </div>
 
-                      <div className="text-xs text-ink/50 mt-0.5">
+                      <div className="mt-0.5 text-xs text-ink/50">
                         {getPropertyLocation(
                           item,
                         )}
@@ -901,7 +1052,8 @@ export default function Overview() {
                     </div>
 
                     <button
-                      className="h-6 w-6 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10"
+                      type="button"
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-100"
                     >
                       <ChevronRight className="h-4 w-4 text-ink/40" />
                     </button>
@@ -912,38 +1064,39 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* Recent Reports Widget */}
+        {/* Verification Activity */}
         <div className="space-y-6">
           <ActivityTimeline
             title="Verification Activity"
             items={
-              recentActivity.length > 0
+              recentActivity.length >
+              0
                 ? recentActivity
                 : [
-                  {
-                    title:
-                      isLoading
-                        ? 'Loading verification activity'
-                        : 'No recent verification activity',
-                    desc:
-                      isLoading
-                        ? 'Fetching current verification records'
-                        : 'No pending verification activity available',
-                    time:
-                      '',
-                    color:
-                      'text-ink/50',
-                    icon:
-                      Activity,
-                  },
-                ]
+                    {
+                      title:
+                        isLoading
+                          ? 'Loading verification activity'
+                          : 'No recent verification activity',
+                      desc:
+                        isLoading
+                          ? 'Fetching current verification records'
+                          : 'No pending verification activity available',
+                      time:
+                        '',
+                      color:
+                        'text-ink/50',
+                      icon:
+                        Activity,
+                    },
+                  ]
             }
             showViewAll
           />
 
           {/* Quick Links */}
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <h3 className="font-heading text-lg font-bold text-cream mb-4 border-b border-white/10 pb-4">
+            <h3 className="mb-4 border-b border-white/10 pb-4 font-heading text-lg font-bold text-cream">
               Administrator Quick Links
             </h3>
 
@@ -970,8 +1123,8 @@ export default function Overview() {
 
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Platform Announcements */}
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+        <div className="flex flex-col rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-blue-400" />
 
@@ -991,11 +1144,11 @@ export default function Overview() {
                     {item.title}
                   </div>
 
-                  <div className="text-xs text-ink/60 mt-1">
+                  <div className="mt-1 text-xs text-ink/60">
                     {item.desc}
                   </div>
 
-                  <div className="text-[10px] text-ink/40 mt-1">
+                  <div className="mt-1 text-[10px] text-ink/40">
                     {item.time}
                   </div>
                 </div>
@@ -1005,8 +1158,8 @@ export default function Overview() {
         </div>
 
         {/* Upcoming Tasks */}
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+        <div className="flex flex-col rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-emerald-400" />
 
@@ -1017,73 +1170,111 @@ export default function Overview() {
           </div>
 
           <div className="space-y-4">
-            {upcomingTasks.map(
-              (
-                item,
-              ) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-sm font-semibold text-cream">
-                      {item.title}
+            {upcomingTasks.length === 0 ? (
+              <div className="text-sm text-ink/50">
+                No outstanding administrative tasks.
+              </div>
+            ) : (
+              upcomingTasks.map(
+                (
+                  item,
+                ) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-cream">
+                        {item.title}
+                      </div>
+
+                      <div className="mt-1 text-xs text-ink/50">
+                        {item.type}
+                      </div>
                     </div>
 
-                    <div className="text-xs text-ink/50 mt-1">
-                      {item.type}
+                    <div className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                      {item.due}
                     </div>
                   </div>
-
-                  <div className="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-                    {item.due}
-                  </div>
-                </div>
-              ),
+                ),
+              )
             )}
           </div>
         </div>
 
-        {/* Recent Logins */}
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+        {/* Recent Administrative Activity */}
+        <div className="flex flex-col rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-2">
               <Key className="h-5 w-5 text-gold-400" />
 
               <h3 className="font-heading text-lg font-bold text-cream">
-                Recent Logins
+                Recent Administrative Activity
               </h3>
             </div>
           </div>
 
           <div className="space-y-4">
-            {recentLogins.map(
-              (
-                item,
-              ) => (
-                <div key={item.id}>
-                  <div className="text-sm font-semibold text-cream flex justify-between">
-                    {item.name}
+            {isLoading ? (
+              <div className="text-sm text-ink/50">
+                Loading administrative activity...
+              </div>
+            ) : recentAdministrativeActivity.length ===
+              0 ? (
+              <div className="text-sm text-ink/50">
+                No recent administrative activity.
+              </div>
+            ) : (
+              recentAdministrativeActivity.map(
+                (
+                  item: any,
+                ) => (
+                  <div
+                    key={
+                      item.id ||
+                      item._id ||
+                      `${item.createdAt}-${item.action}`
+                    }
+                  >
+                    <div className="flex justify-between gap-3 text-sm font-semibold text-cream">
+                      <span>
+                        {item.action ||
+                          'Administrative action'}
+                      </span>
 
-                    <span className="text-xs text-ink/40">
-                      {item.time}
-                    </span>
-                  </div>
+                      <span className="shrink-0 text-xs font-normal text-ink/40">
+                        {formatRelativeTime(
+                          item.createdAt,
+                        )}
+                      </span>
+                    </div>
 
-                  <div className="text-xs text-ink/60 mt-1">
-                    {item.role}
-                    {' • '}
-                    {item.ip}
+                    <div className="mt-1 text-xs text-ink/60">
+                      {item.actor?.name ||
+                        'System User'}
+                      {' • '}
+                      {item.actor?.role ||
+                        'Administrator'}
+                    </div>
+
+                    {item.description && (
+                      <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink/50">
+                        {
+                          item.description
+                        }
+                      </div>
+                    )}
                   </div>
-                </div>
-              ),
+                ),
+              )
             )}
           </div>
         </div>
 
         {/* Operational Alerts */}
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+        <div className="flex flex-col rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+          <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-rose-400" />
 
@@ -1103,7 +1294,7 @@ export default function Overview() {
                   className="flex gap-3"
                 >
                   <div
-                    className={`mt-0.5 h-2 w-2 rounded-full ${item.color} shrink-0`}
+                    className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${item.color}`}
                   />
 
                   <div>
@@ -1111,7 +1302,7 @@ export default function Overview() {
                       {item.title}
                     </div>
 
-                    <div className="text-xs text-ink/60 mt-1">
+                    <div className="mt-1 text-xs text-ink/60">
                       {item.desc}
                     </div>
                   </div>
@@ -1148,8 +1339,7 @@ function formatRelativeTime(
 
   const minutes =
     Math.floor(
-      diff /
-      (1000 * 60),
+      diff / (1000 * 60),
     );
 
   if (minutes < 1) {

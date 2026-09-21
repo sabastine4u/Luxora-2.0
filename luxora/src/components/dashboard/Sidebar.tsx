@@ -76,6 +76,7 @@ import {
   procurementApi,
 } from '../../api/procurement.api';
 import { financeApi } from '../../api/finance.api';
+import { superAdminApi } from '../../api/super-admin.api';
 import { intelligenceApi } from '../../api/intelligence.api';
 import { PROPERTY_MANAGEMENT_DATA_CHANGED, propertyManagementApi } from '../../api/property-management.api';
 
@@ -212,6 +213,8 @@ export default function Sidebar({
   // Real count of active complaints requiring Admin attention.
   const [adminComplaintCount, setAdminComplaintCount] =
     useState<number | null>(null);
+  const [superAdminCounts, setSuperAdminCounts] =
+    useState<Record<string, number> | null>(null);
 
   const [procurementCounts, setProcurementCounts] =
     useState<Record<string, number> | null>(null);
@@ -267,10 +270,17 @@ export default function Sidebar({
       return () => window.removeEventListener(PROPERTY_MANAGEMENT_DATA_CHANGED, loadPropertyManagementCounts);
     }
 
-    if (
-      user.role === 'Admin' ||
-      user.role === 'Super Admin'
-    ) {
+    if (user.role === 'Super Admin') {
+      superAdminApi.getCounts()
+        .then((response: any) => {
+          const counts = response?.counts ?? response?.data?.counts ?? response;
+          setSuperAdminCounts(counts && typeof counts === 'object' ? counts : null);
+        })
+        .catch(() => setSuperAdminCounts(null));
+      return;
+    }
+
+    if (user.role === 'Admin') {
       adminApi
         .getProperties()
         .then((response) => {
@@ -758,6 +768,7 @@ export default function Sidebar({
     setAdminAgencyCount(null);
     setAdminStaffCount(null);
     setAdminComplaintCount(null);
+    setSuperAdminCounts(null);
     setProcurementCounts(null);
     setFinanceCounts(null);
   }, [user?.role]);
@@ -847,6 +858,11 @@ export default function Sidebar({
               active === item.label;
 
             const badgeValue =
+              user?.role === 'Super Admin' &&
+                ({ Listings: 'properties', 'Admin Management': 'admins', Agencies: 'agencies', Agents: 'agents', 'Complaint Oversight': 'complaints', Verification: 'verifications', Procurement: 'procurement', 'Home Services': 'serviceTransactions' } as Record<string, string>)[item.label]
+                ? superAdminCounts?.[({ Listings: 'properties', 'Admin Management': 'admins', Agencies: 'agencies', Agents: 'agents', 'Complaint Oversight': 'complaints', Verification: 'verifications', Procurement: 'procurement', 'Home Services': 'serviceTransactions' } as Record<string, string>)[item.label]]
+
+              : user?.role === 'Finance Manager' &&
               user?.role === 'Finance Manager' &&
                 ({ 'Owner Payments': 'ownerPayments', 'Agency Earnings': 'agencyEarnings', 'Agent Commissions': 'agentCommissions', 'Mortgage Statistics': 'mortgageApplications', Budget: 'procurementBudget', 'Audit Logs': 'auditLogs' } as Record<string, string>)[item.label]
                 ? financeCounts?.[({ 'Owner Payments': 'ownerPayments', 'Agency Earnings': 'agencyEarnings', 'Agent Commissions': 'agentCommissions', 'Mortgage Statistics': 'mortgageApplications', Budget: 'procurementBudget', 'Audit Logs': 'auditLogs' } as Record<string, string>)[item.label]]

@@ -43,6 +43,50 @@ export interface AdminListing {
   price: string;
   status: string;
   priority: string;
+    // Real Property data used by the Admin/Super Admin review screen.
+  propertyType?: string;
+  transactionType?: string;
+  description?: string;
+
+  bedrooms?: number;
+  bathrooms?: number;
+  toilets?: number;
+  parkingSpaces?: number;
+
+  propertySize?: number | null;
+  propertySizeUnit?: string;
+
+  yearBuilt?: number | null;
+  furnishing?: string | null;
+  propertyCondition?: string | null;
+
+  priceFrequency?: string | null;
+
+  images?: string[];
+  coverImage?: string | null;
+
+  origin?: string;
+  createdByRole?: string;
+
+  verificationLevel?: string;
+  assignmentStatus?: string | null;
+
+  agent?: {
+    id?: string;
+    name?: string;
+  } | null;
+
+  agency?: {
+    id?: string;
+    name?: string;
+  } | null;
+
+  documents?: {
+    title?: string;
+    url?: string;
+    verified?: boolean;
+    uploadedAt?: string;
+  }[];
   verification?: {
     status: string;
     checklist: { id: string; text: string; checked: boolean }[];
