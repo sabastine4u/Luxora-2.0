@@ -144,6 +144,7 @@ export interface ActivityItem {
 
 export interface PublicAgent {
   id: string;
+  userId: string | null;
   slug: string;
   name: string;
   email: string;

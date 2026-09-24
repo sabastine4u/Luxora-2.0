@@ -22,7 +22,7 @@ export default function Topbar({
   actions?: React.ReactNode;
 }) {
   const navigate = useNavigate();
-  const { user, logout } = useSession();
+  const { user, logout, unreadCount } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -89,7 +89,11 @@ export default function Topbar({
           className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-ink/70 transition-colors hover:text-cream"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold-400 ring-2 ring-navy-900" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex min-w-4 h-4 items-center justify-center rounded-full bg-gold-400 px-1 text-[10px] font-bold text-navy-900 ring-2 ring-navy-900">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* Communications */}

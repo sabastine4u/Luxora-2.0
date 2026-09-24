@@ -1,10 +1,9 @@
-import { Calculator, Home, Phone } from 'lucide-react';
+import { Calculator, Home } from 'lucide-react';
 import { formatCurrency } from '../../../utils';
 import { GoldButton, GhostButton } from '../../../components/ui/ui';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../constants/routes';
 
-// Describe the mortgage application data supplied by MortgageTracker.
 interface MortgageApplication {
   requestedLoanAmount: number;
   approvedLoanAmount: number | null;
@@ -14,20 +13,20 @@ interface MortgageApplication {
   status: string;
 }
 
-// Accept the active mortgage application from the parent component.
 interface MortgageSnapshotProps {
   application?: MortgageApplication;
+  onStartApplication: () => void;
 }
 
 export default function MortgageSnapshot({
   application,
+  onStartApplication,
 }: MortgageSnapshotProps) {
   const navigate = useNavigate();
 
-  // Show an honest empty state when the Buyer has no active mortgage application.
   if (!application) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8 backdrop-blur-md">
+      <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 backdrop-blur-md md:p-8">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold-400/10 text-gold-400">
@@ -40,7 +39,8 @@ export default function MortgageSnapshot({
               </h3>
 
               <p className="text-sm text-ink/60">
-                Your current estimated financing capability
+                Track your real financing application and
+                loan status.
               </p>
             </div>
           </div>
@@ -52,78 +52,96 @@ export default function MortgageSnapshot({
 
         <div className="mt-8 rounded-2xl border border-white/5 bg-navy-900/50 p-6">
           <h4 className="font-heading text-lg font-semibold text-cream">
-            Your mortgage snapshot will appear here
+            Start your mortgage application
           </h4>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">
-            Submit a mortgage application to start tracking your financing,
-            payment details, interest rate, loan term, and application status.
+            Choose a published Buy property, enter the amount
+            you want to finance, and submit a real mortgage
+            application. Your application will then appear
+            here with its current status and financing details.
           </p>
+
+          <GoldButton
+            onClick={onStartApplication}
+            className="mt-6 justify-center gap-2"
+          >
+            Start Mortgage Application
+          </GoldButton>
         </div>
 
-        {/* Keep the useful Buyer actions available even without an application. */}
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
-          <GoldButton
-            onClick={() => navigate(ROUTES.PROPERTIES)}
+          <GhostButton
+            onClick={() =>
+              navigate(ROUTES.PROPERTIES)
+            }
             className="w-full justify-center gap-2 sm:w-auto"
           >
             <Home className="h-4 w-4" />
             Browse Properties
-          </GoldButton>
-
-          <GhostButton className="w-full justify-center gap-2 sm:w-auto">
-            <Calculator className="h-4 w-4" />
-            Mortgage Calculator
           </GhostButton>
 
-          <GhostButton className="w-full justify-center gap-2 sm:w-auto">
-            <Phone className="h-4 w-4" />
-            Contact Financial Advisor
+          <GhostButton
+            onClick={onStartApplication}
+            className="w-full justify-center gap-2 sm:w-auto"
+          >
+            <Calculator className="h-4 w-4" />
+            Open Financing Flow
           </GhostButton>
         </div>
       </div>
     );
   }
 
-  // Prefer the approved loan amount when one exists.
   const loanAmount =
-    application.approvedLoanAmount ?? application.requestedLoanAmount;
+    application.approvedLoanAmount ??
+    application.requestedLoanAmount;
 
-  // Convert the annual interest rate into the monthly decimal rate used by the formula.
   const monthlyRate =
     application.interestRate != null
       ? application.interestRate / 100 / 12
       : 0;
 
-  // Convert the loan term from years into the total number of monthly payments.
-  const totalPayments = application.loanTermYears
-    ? application.loanTermYears * 12
-    : 0;
+  const totalPayments =
+    application.loanTermYears
+      ? application.loanTermYears * 12
+      : 0;
 
-  // Calculate an estimated payment when the lender has not supplied an official payment.
   const estimatedMonthlyPayment =
-    monthlyRate > 0 && totalPayments > 0
+    monthlyRate > 0 &&
+    totalPayments > 0
       ? (loanAmount *
-        monthlyRate *
-        Math.pow(1 + monthlyRate, totalPayments)) /
-      (Math.pow(1 + monthlyRate, totalPayments) - 1)
+          monthlyRate *
+          Math.pow(
+            1 + monthlyRate,
+            totalPayments,
+          )) /
+        (Math.pow(
+          1 + monthlyRate,
+          totalPayments,
+        ) - 1)
       : 0;
 
-  // Prefer the official lender payment when available, otherwise use our estimate.
   const monthlyPayment =
-    application.monthlyPayment ?? estimatedMonthlyPayment;
+    application.monthlyPayment ??
+    estimatedMonthlyPayment;
 
-  // Calculate estimated total interest using the payment and loan duration.
   const estimatedInterest =
-    totalPayments > 0 && monthlyPayment > 0
-      ? Math.max(monthlyPayment * totalPayments - loanAmount, 0)
+    totalPayments > 0 &&
+    monthlyPayment > 0
+      ? Math.max(
+          monthlyPayment *
+            totalPayments -
+            loanAmount,
+          0,
+        )
       : 0;
 
-  // Track whether the displayed payment is an estimate rather than an official lender figure.
-  const isEstimatedPayment = application.monthlyPayment == null;
+  const isEstimatedPayment =
+    application.monthlyPayment == null;
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8 backdrop-blur-md">
+    <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 backdrop-blur-md md:p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold-400/10 text-gold-400">
@@ -136,12 +154,12 @@ export default function MortgageSnapshot({
             </h3>
 
             <p className="text-sm text-ink/60">
-              Your current estimated financing capability
+              Your latest financing application details.
             </p>
           </div>
         </div>
 
-        <span className="self-start rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-semibold text-emerald-300 md:self-center">
+        <span className="self-start rounded-full border border-gold-400/20 bg-gold-400/10 px-4 py-1.5 text-xs font-semibold text-gold-300 md:self-center">
           {application.status}
         </span>
       </div>
@@ -149,84 +167,102 @@ export default function MortgageSnapshot({
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
           <div className="text-sm text-ink/60">
-            {isEstimatedPayment ? 'Est. Monthly Payment' : 'Monthly Payment'}
+            {isEstimatedPayment
+              ? 'Est. Monthly Payment'
+              : 'Monthly Payment'}
           </div>
+
           <div className="mt-2 font-heading text-3xl font-bold text-gold-400">
-           {monthlyPayment > 0
-  ? formatCurrency(Math.round(monthlyPayment))
-  : 'Not available'}
+            {monthlyPayment > 0
+              ? formatCurrency(
+                  Math.round(
+                    monthlyPayment,
+                  ),
+                )
+              : 'Not available'}
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-          <div className="text-sm text-ink/60">Loan Amount</div>
+          <div className="text-sm text-ink/60">
+            Loan Amount
+          </div>
 
           <div className="mt-2 font-heading text-xl font-bold text-cream">
-            {formatCurrency(loanAmount)}
+            {formatCurrency(
+              loanAmount,
+            )}
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-          <div className="text-sm text-ink/60">Interest Rate</div>
+          <div className="text-sm text-ink/60">
+            Interest Rate
+          </div>
 
           <div className="mt-2 font-heading text-xl font-bold text-cream">
             {application.interestRate != null
               ? `${application.interestRate}%`
-              : 'Not set'}
+              : 'Pending'}
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-          <div className="text-sm text-ink/60">Loan Term</div>
+          <div className="text-sm text-ink/60">
+            Loan Term
+          </div>
 
           <div className="mt-2 font-heading text-xl font-bold text-cream">
             {application.loanTermYears
               ? `${application.loanTermYears} Years`
-              : 'Not set'}
+              : 'Pending'}
           </div>
         </div>
       </div>
 
-      {/* Show estimated interest only when the backend has enough data to calculate it. */}
       <div className="mt-8 rounded-2xl border border-white/5 bg-navy-900/50 p-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-           <h4 className="font-heading text-lg font-semibold text-cream">
-  Est. Total Interest
-</h4>
+            <h4 className="font-heading text-lg font-semibold text-cream">
+              Estimated Total Interest
+            </h4>
 
-           <p className="mt-1 text-sm text-ink/60">
-  Based on your current mortgage application details.
-  {isEstimatedPayment && ' This is an estimate until your lender provides an official payment.'}
-</p>
+            <p className="mt-1 text-sm text-ink/60">
+              {isEstimatedPayment
+                ? 'Estimated from the current application data. The lender payment becomes authoritative once supplied.'
+                : 'Based on the monthly payment currently supplied by the lender.'}
+            </p>
           </div>
 
-          <div className="text-right font-heading text-xl font-bold text-cream">
-           {estimatedInterest > 0
-  ? formatCurrency(Math.round(estimatedInterest))
-  : 'Not available'}
+          <div className="font-heading text-xl font-bold text-cream sm:text-right">
+            {estimatedInterest > 0
+              ? formatCurrency(
+                  Math.round(
+                    estimatedInterest,
+                  ),
+                )
+              : 'Not available'}
           </div>
         </div>
       </div>
 
-      {/* Keep the main Buyer actions available for an active application. */}
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
         <GhostButton
-          onClick={() => navigate(ROUTES.PROPERTIES)}
+          onClick={() =>
+            navigate(ROUTES.PROPERTIES)
+          }
           className="w-full justify-center gap-2 sm:w-auto"
         >
           <Home className="h-4 w-4" />
           Browse Properties
         </GhostButton>
 
-        <GhostButton className="w-full justify-center gap-2 sm:w-auto">
+        <GhostButton
+          onClick={onStartApplication}
+          className="w-full justify-center gap-2 sm:w-auto"
+        >
           <Calculator className="h-4 w-4" />
-          Mortgage Calculator
-        </GhostButton>
-
-        <GhostButton className="w-full justify-center gap-2 sm:w-auto">
-          <Phone className="h-4 w-4" />
-          Contact Financial Advisor
+          Start New Application
         </GhostButton>
       </div>
     </div>

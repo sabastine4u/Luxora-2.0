@@ -98,6 +98,7 @@ export interface AgencyAssignment {
 
 export interface PublicAgency {
   id: string;
+  userId: string | null;
   slug: string;
   name: string;
   contactPerson?: string;

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import { ROLES } from "../constants/roles";
 import type { Department } from "../constants/departments";
@@ -10,6 +10,13 @@ import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 import { storage } from "../utils/storage";
 import { authApi } from "../api/auth.api";
 import { setToken, getToken, clearToken } from "../api/token";
+import { notificationApi } from "../api/notification.api";
+import { socketService } from "../services/socket.service";
+import {
+  normalizeRealtimeNotification,
+  normalizeRestNotification,
+  type Notification,
+} from "../types/notification";
 
 export type UserRole = (typeof ROLES)[keyof typeof ROLES];
 
@@ -73,14 +80,6 @@ export interface User {
       currency?: "NGN" | "USD" | "GBP" | "EUR";
     };
   };
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  read: boolean;
-  time: string;
 }
 
 export interface UserPreferences {
@@ -171,6 +170,10 @@ interface SessionContextType {
   recentlyViewed: string[];
   favoriteAgents: string[];
   notifications: Notification[];
+  unreadCount: number;
+  isNotificationsLoading: boolean;
+  notificationError: string | null;
+  loadNotifications: () => Promise<void>;
   preferences: UserPreferences;
   viewingRequests: ViewingRequest[];
   reportListings: ReportListing[];
@@ -187,7 +190,9 @@ interface SessionContextType {
   toggleFavoriteAgent: (id: string) => void;
   isFavoriteAgent: (id: string) => boolean;
 
-  markNotificationRead: (id: string) => void;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  archiveNotification: (id: string) => Promise<void>;
   clearNotifications: () => void;
 
   updatePreferences: (
@@ -359,6 +364,12 @@ export function SessionProvider({
 
   const [notifications, setNotifications] =
     useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  // Guards in-flight REST work from an earlier account after logout/switching.
+  const notificationOwnerId = useRef<string | null>(user?.id ?? null);
+  notificationOwnerId.current = user?.id ?? null;
 
   const [preferences, setPreferences] =
     useState<UserPreferences>({});
@@ -570,6 +581,8 @@ export function SessionProvider({
     setCompareList([]);
     setFavoriteAgents([]);
     setNotifications([]);
+    setUnreadCount(0);
+    setNotificationError(null);
     setPreferences({});
     setViewingRequests([]);
     setReportListings([]);
@@ -589,20 +602,164 @@ export function SessionProvider({
   const isFavoriteAgent = (id: string) =>
     favoriteAgents.includes(id);
 
-  // Mark a notification as read.
-  const markNotificationRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === id
-          ? { ...notif, read: true }
-          : notif,
-      ),
-    );
+  const loadNotifications = useCallback(async () => {
+    const ownerId = user?.id;
+    if (!ownerId) return;
+
+    setIsNotificationsLoading(true);
+    setNotificationError(null);
+
+    try {
+      const [listResponse, unreadResponse] = await Promise.all([
+        notificationApi.listNotifications({ includeArchived: 'true', limit: 100 }),
+        notificationApi.getUnreadCount(),
+      ]);
+      const listPayload = getApiPayload(listResponse);
+      const unreadPayload = getApiPayload(unreadResponse);
+      const incoming = Array.isArray(listPayload?.notifications)
+        ? listPayload.notifications.map(normalizeRestNotification)
+        : [];
+
+      // A response for a prior session must never populate a new account.
+      if (notificationOwnerId.current !== ownerId) return;
+
+      setNotifications((previous) => {
+        const byId = new Map(previous.map((notification) => [notification.id, notification]));
+        incoming.forEach((notification) => byId.set(notification.id, notification));
+        return [...byId.values()].sort(
+          (left, right) =>
+            new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+        );
+      });
+      setUnreadCount(Number(unreadPayload?.unreadCount) || 0);
+    } catch (error) {
+      if (notificationOwnerId.current !== ownerId) return;
+      setNotificationError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load notifications.',
+      );
+    } finally {
+      if (notificationOwnerId.current === ownerId) {
+        setIsNotificationsLoading(false);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (isAuthLoading || !user) {
+      socketService.disconnect();
+      setNotifications([]);
+      setUnreadCount(0);
+      setNotificationError(null);
+      setIsNotificationsLoading(false);
+      return;
+    }
+
+    let active = true;
+    setNotifications([]);
+    setUnreadCount(0);
+    const activeOwnerId = user.id;
+
+    const unsubscribeNotification = socketService.onNotification((payload) => {
+      if (!active || notificationOwnerId.current !== activeOwnerId) return;
+      const notification = normalizeRealtimeNotification(payload);
+
+      setNotifications((previous) => {
+        const exists = previous.some((item) => item.id === notification.id);
+        const merged = exists
+          ? previous.map((item) => item.id === notification.id ? notification : item)
+          : [notification, ...previous];
+
+        if (!exists && notification.readAt === null) {
+          setUnreadCount((current) => current + 1);
+        }
+
+        return [...merged].sort(
+          (left, right) =>
+            new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+        );
+      });
+    });
+    const unsubscribeReconnect = socketService.onReconnect(() => {
+      if (active && notificationOwnerId.current === activeOwnerId) {
+        void loadNotifications();
+      }
+    });
+    const unsubscribeError = socketService.onConnectError((error) => {
+      console.error('Realtime notification connection failed:', error);
+    });
+    void loadNotifications();
+
+    return () => {
+      active = false;
+      unsubscribeNotification();
+      unsubscribeReconnect();
+      unsubscribeError();
+      socketService.disconnect();
+    };
+  }, [isAuthLoading, user?.id, loadNotifications]);
+
+  const markNotificationRead = async (id: string) => {
+    try {
+      const response = await notificationApi.markNotificationRead(id);
+      const payload = getApiPayload(response);
+      const notification = normalizeRestNotification(payload.notification);
+      setNotifications((previous) => {
+        const prior = previous.find((item) => item.id === id);
+        const merged = prior
+          ? previous.map((item) => item.id === notification.id ? notification : item)
+          : [notification, ...previous];
+        if (prior?.readAt === null && prior.archivedAt === null) {
+          setUnreadCount((current) => Math.max(0, current - 1));
+        }
+        return merged.sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+      });
+    } catch (error) {
+      setNotificationError(error instanceof Error ? error.message : 'Unable to mark notification as read.');
+    }
   };
 
-  // Remove all current notifications.
+  const markAllNotificationsRead = async () => {
+    try {
+      const response = await notificationApi.markAllNotificationsRead();
+      const payload = getApiPayload(response);
+      const readAt = String(payload.readAt);
+
+      setNotifications((previous) => previous.map((notification) =>
+        notification.archivedAt === null && notification.readAt === null
+          ? { ...notification, readAt }
+          : notification,
+      ));
+      setUnreadCount(0);
+    } catch (error) {
+      setNotificationError(error instanceof Error ? error.message : 'Unable to mark notifications as read.');
+    }
+  };
+
+  const archiveNotification = async (id: string) => {
+    try {
+      const response = await notificationApi.archiveNotification(id);
+      const payload = getApiPayload(response);
+      const notification = normalizeRestNotification(payload.notification);
+      setNotifications((previous) => {
+        const prior = previous.find((item) => item.id === id);
+        const merged = prior
+          ? previous.map((item) => item.id === notification.id ? notification : item)
+          : [notification, ...previous];
+        if (prior?.readAt === null && prior.archivedAt === null) {
+          setUnreadCount((current) => Math.max(0, current - 1));
+        }
+        return merged.sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+      });
+    } catch (error) {
+      setNotificationError(error instanceof Error ? error.message : 'Unable to archive notification.');
+    }
+  };
+
   const clearNotifications = () => {
     setNotifications([]);
+    setUnreadCount(0);
   };
 
   // Update local notification preferences.
@@ -680,6 +837,9 @@ export function SessionProvider({
         recentlyViewed,
         favoriteAgents,
         notifications,
+        unreadCount,
+        isNotificationsLoading,
+        notificationError,
         preferences,
         viewingRequests,
         reportListings,
@@ -696,7 +856,10 @@ export function SessionProvider({
         toggleFavoriteAgent,
         isFavoriteAgent,
 
+        loadNotifications,
         markNotificationRead,
+        markAllNotificationsRead,
+        archiveNotification,
         clearNotifications,
 
         updatePreferences,

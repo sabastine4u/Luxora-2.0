@@ -1,7 +1,7 @@
 import type { Property } from '../../../types';
 import { mapApiPropertiesToProperties } from '../../../api/property.mapper';
 import { propertyApi } from '../../../api/property.api';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { bookingApi } from '../../../api/booking.api';
 import { offerApi } from '../../../api/offer.api';
 import { getGreetingText } from '../../../utils/greeting';
@@ -16,24 +16,78 @@ import {
   Calculator,
   Activity,
   Search,
+  CalendarClock,
 } from 'lucide-react';
 import { useSession } from '../../../contexts/SessionContext';
 import { useFavorites } from '../../../contexts/FavoriteContext';
 import { PropertyCard } from '../../../components/property/PropertyCard';
 import { EmptyState } from '../../../components/layout';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { calculateMortgage } from '../../../utils';
+import { calculateMortgage, formatCurrency } from '../../../utils';
 
 // Use the same real recommendation component and logic
-// already fixed for the Buyer Dashboard.
+// already used by the dedicated Buyer Recommendations section.
 import RecommendedProperties from './RecommendedProperties';
+
+interface OverviewPropertyResponse {
+  properties?: unknown[];
+  results?: unknown[];
+  data?:
+    | unknown[]
+    | {
+        properties?: unknown[];
+        results?: unknown[];
+      };
+}
+
+interface ActivityItem {
+  id: string;
+  type: 'viewing' | 'offer' | 'recent';
+  title: string;
+  description: string;
+  date?: string;
+  status?: string;
+}
+
+const getActivityDate = (value?: string) => {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleDateString('en-NG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const getStatusLabel = (status?: string) => {
+  if (!status) {
+    return '';
+  }
+
+  return status
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ');
+};
 
 export default function Overview({
   onNavigate,
 }: {
   onNavigate: (tab: string) => void;
 }) {
-  const { user, recentlyViewed } = useSession();
+  const {
+    user,
+    recentlyViewed,
+    unreadCount,
+  } = useSession();
+
   const { favoriteProperties: savedProperties } =
     useFavorites();
 
@@ -58,6 +112,14 @@ export default function Overview({
     setIsRecentlyViewedLoading,
   ] = useState(true);
 
+  // Store the real published Buy properties used for the marketplace snapshot.
+  const [marketProperties, setMarketProperties] =
+    useState<Property[]>([]);
+
+  // Track the marketplace snapshot loading state independently.
+  const [isMarketLoading, setIsMarketLoading] =
+    useState(true);
+
   // Greeting based on time.
   const greeting = getGreetingText(
     user?.name || 'Buyer',
@@ -65,11 +127,7 @@ export default function Overview({
 
   /*
    * Load the Buyer's viewing requests and offers
-   * for the Overview KPIs.
-   *
-   * Recommendations are intentionally NOT loaded here.
-   * The dedicated RecommendedProperties component now
-   * owns that logic.
+   * for the Overview KPIs and Recent Activity.
    */
   useEffect(() => {
     const loadOverviewData = async () => {
@@ -102,7 +160,7 @@ export default function Overview({
           error,
         );
 
-        // Reset only the KPI-related collections.
+        // Reset only the KPI/activity collections.
         setViewingRequests([]);
         setOffers([]);
       } finally {
@@ -203,6 +261,80 @@ export default function Overview({
   }, [recentlyViewed]);
 
   /*
+   * Load current published Buy inventory for the marketplace
+   * snapshot rather than displaying fabricated market figures.
+   */
+  useEffect(() => {
+    let isActive = true;
+
+    const loadMarketProperties = async () => {
+      try {
+        setIsMarketLoading(true);
+
+        const response = await propertyApi.getProperties({
+          status: 'Published',
+          availabilityStatus: 'Available',
+          transactionType: 'buy',
+          limit: 100,
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        const payload =
+          response as unknown as OverviewPropertyResponse;
+
+        let backendProperties: unknown[] = [];
+
+        if (Array.isArray(payload.properties)) {
+          backendProperties = payload.properties;
+        } else if (Array.isArray(payload.results)) {
+          backendProperties = payload.results;
+        } else if (Array.isArray(payload.data)) {
+          backendProperties = payload.data;
+        } else if (
+          payload.data &&
+          typeof payload.data === 'object'
+        ) {
+          backendProperties =
+            payload.data.properties ??
+            payload.data.results ??
+            [];
+        }
+
+        const mappedProperties =
+          mapApiPropertiesToProperties(
+            backendProperties,
+          ) as Property[];
+
+        setMarketProperties(mappedProperties);
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        console.error(
+          'Failed to load Buyer marketplace snapshot:',
+          error,
+        );
+
+        setMarketProperties([]);
+      } finally {
+        if (isActive) {
+          setIsMarketLoading(false);
+        }
+      }
+    };
+
+    void loadMarketProperties();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  /*
    * Count viewing requests that are not completed
    * or cancelled.
    */
@@ -248,18 +380,141 @@ export default function Overview({
     .slice(0, 3);
 
   /*
-   * Mortgage Snapshot currently uses the existing
-   * dashboard calculation values.
+   * Build a real marketplace snapshot from the current
+   * published Buy inventory.
    */
-  const mockPrice = 150;
-  const mockDown = 20;
-  const mockMonths = 36;
+  const marketSnapshot = useMemo(() => {
+    const pricedProperties = marketProperties.filter(
+      (property) =>
+        Number.isFinite(property.priceValue) &&
+        property.priceValue > 0,
+    );
 
-  const { monthly } = calculateMortgage(
-    mockPrice,
-    mockDown,
-    mockMonths,
-  );
+    const averagePrice =
+      pricedProperties.length > 0
+        ? pricedProperties.reduce(
+            (total, property) =>
+              total + property.priceValue,
+            0,
+          ) / pricedProperties.length
+        : null;
+
+    const locationCounts = new Map<string, number>();
+
+    marketProperties.forEach((property) => {
+      const location =
+        property.city?.trim() ||
+        property.location?.trim() ||
+        'Other';
+
+      locationCounts.set(
+        location,
+        (locationCounts.get(location) || 0) + 1,
+      );
+    });
+
+    let leadingLocation: string | null = null;
+    let leadingLocationCount = 0;
+
+    locationCounts.forEach((count, location) => {
+      if (count > leadingLocationCount) {
+        leadingLocation = location;
+        leadingLocationCount = count;
+      }
+    });
+
+    return {
+      averagePrice,
+      leadingLocation,
+      leadingLocationCount,
+      totalListings: marketProperties.length,
+    };
+  }, [marketProperties]);
+
+  /*
+   * Use the Buyer's persisted budget when available for the
+   * mortgage snapshot. Do not invent a budget value when none
+   * has been saved in the Buyer's account.
+   */
+  const budgetMax =
+    user?.settings?.buyer?.budgetMax ?? null;
+
+  const mortgagePriceMillions =
+    budgetMax && budgetMax > 0
+      ? budgetMax / 1_000_000
+      : null;
+
+  const mortgageCalculation =
+    mortgagePriceMillions !== null
+      ? calculateMortgage(
+          mortgagePriceMillions,
+          20,
+          36,
+        )
+      : null;
+
+  /*
+   * Build Recent Activity from real viewing and offer
+   * records plus the real recently viewed Property list.
+   */
+  const recentActivity = useMemo<ActivityItem[]>(() => {
+    const items: ActivityItem[] = [];
+
+    viewingRequests.forEach((viewing) => {
+      const propertyTitle =
+        viewing.property?.title ||
+        'Property viewing';
+
+      items.push({
+        id: `viewing-${viewing._id || viewing.id}`,
+        type: 'viewing',
+        title: 'Viewing request',
+        description: `${propertyTitle} — ${
+          getStatusLabel(viewing.status) || 'Submitted'
+        }.`,
+        date:
+          getActivityDate(
+            viewing.createdAt ||
+              viewing.updatedAt ||
+              viewing.viewingDate,
+          ) || undefined,
+        status: viewing.status,
+      });
+    });
+
+    offers.forEach((offer) => {
+      const propertyTitle =
+        offer.property?.title ||
+        'Property offer';
+
+      items.push({
+        id: `offer-${offer._id || offer.id}`,
+        type: 'offer',
+        title: 'Offer activity',
+        description: `${propertyTitle} — ${
+          getStatusLabel(offer.status) || 'Submitted'
+        }.`,
+        date:
+          getActivityDate(
+            offer.updatedAt ||
+              offer.createdAt,
+          ) || undefined,
+        status: offer.status,
+      });
+    });
+
+    recentProps.forEach((property) => {
+      items.push({
+        id: `recent-${property.id}`,
+        type: 'recent',
+        title: 'Recently viewed',
+        description: property.title,
+        date: undefined,
+      });
+    });
+
+    return items.slice(0, 6);
+  }, [viewingRequests, offers, recentProps]);
 
   return (
     <div className="space-y-8 pb-12">
@@ -283,7 +538,7 @@ export default function Overview({
           </h2>
 
           <p className="mt-1 text-ink/70">
-            Here's what's happening with your
+            Here&apos;s what&apos;s happening with your
             property search and applications today.
           </p>
         </div>
@@ -294,11 +549,12 @@ export default function Overview({
         {[
           {
             label: 'Saved Properties',
-            value:
-              savedProperties.length.toString(),
+            value: savedProperties.length.toString(),
             icon: Heart,
             color: 'text-rose-400',
             bg: 'bg-rose-400/10',
+            onClick: () =>
+              onNavigate('My Favorites'),
           },
           {
             label: 'Active Viewing Requests',
@@ -308,6 +564,8 @@ export default function Overview({
             icon: Eye,
             color: 'text-blue-400',
             bg: 'bg-blue-400/10',
+            onClick: () =>
+              onNavigate('Viewing Requests'),
           },
           {
             label: 'Pending Offers',
@@ -317,10 +575,12 @@ export default function Overview({
             icon: FileCheck,
             color: 'text-emerald-400',
             bg: 'bg-emerald-400/10',
+            onClick: () =>
+              onNavigate('Offers'),
           },
           {
-            label: 'Unread Messages',
-            value: '3',
+            label: 'Unread Notifications',
+            value: unreadCount.toString(),
             icon: MessageSquare,
             color: 'text-gold-400',
             bg: 'bg-gold-400/10',
@@ -333,10 +593,15 @@ export default function Overview({
             icon={stat.icon}
             iconColor={stat.color}
             backgroundColor={stat.bg}
-            hoverEffect="lift"
+            hoverEffect={
+              stat.onClick
+                ? 'lift'
+                : 'highlight'
+            }
             iconBorder={true}
             valueTypography="heading"
             labelTypography="small"
+            onClick={stat.onClick}
           />
         ))}
       </div>
@@ -350,7 +615,7 @@ export default function Overview({
 
           <button
             onClick={() =>
-              onNavigate('Saved Properties')
+              onNavigate('Recently Viewed')
             }
             className="text-xs font-semibold text-gold-400 hover:text-gold-300"
           >
@@ -359,10 +624,6 @@ export default function Overview({
         </div>
 
         {isRecentlyViewedLoading ? (
-          /*
-           * Keep the Recently Viewed section in a loading
-           * state until the backend Property requests finish.
-           */
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map(
               (_, index) => (
@@ -391,10 +652,6 @@ export default function Overview({
             ))}
           </div>
         ) : (
-          /*
-           * Empty state is only rendered AFTER the
-           * Recently Viewed request has completed.
-           */
           <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-8">
             <EmptyState
               icon={
@@ -404,8 +661,7 @@ export default function Overview({
               description="Properties you view will appear here for quick access."
               actionLabel="Explore Properties"
               onAction={() =>
-                (window.location.href =
-                  '/properties')
+                (window.location.href = '/properties')
               }
             />
           </div>
@@ -413,75 +669,90 @@ export default function Overview({
       </div>
 
       {/* 4. Recommended Properties */}
-      {/*
-       * Use the SAME recommendation component that powers
-       * the dedicated Buyer Recommendations section.
-       *
-       * This prevents Overview and Recommended Properties
-       * from maintaining two separate recommendation engines.
-       *
-       * RecommendedProperties also owns its own loading
-       * skeleton and empty state.
-       */}
       <RecommendedProperties />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* 5. Market Insights */}
+        {/* 5. Marketplace Snapshot */}
         <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 lg:col-span-2">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-400/10 text-purple-400">
               <TrendingUp className="h-5 w-5" />
             </div>
 
-            <h3 className="font-heading text-lg font-bold text-cream">
-              Market Insights
-            </h3>
-          </div>
+            <div>
+              <h3 className="font-heading text-lg font-bold text-cream">
+                Marketplace Snapshot
+              </h3>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
-              <div className="mb-1 text-xs text-ink/50">
-                Avg Property Price
-              </div>
-
-              <div className="font-heading text-xl font-bold text-cream">
-                ₦145M
-              </div>
-
-              <div className="mt-1 text-[10px] text-emerald-400">
-                +2.4% this month
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
-              <div className="mb-1 text-xs text-ink/50">
-                Trending Location
-              </div>
-
-              <div className="flex items-center justify-center gap-1 font-heading text-xl font-bold text-cream">
-                <MapPin className="h-4 w-4 text-gold-400" />
-                Ikoyi
-              </div>
-
-              <div className="mt-1 text-[10px] text-ink/40">
-                High demand
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
-              <div className="mb-1 text-xs text-ink/50">
-                Market Trend
-              </div>
-
-              <div className="font-heading text-xl font-bold text-emerald-400">
-                Buyer's Market
-              </div>
-
-              <div className="mt-1 text-[10px] text-ink/40">
-                Favorable negotiation
-              </div>
+              <p className="mt-1 text-xs text-ink/50">
+                Based on currently published Buy listings.
+              </p>
             </div>
           </div>
+
+          {isMarketLoading ? (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="h-24 animate-pulse rounded-2xl border border-white/5 bg-white/[0.02]"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
+                <div className="mb-1 text-xs text-ink/50">
+                  Average Buy Price
+                </div>
+
+                <div className="font-heading text-xl font-bold text-cream">
+                  {marketSnapshot.averagePrice !== null
+                    ? formatCurrency(
+                        Math.round(
+                          marketSnapshot.averagePrice,
+                        ),
+                      )
+                    : '—'}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
+                <div className="mb-1 text-xs text-ink/50">
+                  Most Listed Location
+                </div>
+
+                <div className="flex items-center justify-center gap-1 font-heading text-xl font-bold text-cream">
+                  <MapPin className="h-4 w-4 text-gold-400" />
+                  {marketSnapshot.leadingLocation || '—'}
+                </div>
+
+                <div className="mt-1 text-[10px] text-ink/40">
+                  {marketSnapshot.leadingLocationCount > 0
+                    ? `${marketSnapshot.leadingLocationCount} listing${
+                        marketSnapshot.leadingLocationCount === 1
+                          ? ''
+                          : 's'
+                      }`
+                    : 'No current data'}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
+                <div className="mb-1 text-xs text-ink/50">
+                  Available Buy Listings
+                </div>
+
+                <div className="font-heading text-xl font-bold text-emerald-400">
+                  {marketSnapshot.totalListings}
+                </div>
+
+                <div className="mt-1 text-[10px] text-ink/40">
+                  Published &amp; available
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 6. Mortgage Snapshot */}
@@ -496,39 +767,75 @@ export default function Overview({
             </h3>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-              <span className="text-sm text-ink/60">
-                Target Budget
-              </span>
+          {mortgagePriceMillions !== null &&
+          mortgageCalculation ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <span className="text-sm text-ink/60">
+                  Your Budget
+                </span>
 
-              <span className="font-semibold text-cream">
-                ₦150M
-              </span>
+                <span className="font-semibold text-cream">
+                  {formatCurrency(
+                    budgetMax as number,
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <span className="text-sm text-ink/60">
+                  Planning Deposit (20%)
+                </span>
+
+                <span className="font-semibold text-cream">
+                  {formatCurrency(
+                    Math.round(
+                      (budgetMax as number) * 0.2,
+                    ),
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl border border-gold-400/20 bg-gold-400/5 p-4">
+                <span className="text-sm font-medium text-gold-200">
+                  Est. Monthly
+                </span>
+
+                <span className="font-bold text-gold-400">
+                  {formatCurrency(
+                    mortgageCalculation.monthly,
+                  )}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  onNavigate('Mortgage Tracker')
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-gold-400/20 bg-gold-400/5 px-4 py-3 text-sm font-semibold text-gold-300 transition-colors hover:bg-gold-400/10 hover:text-gold-200"
+              >
+                Open Mortgage Tracker
+              </button>
             </div>
+          ) : (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+              <p className="text-sm leading-relaxed text-ink/60">
+                Set your Buyer budget in Settings to see a
+                personalized mortgage planning snapshot here.
+              </p>
 
-            <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-              <span className="text-sm text-ink/60">
-                Down Payment (20%)
-              </span>
-
-              <span className="font-semibold text-cream">
-                ₦30M
-              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  onNavigate('Settings')
+                }
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-cream transition-colors hover:border-gold-400/30 hover:text-gold-300"
+              >
+                Set Buyer Budget
+              </button>
             </div>
-
-            <div className="flex items-center justify-between rounded-2xl border border-gold-400/20 bg-gold-400/5 p-4">
-              <span className="text-sm font-medium text-gold-200">
-                Est. Monthly
-              </span>
-
-              <span className="font-bold text-gold-400">
-                ₦
-                {(monthly / 1_000_000).toFixed(2)}
-                M
-              </span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -544,90 +851,84 @@ export default function Overview({
           </h3>
         </div>
 
-        <div className="ml-4 space-y-6 border-l-2 border-white/10 pl-4">
-          <div className="relative">
-            <div className="absolute -left-[25px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-rose-400 bg-navy-800">
-              <Heart className="h-3 w-3 text-rose-400" />
-            </div>
+        {isOverviewLoading ||
+        isRecentlyViewedLoading ? (
+          <div className="space-y-5">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="flex items-start gap-4"
+              >
+                <div className="mt-1 h-6 w-6 animate-pulse rounded-full bg-white/10" />
 
-            <div className="pl-4">
-              <div className="text-sm font-semibold text-cream">
-                Saved a property
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-40 animate-pulse rounded bg-white/10" />
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-white/5" />
+                  <div className="h-3 w-24 animate-pulse rounded bg-white/5" />
+                </div>
               </div>
-
-              <div className="mt-1 text-xs text-ink/60">
-                You saved "Luxury Victoria Island Villa"
-                to your favorites.
-              </div>
-
-              <div className="mt-1 text-[10px] text-ink/40">
-                2 hours ago
-              </div>
-            </div>
+            ))}
           </div>
+        ) : recentActivity.length > 0 ? (
+          <div className="ml-4 space-y-6 border-l-2 border-white/10 pl-4">
+            {recentActivity.map((item) => {
+              const Icon =
+                item.type === 'viewing'
+                  ? CalendarClock
+                  : item.type === 'offer'
+                    ? FileCheck
+                    : Search;
 
-          <div className="relative">
-            <div className="absolute -left-[25px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-blue-400 bg-navy-800">
-              <Eye className="h-3 w-3 text-blue-400" />
-            </div>
+              const iconColor =
+                item.type === 'viewing'
+                  ? 'text-blue-400'
+                  : item.type === 'offer'
+                    ? 'text-emerald-400'
+                    : 'text-ink/40';
 
-            <div className="pl-4">
-              <div className="text-sm font-semibold text-cream">
-                Submitted viewing request
-              </div>
+              return (
+                <div
+                  key={item.id}
+                  className="relative"
+                >
+                  <div className="absolute -left-[25px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white/10 bg-navy-800">
+                    <Icon
+                      className={`h-3 w-3 ${iconColor}`}
+                    />
+                  </div>
 
-              <div className="mt-1 text-xs text-ink/60">
-                Viewing requested for "Lekki Phase 1
-                Modern Duplex" on Saturday at 2:00 PM.
-              </div>
+                  <div className="pl-4">
+                    <div className="text-sm font-semibold text-cream">
+                      {item.title}
+                    </div>
 
-              <div className="mt-1 text-[10px] text-ink/40">
-                Yesterday
-              </div>
-            </div>
+                    <div className="mt-1 text-xs text-ink/60">
+                      {item.description}
+                    </div>
+
+                    {(item.date || item.status) && (
+                      <div className="mt-1 text-[10px] text-ink/40">
+                        {[
+                          item.date,
+                          getStatusLabel(item.status),
+                        ]
+                          .filter(Boolean)
+                          .join(' • ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          <div className="relative">
-            <div className="absolute -left-[25px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-emerald-400 bg-navy-800">
-              <FileCheck className="h-3 w-3 text-emerald-400" />
-            </div>
-
-            <div className="pl-4">
-              <div className="text-sm font-semibold text-cream">
-                Received offer update
-              </div>
-
-              <div className="mt-1 text-xs text-ink/60">
-                The seller for "Ikoyi Waterfront
-                Penthouse" responded to your offer.
-              </div>
-
-              <div className="mt-1 text-[10px] text-ink/40">
-                2 days ago
-              </div>
-            </div>
+        ) : (
+          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-center">
+            <p className="text-sm text-ink/60">
+              Your viewing requests, offers, and recently viewed
+              properties will appear here.
+            </p>
           </div>
-
-          <div className="relative">
-            <div className="absolute -left-[25px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-ink/40 bg-navy-800">
-              <Search className="h-3 w-3 text-ink/40" />
-            </div>
-
-            <div className="pl-4">
-              <div className="text-sm font-semibold text-cream">
-                Viewed a property
-              </div>
-
-              <div className="mt-1 text-xs text-ink/60">
-                You checked out "Banana Island Mansion".
-              </div>
-
-              <div className="mt-1 text-[10px] text-ink/40">
-                3 days ago
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

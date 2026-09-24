@@ -47,10 +47,14 @@ http.interceptors.response.use((response) => {
   }
   const body = response.data;
 
-  // the backend wraps everything as { success, message, ...payload} We handle the payload straight back so the callers get the data , not the envlope
+  // The backend wraps success responses as { success, message, ...payload }.
+  // Usually message is envelope text, but the messaging endpoint uses it for
+  // the actual Message resource. Preserve non-string resources.
   if (body && typeof body === 'object' && 'success' in body) {
     const{ success, message, ...rest } = body;
-    return rest; // e.g {token, user } or { data, pagnation} or {}
+    return message !== null && typeof message === 'object'
+      ? { ...rest, message }
+      : rest;
   }
   //Anything not wrapped (shouldnt happen with this API)passes through .
   return body;

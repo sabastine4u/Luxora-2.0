@@ -3,12 +3,13 @@ import {
   useMemo,
   useState,
 } from 'react';
-
 import {
   useParams,
   useNavigate,
 } from 'react-router-dom';
-
+import { useToast } from '../../contexts/ToastContext';
+import { conversationApi } from '../../api/conversation.api';
+import { messageApi } from '../../api/message.api';
 import {
   ShieldCheck,
   MapPin,
@@ -20,6 +21,8 @@ import {
   ArrowRight,
   Phone,
   MessageCircle,
+  CheckCircle2,
+  X,
   Award,
   Crown,
   LayoutGrid,
@@ -51,77 +54,37 @@ import type {
   PublicAgency,
   PublicAgent,
 } from '../../types';
-
 const ITEMS_PER_PAGE = 6;
-
 const uniqueCaseInsensitive = (
   values: string[],
 ) => {
   const map = new Map<string, string>();
-
   values.forEach((value) => {
     if (!value) return;
-
     const cleaned = value.trim();
-
     if (!cleaned) return;
-
     const key = cleaned.toLowerCase();
-
     if (!map.has(key)) {
       map.set(key, cleaned);
     }
   });
-
   return Array.from(map.values());
 };
-
 const getInitials = (name: string) => {
   const parts = name
     .trim()
     .split(/\s+/)
     .filter(Boolean);
-
   if (parts.length === 0) {
     return 'A';
   }
-
   if (parts.length === 1) {
     return parts[0]
       .slice(0, 2)
       .toUpperCase();
   }
-
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
-
-const normalizePhoneForWhatsApp = (
-  phone?: string | null,
-) => {
-  if (!phone) {
-    return '';
-  }
-
-  const digits = phone.replace(
-    /\D/g,
-    '',
-  );
-
-  if (!digits) {
-    return '';
-  }
-
-  if (digits.startsWith('0')) {
-    return `234${digits.slice(1)}`;
-  }
-
-  if (digits.startsWith('234')) {
-    return digits;
-  }
-
-  return digits;
-};
-
 const formatLargeNum = (
   value: number,
 ) => {
@@ -131,7 +94,6 @@ const formatLargeNum = (
   ) {
     return '—';
   }
-
   if (
     value >=
     1_000_000_000
@@ -141,7 +103,6 @@ const formatLargeNum = (
       1_000_000_000
     ).toFixed(1)}B`;
   }
-
   if (
     value >=
     1_000_000
@@ -151,7 +112,6 @@ const formatLargeNum = (
       1_000_000
     ).toFixed(1)}M`;
   }
-
   if (
     value >= 1_000
   ) {
@@ -159,26 +119,22 @@ const formatLargeNum = (
       value / 1_000,
     )}K`;
   }
-
   return `₦${value.toLocaleString(
     'en-NG',
   )}`;
 };
-
 interface AgentResponse {
   agent?: PublicAgent;
   data?: {
     agent?: PublicAgent;
   };
 }
-
 interface AgencyListResponse {
   agencies?: PublicAgency[];
   data?: {
     agencies?: PublicAgency[];
   };
 }
-
 interface PropertyListResponse {
   properties?: unknown[];
   results?: unknown[];
@@ -189,22 +145,18 @@ interface PropertyListResponse {
   }
   | unknown[];
 }
-
 const extractProperties = (
   response: PropertyListResponse,
 ) => {
   if (Array.isArray(response?.properties)) {
     return response.properties;
   }
-
   if (Array.isArray(response?.results)) {
     return response.results;
   }
-
   if (Array.isArray(response?.data)) {
     return response.data;
   }
-
   if (
     response?.data &&
     !Array.isArray(response.data)
@@ -216,7 +168,6 @@ const extractProperties = (
     ) {
       return response.data.properties;
     }
-
     if (
       Array.isArray(
         response.data.results,
@@ -225,59 +176,184 @@ const extractProperties = (
       return response.data.results;
     }
   }
-
   return [];
 };
-
 export default function AgentDetailsPage() {
   const { slug } =
     useParams<{
       slug: string;
     }>();
-
   const navigate = useNavigate();
-
   const {
+    user,
+    isAuthenticated,
+    isAuthLoading,
     openScheduleViewingModal,
   } = useSession();
-
   const [
     agent,
     setAgent,
   ] = useState<PublicAgent | null>(
     null,
   );
-
   const [
     agency,
     setAgency,
   ] = useState<PublicAgency | null>(
     null,
   );
-
   const [
     properties,
     setProperties,
   ] = useState<Property[]>([]);
-
   const [
     isLoading,
     setIsLoading,
   ] = useState(true);
-
   const [
     hasError,
     setHasError,
   ] = useState(false);
+  const [isMessaging, setIsMessaging] = useState(false);
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [messageSuccess, setMessageSuccess] = useState(false);
+  const [messageError, setMessageError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
+  const closeMessageModal = () => {
+    if (isMessaging) {
+      return;
+    }
+
+    setMessageModalOpen(false);
+    setMessageText('');
+    setMessageSuccess(false);
+    setMessageError(null);
+  };
+
+  const openMessageModal = () => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated || !user) {
+      navigate(ROUTES.LOGIN);
+      return;
+    }
+
+    if (!agent?.userId || agent.userId === user.id) {
+      return;
+    }
+
+    setMessageText('');
+    setMessageSuccess(false);
+    setMessageError(null);
+    setMessageModalOpen(true);
+  };
+
+  const handleMessageSubmit = async (
+    event: React.FormEvent,
+  ) => {
+    event.preventDefault();
+
+    if (isMessaging || messageSuccess) {
+      return;
+    }
+
+    if (!agent?.userId) {
+      const errorMessage =
+        'This agent does not have a messaging account.';
+
+      setMessageError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Messaging unavailable',
+        description: errorMessage,
+      });
+      return;
+    }
+
+    if (!isAuthenticated || !user) {
+      closeMessageModal();
+      navigate(ROUTES.LOGIN);
+      return;
+    }
+
+    if (agent.userId === user.id) {
+      closeMessageModal();
+      return;
+    }
+
+    const body = messageText.trim();
+
+    if (!body) {
+      const errorMessage = 'Please enter a message.';
+      setMessageError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Message is empty',
+        description: errorMessage,
+      });
+      return;
+    }
+
+    setIsMessaging(true);
+    setMessageError(null);
+
+    try {
+      const conversationResponse =
+        await conversationApi.createConversation({
+          type: 'direct',
+          targetUserId: agent.userId,
+        });
+
+      const conversationId =
+        conversationResponse?.conversation?._id ??
+        conversationResponse?.conversation?.id ??
+        conversationResponse?.data?.conversation?._id ??
+        conversationResponse?.data?.conversation?.id;
+
+      if (!conversationId) {
+        throw new Error(
+          'The server did not return a conversation.',
+        );
+      }
+
+      await messageApi.sendMessage(
+        String(conversationId),
+        body,
+      );
+
+      setMessageSuccess(true);
+      setMessageError(null);
+      showToast({
+        type: 'success',
+        title: 'Message sent',
+        description: `Your message was sent to ${agent.name}.`,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unable to send your message. Please try again.';
+
+      setMessageError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Message not sent',
+        description: errorMessage,
+      });
+    } finally {
+      setIsMessaging(false);
+    }
+  };
   const [
     currentPage,
     setCurrentPage,
   ] = useState(1);
-
   useEffect(() => {
     let mounted = true;
-
     const loadAgentProfile =
       async () => {
         if (!slug) {
@@ -285,21 +361,17 @@ export default function AgentDetailsPage() {
           setIsLoading(false);
           return;
         }
-
         try {
           setIsLoading(true);
           setHasError(false);
-
           const agentResponse =
             (await agentApi.getPublicAgent(
               slug,
             )) as AgentResponse;
-
           const resolvedAgent =
             agentResponse?.agent ??
             agentResponse?.data?.agent ??
             null;
-
           if (
             !resolvedAgent
           ) {
@@ -307,16 +379,12 @@ export default function AgentDetailsPage() {
               setHasError(true);
               setAgent(null);
             }
-
             return;
           }
-
           if (!mounted) {
             return;
           }
-
           setAgent(resolvedAgent);
-
           const [
             agencyResult,
             propertiesResult,
@@ -329,7 +397,6 @@ export default function AgentDetailsPage() {
                 },
               )
               : Promise.resolve(null),
-
             propertyApi.getProperties({
               agentId:
                 resolvedAgent.id,
@@ -340,11 +407,9 @@ export default function AgentDetailsPage() {
               sort: 'newest',
             }),
           ]);
-
           if (!mounted) {
             return;
           }
-
           if (
             agencyResult.status ===
             'fulfilled' &&
@@ -352,36 +417,30 @@ export default function AgentDetailsPage() {
           ) {
             const agencyResponse =
               agencyResult.value as AgencyListResponse;
-
             const agencies =
               agencyResponse?.agencies ??
               agencyResponse?.data?.agencies ??
               [];
-
             const matchingAgency =
               agencies.find(
                 (item) =>
                   item.id ===
                   resolvedAgent.agency?.id,
               ) ?? null;
-
             setAgency(
               matchingAgency,
             );
           }
-
           if (
             propertiesResult.status ===
             'fulfilled'
           ) {
             const propertyResponse =
               propertiesResult.value as PropertyListResponse;
-
             const rawProperties =
               extractProperties(
                 propertyResponse,
               );
-
             setProperties(
               mapApiPropertiesToProperties(
                 rawProperties,
@@ -392,7 +451,6 @@ export default function AgentDetailsPage() {
               'Failed to load Agent published properties:',
               propertiesResult.reason,
             );
-
             setProperties([]);
           }
         } catch (error) {
@@ -400,11 +458,9 @@ export default function AgentDetailsPage() {
             'Failed to load public Agent profile:',
             error,
           );
-
           if (!mounted) {
             return;
           }
-
           setAgent(null);
           setAgency(null);
           setProperties([]);
@@ -415,18 +471,14 @@ export default function AgentDetailsPage() {
           }
         }
       };
-
     loadAgentProfile();
-
     return () => {
       mounted = false;
     };
   }, [slug]);
-
   useEffect(() => {
     setCurrentPage(1);
   }, [properties.length]);
-
   const serviceAreas =
     useMemo(() => {
       const propertyAreas =
@@ -436,7 +488,6 @@ export default function AgentDetailsPage() {
             property.state,
           ],
         );
-
       return uniqueCaseInsensitive([
         ...(agent?.activeMarkets ||
           []),
@@ -450,7 +501,6 @@ export default function AgentDetailsPage() {
       agent,
       properties,
     ]);
-
   const propertyCategories =
     useMemo(() => {
       const propertyTypes =
@@ -460,7 +510,6 @@ export default function AgentDetailsPage() {
               property.type || '',
             ),
         );
-
       return uniqueCaseInsensitive([
         ...(agent?.propertyTypes ||
           []),
@@ -470,7 +519,6 @@ export default function AgentDetailsPage() {
       agent,
       properties,
     ]);
-
   const propertyStats =
     useMemo(() => {
       const pricedProperties =
@@ -481,7 +529,6 @@ export default function AgentDetailsPage() {
             ) &&
             property.priceValue > 0,
         );
-
       const portfolioValue =
         pricedProperties.reduce(
           (sum, property) =>
@@ -489,23 +536,19 @@ export default function AgentDetailsPage() {
             property.priceValue,
           0,
         );
-
       const averagePrice =
         pricedProperties.length
           ? portfolioValue /
           pricedProperties.length
           : 0;
-
       const sortedByPrice =
         [...pricedProperties].sort(
           (a, b) =>
             b.priceValue -
             a.priceValue,
         );
-
       const highestValueProperty =
         sortedByPrice[0] || null;
-
       const sortedByDate =
         [...properties].sort(
           (a, b) => {
@@ -515,21 +558,17 @@ export default function AgentDetailsPage() {
                   a.createdAt,
                 ).getTime()
                 : 0;
-
             const dateB =
               b.createdAt
                 ? new Date(
                   b.createdAt,
                 ).getTime()
                 : 0;
-
             return dateB - dateA;
           },
         );
-
       const latestProperty =
         sortedByDate[0] || null;
-
       const featuredProperties =
         properties.filter(
           (property) =>
@@ -538,37 +577,30 @@ export default function AgentDetailsPage() {
             property.featuredLevel ===
             'Exclusive',
         );
-
       const premiumProperties =
         properties.filter(
           (property) =>
             property.featuredLevel ===
             'Premium',
         );
-
       const marketCounts =
         new Map<
           string,
           number
         >();
-
       properties.forEach(
         (property) => {
           const location =
             property.city ||
             property.state;
-
           if (!location) {
             return;
           }
-
           const cleaned =
             location.trim();
-
           if (!cleaned) {
             return;
           }
-
           marketCounts.set(
             cleaned,
             (marketCounts.get(
@@ -577,7 +609,6 @@ export default function AgentDetailsPage() {
           );
         },
       );
-
       const topMarkets =
         Array.from(
           marketCounts.entries(),
@@ -593,24 +624,20 @@ export default function AgentDetailsPage() {
               count,
             }),
           );
-
       const propertyTypeCounts =
         new Map<
           string,
           number
         >();
-
       properties.forEach(
         (property) => {
           const type = String(
             property.type ||
             'Other',
           ).trim();
-
           if (!type) {
             return;
           }
-
           propertyTypeCounts.set(
             type,
             (propertyTypeCounts.get(
@@ -619,7 +646,6 @@ export default function AgentDetailsPage() {
           );
         },
       );
-
       const propertyMix =
         Array.from(
           propertyTypeCounts.entries(),
@@ -634,22 +660,18 @@ export default function AgentDetailsPage() {
               count,
             }),
           );
-
       const total =
         properties.length || 1;
-
       let residential = 0;
       let commercial = 0;
       let land = 0;
       let shortLet = 0;
-
       properties.forEach(
         (property) => {
           const type =
             String(
               property.type || '',
             ).toLowerCase();
-
           if (
             type.includes('land')
           ) {
@@ -674,7 +696,6 @@ export default function AgentDetailsPage() {
           }
         },
       );
-
       return {
         portfolioValue,
         averagePrice,
@@ -713,7 +734,6 @@ export default function AgentDetailsPage() {
           ),
       };
     }, [properties]);
-
   const sortedProperties =
     useMemo(
       () =>
@@ -725,26 +745,22 @@ export default function AgentDetailsPage() {
                   a.createdAt,
                 ).getTime()
                 : 0;
-
             const dateB =
               b.createdAt
                 ? new Date(
                   b.createdAt,
                 ).getTime()
                 : 0;
-
             return dateB - dateA;
           },
         ),
       [properties],
     );
-
   const totalPages =
     Math.ceil(
       sortedProperties.length /
       ITEMS_PER_PAGE,
     );
-
   const paginatedProperties =
     sortedProperties.slice(
       (currentPage - 1) *
@@ -752,25 +768,16 @@ export default function AgentDetailsPage() {
       currentPage *
       ITEMS_PER_PAGE,
     );
-
   const agencySlug =
     agency?.slug || null;
-
   const agencyName =
     agency?.name ||
     agent?.agency?.name ||
     'Independent Agent';
-
-  const whatsappNumber =
-    normalizePhoneForWhatsApp(
-      agent?.phone,
-    );
-
   const primarySpecialization =
     agent?.specializations?.[0] ||
     propertyCategories[0] ||
     null;
-
   if (isLoading) {
     return (
       <PageLayout footerVariant="compact">
@@ -778,19 +785,14 @@ export default function AgentDetailsPage() {
           <Container>
             <div className="space-y-10">
               <div className="h-5 w-56 animate-pulse rounded bg-white/10" />
-
               <div className="flex flex-col gap-8 md:flex-row">
                 <div className="h-40 w-40 animate-pulse rounded-3xl bg-white/10" />
-
                 <div className="flex-1 space-y-4">
                   <div className="h-10 w-2/3 animate-pulse rounded bg-white/10" />
-
                   <div className="h-5 w-1/2 animate-pulse rounded bg-white/10" />
-
                   <div className="h-12 w-full max-w-xl animate-pulse rounded bg-white/10" />
                 </div>
               </div>
-
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {Array.from({
                   length: 4,
@@ -809,7 +811,6 @@ export default function AgentDetailsPage() {
       </PageLayout>
     );
   }
-
   if (
     hasError ||
     !agent
@@ -818,12 +819,10 @@ export default function AgentDetailsPage() {
       <NotFoundPage />
     );
   }
-
   const agentInitials =
     getInitials(
       agent.name,
     );
-
   return (
     <PageLayout footerVariant="compact">
       {/* ========================================
@@ -831,7 +830,6 @@ export default function AgentDetailsPage() {
       ======================================== */}
       <div className="relative overflow-hidden border-b border-white/5 bg-navy-900 pb-20 pt-32">
         <div className="pointer-events-none absolute left-0 top-0 h-[600px] w-[600px] rounded-full bg-gold-500/5 blur-[120px]" />
-
         <Container className="relative z-10">
           <Breadcrumb
             items={[
@@ -860,7 +858,6 @@ export default function AgentDetailsPage() {
               },
             ]}
           />
-
           <div className="mt-8 flex flex-col items-start gap-10 md:flex-row">
             {/* Agent Photo */}
             <div className="relative shrink-0">
@@ -875,14 +872,12 @@ export default function AgentDetailsPage() {
                   {agentInitials}
                 </div>
               )}
-
               {agent.verified && (
                 <div className="absolute -bottom-3 -right-3 flex h-10 w-10 items-center justify-center rounded-full bg-navy-900 ring-2 ring-emerald-500/20">
                   <ShieldCheck className="h-5 w-5 text-emerald-400" />
                 </div>
               )}
             </div>
-
             {/* Agent Info */}
             <div className="flex-1">
               <div className="mb-4 flex flex-col items-start gap-2">
@@ -890,7 +885,6 @@ export default function AgentDetailsPage() {
                   <h1 className="font-heading text-4xl font-bold tracking-tight text-cream sm:text-5xl">
                     {agent.name}
                   </h1>
-
                   {agent.verified && (
                     <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
                       <ShieldCheck className="h-4 w-4" />
@@ -898,7 +892,6 @@ export default function AgentDetailsPage() {
                     </div>
                   )}
                 </div>
-
                 {agencySlug ? (
                   <button
                     type="button"
@@ -922,14 +915,12 @@ export default function AgentDetailsPage() {
                   </div>
                 )}
               </div>
-
               <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-ink/60">
                 <span className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-gold-400" />
                   {agent.listingCount}{' '}
                   Published Listings
                 </span>
-
                 {agent.yearsOfExperience >
                   0 && (
                     <span className="flex items-center gap-2">
@@ -940,14 +931,12 @@ export default function AgentDetailsPage() {
                       Years Experience
                     </span>
                   )}
-
                 {primarySpecialization && (
                   <span className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-gold-400" />
                     {primarySpecialization}
                   </span>
                 )}
-
                 {serviceAreas.length >
                   0 && (
                     <span className="flex items-center gap-2">
@@ -961,7 +950,6 @@ export default function AgentDetailsPage() {
                     </span>
                   )}
               </div>
-
               <div className="flex w-full flex-wrap items-center gap-4 md:w-auto">
                 {agent.phone && (
                   <GoldButton
@@ -975,23 +963,17 @@ export default function AgentDetailsPage() {
                     Call Agent
                   </GoldButton>
                 )}
-
-                {whatsappNumber && (
-                  <GhostButton
-                    className="w-full justify-center gap-2 sm:w-auto"
-                    onClick={() =>
-                      window.open(
-                        `https://wa.me/${whatsappNumber}`,
-                        '_blank',
-                        'noopener,noreferrer',
-                      )
-                    }
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    WhatsApp
-                  </GhostButton>
-                )}
-
+                {!isAuthLoading &&
+                  agent.userId &&
+                  (!isAuthenticated || user?.id !== agent.userId) && (
+                    <GhostButton
+                      className="w-full justify-center gap-2 sm:w-auto"
+                      onClick={openMessageModal}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Message Agent
+                    </GhostButton>
+                  )}
                 {agent.email && (
                   <GhostButton
                     className="w-full justify-center gap-2 sm:w-auto"
@@ -1003,7 +985,6 @@ export default function AgentDetailsPage() {
                     Email
                   </GhostButton>
                 )}
-
                 {properties.length >
                   0 && (
                     <GhostButton
@@ -1023,7 +1004,6 @@ export default function AgentDetailsPage() {
           </div>
         </Container>
       </div>
-
       <Section className="relative bg-navy-900 py-12 md:py-20">
         <Container>
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
@@ -1037,7 +1017,6 @@ export default function AgentDetailsPage() {
                   <h3 className="mb-4 font-heading text-xl font-bold text-cream">
                     Professional Profile
                   </h3>
-
                   <p className="mb-6 text-sm leading-relaxed text-ink/70">
                     {agent.name}{' '}
                     is an active real estate
@@ -1052,67 +1031,56 @@ export default function AgentDetailsPage() {
                     {serviceAreas.length}{' '}
                     active markets.
                   </p>
-
                   <div className="space-y-4 border-t border-white/10 pt-5">
                     {agent.level && (
                       <div className="flex items-center justify-between gap-4 text-sm">
                         <span className="text-ink/50">
                           Level
                         </span>
-
                         <span className="text-right font-medium text-cream">
                           {agent.level}
                         </span>
                       </div>
                     )}
-
                     {agent.department && (
                       <div className="flex items-center justify-between gap-4 text-sm">
                         <span className="text-ink/50">
                           Department
                         </span>
-
                         <span className="text-right font-medium text-cream">
                           {agent.department}
                         </span>
                       </div>
                     )}
-
                     {agent.branch && (
                       <div className="flex items-center justify-between gap-4 text-sm">
                         <span className="text-ink/50">
                           Branch
                         </span>
-
                         <span className="text-right font-medium text-cream">
                           {agent.branch}
                         </span>
                       </div>
                     )}
-
                     {agent.coverageRadius && (
                       <div className="flex items-center justify-between gap-4 text-sm">
                         <span className="text-ink/50">
                           Coverage
                         </span>
-
                         <span className="text-right font-medium text-cream">
                           {agent.coverageRadius}
                         </span>
                       </div>
                     )}
-
                     <div className="flex items-center justify-between gap-4 text-sm">
                       <span className="text-ink/50">
                         Status
                       </span>
-
                       <span className="font-medium text-emerald-400">
                         {agent.status}
                       </span>
                     </div>
                   </div>
-
                   {/* Property Expertise */}
                   {propertyCategories.length >
                     0 && (
@@ -1120,7 +1088,6 @@ export default function AgentDetailsPage() {
                         <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-cream">
                           Property Expertise
                         </h4>
-
                         <div className="flex flex-wrap gap-2">
                           {propertyCategories.map(
                             (category) => (
@@ -1137,7 +1104,6 @@ export default function AgentDetailsPage() {
                         </div>
                       </div>
                     )}
-
                   {/* Markets Covered */}
                   {serviceAreas.length >
                     0 && (
@@ -1146,7 +1112,6 @@ export default function AgentDetailsPage() {
                           <MapPin className="h-3.5 w-3.5 text-gold-400" />
                           Markets Covered
                         </h4>
-
                         <div className="flex flex-wrap gap-2">
                           {serviceAreas.map(
                             (area) => (
@@ -1163,109 +1128,86 @@ export default function AgentDetailsPage() {
                     )}
                 </div>
               </Reveal>
-
               {/* Marketplace Metrics */}
               <Reveal delay={100}>
                 <h3 className="mb-6 font-heading text-xl font-bold text-cream">
                   Marketplace Metrics
                 </h3>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
                     <Building2 className="mb-3 h-5 w-5 text-gold-400" />
-
                     <div className="font-heading text-2xl font-bold text-cream">
                       {agent.listingCount}
                     </div>
-
                     <div className="mt-1 text-xs uppercase tracking-wider text-ink/50">
                       Published Listings
                     </div>
                   </div>
-
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
                     <Handshake className="mb-3 h-5 w-5 text-blue-400" />
-
                     <div className="font-heading text-2xl font-bold text-cream">
                       —
                     </div>
-
                     <div className="mt-1 text-xs uppercase tracking-wider text-ink/50">
                       Closed Deals
                     </div>
                   </div>
-
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
                     <TrendingUp className="mb-3 h-5 w-5 text-emerald-400" />
-
                     <div className="font-heading text-2xl font-bold text-cream">
                       {formatLargeNum(
                         propertyStats.portfolioValue,
                       )}
                     </div>
-
                     <div className="mt-1 text-xs uppercase tracking-wider text-ink/50">
                       Listed Portfolio Value
                     </div>
                   </div>
-
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
                     <Award className="mb-3 h-5 w-5 text-gold-400" />
-
                     <div className="font-heading text-2xl font-bold text-cream">
                       {formatLargeNum(
                         propertyStats.averagePrice,
                       )}
                     </div>
-
                     <div className="mt-1 text-xs uppercase tracking-wider text-ink/50">
                       Average Listed Price
                     </div>
                   </div>
-
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
                     <MapPin className="mb-3 h-5 w-5 text-rose-400" />
-
                     <div className="font-heading text-2xl font-bold text-cream">
                       {propertyStats.topMarkets.length}
                     </div>
-
                     <div className="mt-1 text-xs uppercase tracking-wider text-ink/50">
                       Active Markets
                     </div>
                   </div>
-
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
                     <Crown className="mb-3 h-5 w-5 text-emerald-400" />
-
                     <div className="font-heading text-2xl font-bold text-emerald-400">
                       {formatLargeNum(
                         propertyStats.highestPrice,
                       )}
                     </div>
-
                     <div className="mt-1 text-xs uppercase tracking-wider text-ink/50">
                       Highest Listing
                     </div>
                   </div>
                 </div>
               </Reveal>
-
               {/* View Agency CTA */}
               <Reveal delay={200}>
                 <div className="flex flex-col items-center rounded-3xl border border-white/10 bg-gradient-to-br from-navy-800 to-navy-900 p-6 text-center md:p-8">
                   <Building2 className="mb-4 h-10 w-10 text-gold-400/50" />
-
                   <h3 className="mb-2 font-heading text-lg font-bold text-cream">
                     Representing{' '}
                     {agencyName}
                   </h3>
-
                   <p className="mb-6 text-sm leading-relaxed text-ink/60">
                     View the Agency profile, active team,
                     and published marketplace portfolio.
                   </p>
-
                   {agencySlug ? (
                     <button
                       type="button"
@@ -1289,7 +1231,6 @@ export default function AgentDetailsPage() {
                   )}
                 </div>
               </Reveal>
-
               {/* Public Reviews */}
               <Reveal delay={300}>
                 <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8">
@@ -1298,23 +1239,18 @@ export default function AgentDetailsPage() {
                       <h3 className="font-heading text-xl font-bold text-cream">
                         Client Reviews
                       </h3>
-
                       <p className="mt-1 text-sm text-ink/50">
                         Public review and rating data is not
                         currently connected to the Agent profile.
                       </p>
                     </div>
-
                     <MessageCircle className="h-5 w-5 shrink-0 text-gold-400" />
                   </div>
-
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center">
                     <MessageCircle className="mx-auto mb-3 h-8 w-8 text-white/10" />
-
                     <p className="font-medium text-cream">
                       No public reviews available
                     </p>
-
                     <p className="mt-1 text-sm leading-relaxed text-ink/50">
                       Review and rating records are not part
                       of the current public Agent data source.
@@ -1323,7 +1259,6 @@ export default function AgentDetailsPage() {
                 </div>
               </Reveal>
             </div>
-
             {/* ======================================
                 RIGHT COLUMN
             ====================================== */}
@@ -1338,16 +1273,13 @@ export default function AgentDetailsPage() {
                           <span className="text-xs uppercase tracking-wider text-ink/50">
                             Highest Value
                           </span>
-
                           <Crown className="h-4 w-4 text-gold-400" />
                         </div>
-
                         <div>
                           <div className="truncate text-lg font-bold text-cream">
                             {propertyStats.highestValueProperty?.title ||
                               'N/A'}
                           </div>
-
                           <div className="mt-1 text-sm font-medium text-emerald-400">
                             {formatLargeNum(
                               propertyStats.highestPrice,
@@ -1355,16 +1287,13 @@ export default function AgentDetailsPage() {
                           </div>
                         </div>
                       </div>
-
                       <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-navy-800/50 p-5">
                         <div className="mb-2 flex items-center justify-between">
                           <span className="text-xs uppercase tracking-wider text-ink/50">
                             Featured
                           </span>
-
                           <Award className="h-4 w-4 text-gold-400" />
                         </div>
-
                         <div>
                           <div className="text-2xl font-bold text-cream">
                             {
@@ -1373,22 +1302,18 @@ export default function AgentDetailsPage() {
                                 .length
                             }
                           </div>
-
                           <div className="mt-1 text-xs text-ink/50">
                             Highlighted Properties
                           </div>
                         </div>
                       </div>
-
                       <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-navy-800/50 p-5">
                         <div className="mb-2 flex items-center justify-between">
                           <span className="text-xs uppercase tracking-wider text-ink/50">
                             Premium
                           </span>
-
                           <ShieldCheck className="h-4 w-4 text-emerald-400" />
                         </div>
-
                         <div>
                           <div className="text-2xl font-bold text-cream">
                             {
@@ -1397,22 +1322,18 @@ export default function AgentDetailsPage() {
                                 .length
                             }
                           </div>
-
                           <div className="mt-1 text-xs text-ink/50">
                             Premium Properties
                           </div>
                         </div>
                       </div>
-
                       <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-navy-800/50 p-5">
                         <div className="mb-2 flex items-center justify-between">
                           <span className="text-xs uppercase tracking-wider text-ink/50">
                             Expertise
                           </span>
-
                           <Building2 className="h-4 w-4 text-blue-400" />
                         </div>
-
                         <div>
                           <div className="truncate text-lg font-bold text-cream">
                             {propertyStats
@@ -1420,7 +1341,6 @@ export default function AgentDetailsPage() {
                               ?.type ||
                               'N/A'}
                           </div>
-
                           <div className="mt-1 text-xs text-ink/50">
                             Primary Type
                           </div>
@@ -1429,7 +1349,6 @@ export default function AgentDetailsPage() {
                     </div>
                   </Reveal>
                 )}
-
               {/* Marketplace Snapshot */}
               <Reveal delay={100}>
                 <div className="rounded-3xl border border-white/10 bg-navy-800/50 p-6 md:p-8">
@@ -1437,49 +1356,41 @@ export default function AgentDetailsPage() {
                     <TrendingUp className="h-5 w-5 text-gold-400" />
                     Marketplace Snapshot
                   </h3>
-
                   <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
                     <div>
                       <div className="mb-1 text-sm text-ink/50">
                         Listed Portfolio Value
                       </div>
-
                       <div className="text-xl font-bold text-cream">
                         {formatLargeNum(
                           propertyStats.portfolioValue,
                         )}
                       </div>
                     </div>
-
                     <div>
                       <div className="mb-1 text-sm text-ink/50">
                         Average Listed Price
                       </div>
-
                       <div className="text-xl font-bold text-cream">
                         {formatLargeNum(
                           propertyStats.averagePrice,
                         )}
                       </div>
                     </div>
-
                     <div>
                       <div className="mb-1 text-sm text-ink/50">
                         Highest Listed Price
                       </div>
-
                       <div className="text-xl font-bold text-emerald-400">
                         {formatLargeNum(
                           propertyStats.highestPrice,
                         )}
                       </div>
                     </div>
-
                     <div>
                       <div className="mb-1 text-sm text-ink/50">
                         Most Common Type
                       </div>
-
                       <div className="text-lg font-bold text-cream">
                         {propertyStats
                           .propertyMix[0]
@@ -1487,12 +1398,10 @@ export default function AgentDetailsPage() {
                           'N/A'}
                       </div>
                     </div>
-
                     <div>
                       <div className="mb-1 text-sm text-ink/50">
                         Most Active Market
                       </div>
-
                       <div className="text-lg font-bold text-cream">
                         {propertyStats
                           .topMarkets[0]
@@ -1500,12 +1409,10 @@ export default function AgentDetailsPage() {
                           'N/A'}
                       </div>
                     </div>
-
                     <div>
                       <div className="mb-1 text-sm text-ink/50">
                         Coverage Spread
                       </div>
-
                       <div className="text-lg font-bold text-cream">
                         {serviceAreas.length}{' '}
                         Areas
@@ -1514,7 +1421,6 @@ export default function AgentDetailsPage() {
                   </div>
                 </div>
               </Reveal>
-
               {/* Listing Mix */}
               {properties.length >
                 0 && (
@@ -1524,7 +1430,6 @@ export default function AgentDetailsPage() {
                         <LayoutGrid className="h-5 w-5 text-emerald-400" />
                         Listing Mix
                       </h3>
-
                       <div className="space-y-5">
                         {[
                           {
@@ -1564,7 +1469,6 @@ export default function AgentDetailsPage() {
                               <span className="w-28 shrink-0 text-sm font-medium text-ink/70">
                                 {item.label}
                               </span>
-
                               <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-white/5">
                                 <div
                                   className={`h-full rounded-full ${item.className}`}
@@ -1573,7 +1477,6 @@ export default function AgentDetailsPage() {
                                   }}
                                 />
                               </div>
-
                               <span className="w-12 text-right text-sm font-bold text-cream">
                                 {item.percent}%
                               </span>
@@ -1584,7 +1487,6 @@ export default function AgentDetailsPage() {
                     </div>
                   </Reveal>
                 )}
-
               {/* Top Markets */}
               {propertyStats.topMarkets
                 .length > 0 && (
@@ -1594,7 +1496,6 @@ export default function AgentDetailsPage() {
                         <MapPin className="h-5 w-5 text-gold-400" />
                         Top Markets
                       </h3>
-
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                         {propertyStats.topMarkets.map(
                           (market) => (
@@ -1609,7 +1510,6 @@ export default function AgentDetailsPage() {
                                   market.location
                                 }
                               </div>
-
                               <div className="mt-1 text-xs text-ink/50">
                                 {market.count}{' '}
                                 Published Listings
@@ -1621,7 +1521,6 @@ export default function AgentDetailsPage() {
                     </div>
                   </Reveal>
                 )}
-
               {/* Featured Listings */}
               {propertyStats
                 .featuredProperties
@@ -1631,7 +1530,6 @@ export default function AgentDetailsPage() {
                       <h2 className="font-heading text-2xl font-bold text-cream">
                         Featured Properties
                       </h2>
-
                       <span className="rounded-full bg-gold-400/10 px-3 py-1 text-sm font-medium text-gold-400">
                         {
                           propertyStats
@@ -1641,7 +1539,6 @@ export default function AgentDetailsPage() {
                         Properties
                       </span>
                     </div>
-
                     <PropertyGrid
                       properties={
                         propertyStats.featuredProperties
@@ -1650,14 +1547,12 @@ export default function AgentDetailsPage() {
                     />
                   </Reveal>
                 )}
-
               {/* Recent Listings */}
               <Reveal delay={300}>
                 <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
                   <h2 className="font-heading text-2xl font-bold text-cream">
                     Recent Listings
                   </h2>
-
                   <span className="text-sm font-medium text-ink/50">
                     Showing{' '}
                     {
@@ -1669,7 +1564,6 @@ export default function AgentDetailsPage() {
                     }
                   </span>
                 </div>
-
                 {sortedProperties.length >
                   0 ? (
                   <PropertyGrid
@@ -1695,11 +1589,9 @@ export default function AgentDetailsPage() {
                 ) : (
                   <div className="rounded-3xl border border-white/10 bg-navy-800/30 px-6 py-12 text-center">
                     <Building2 className="mx-auto mb-4 h-12 w-12 text-white/10" />
-
                     <p className="font-medium text-cream">
                       No published listings
                     </p>
-
                     <p className="mt-1 text-sm text-ink/50">
                       This Agent does not currently have
                       published Properties on the marketplace.
@@ -1711,6 +1603,111 @@ export default function AgentDetailsPage() {
           </div>
         </Container>
       </Section>
+
+      {/* Message Agent Modal */}
+      {messageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/90 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-navy-800 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-300 md:p-8">
+            <button
+              type="button"
+              aria-label="Close message dialog"
+              className="absolute right-6 top-6 rounded-full p-2 text-ink/50 transition-colors hover:bg-white/5 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 disabled:pointer-events-none disabled:opacity-50"
+              onClick={closeMessageModal}
+              disabled={isMessaging}
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-6 flex items-center gap-3 border-b border-white/5 pb-6">
+              {agent.avatar ? (
+                <img
+                  src={agent.avatar}
+                  alt={agent.name}
+                  className="h-12 w-12 rounded-full border border-gold-400/30 object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold-400/30 bg-gold-500/10 text-sm font-bold text-gold-300">
+                  {agentInitials}
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-heading text-xl font-bold text-cream">
+                  Message {agent.name}
+                </h3>
+
+                <p className="text-sm text-ink/50">
+                  Send a message directly to this Agent.
+                </p>
+              </div>
+            </div>
+
+            {messageSuccess ? (
+              <div className="py-8 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-400">
+                  <CheckCircle2 className="h-8 w-8" />
+                </div>
+
+                <h4 className="mb-2 text-xl font-bold text-cream">
+                  Message Sent!
+                </h4>
+
+                <p className="mb-8 text-ink/60">
+                  Your message was sent successfully.
+                </p>
+
+                <GhostButton
+                  type="button"
+                  className="h-12 w-full justify-center"
+                  onClick={closeMessageModal}
+                >
+                  Close
+                </GhostButton>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleMessageSubmit}
+                noValidate
+                className="space-y-4"
+              >
+                {messageError && (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200"
+                  >
+                    {messageError}
+                  </div>
+                )}
+
+                <textarea
+                  autoFocus
+                  rows={6}
+                  placeholder="Write your message..."
+                  value={messageText}
+                  onChange={(event) => {
+                    setMessageText(event.target.value);
+                    if (messageError) {
+                      setMessageError(null);
+                    }
+                  }}
+                  className="w-full resize-none rounded-2xl border border-white/10 bg-navy-900/50 px-4 py-3 text-sm leading-relaxed text-cream shadow-inner transition-all placeholder:text-ink/50 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
+                  disabled={isMessaging}
+                />
+
+                <GoldButton
+                  type="submit"
+                  size="md"
+                  className="h-12 w-full justify-center gap-2"
+                  disabled={isMessaging || !messageText.trim()}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {isMessaging ? 'Sending...' : 'Send Message'}
+                </GoldButton>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }

@@ -20,3 +20,4 @@ export * from './homeServices';
 export * from './buyer';
 export * from './owner';
 export * from './management';
+export * from './notification';

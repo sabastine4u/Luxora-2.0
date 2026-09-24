@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import {
   Bed,
@@ -20,6 +20,7 @@ import {
 
 // Import the Property API used to retrieve the published Property from the backend.
 import { propertyApi } from '../../api/property.api';
+import { inquiryApi } from '../../api/inquiry.api';
 
 // Import the mapper that converts backend Property data into the frontend Property shape.
 import {
@@ -126,6 +127,9 @@ export default function PropertyDetailsPage() {
     openScheduleViewingModal,
     toggleCompareProperty,
     recentlyViewed,
+    user,
+    isAuthenticated,
+    isAuthLoading,
   } = useSession();
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -242,6 +246,15 @@ export default function PropertyDetailsPage() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
   const [contactSuccess, setContactSuccess] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+  const [contactForm, setContactForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    message: '',
+  });
+  const contactIdempotencyKeyRef = useRef<string | null>(null);
+  const contactPayloadFingerprintRef = useRef<string | null>(null);
 
   const { showToast } = useToast();
 
@@ -528,17 +541,131 @@ export default function PropertyDetailsPage() {
 
   const saved = isFavorite(property.id);
 
-  const handleContactSubmit = (
+  const resetContactAttempt = () => {
+    contactIdempotencyKeyRef.current = null;
+    contactPayloadFingerprintRef.current = null;
+  };
+
+  const closeContactModal = () => {
+    setContactModalOpen(false);
+    setContactSuccess(false);
+    setContactError(null);
+    resetContactAttempt();
+  };
+
+  const openContactModal = () => {
+    // Wait for the existing session provider to finish validating a stored JWT.
+    if (isAuthLoading) {
+      return;
+    }
+
+    // Match the existing protected Property action behavior.
+    if (!isAuthenticated) {
+      navigate(ROUTES.LOGIN);
+      return;
+    }
+
+    resetContactAttempt();
+    setContactSuccess(false);
+    setContactError(null);
+    setContactForm({
+      fullName: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      message: `I am interested in ${property.title} and would like more information.`,
+    });
+    setContactModalOpen(true);
+  };
+
+  const updateContactField = (
+    field: keyof typeof contactForm,
+    value: string,
+  ) => {
+    setContactForm((currentForm) => ({
+      ...currentForm,
+      [field]: value,
+    }));
+
+    // A changed payload must use a fresh idempotency key on its next submission.
+    if (contactPayloadFingerprintRef.current) {
+      resetContactAttempt();
+    }
+  };
+
+  const handleContactSubmit = async (
     e: React.FormEvent,
   ) => {
     e.preventDefault();
 
-    setContactLoading(true);
+    if (contactLoading) {
+      return;
+    }
 
-    setTimeout(() => {
+    if (!isAuthenticated) {
+      closeContactModal();
+      navigate(ROUTES.LOGIN);
+      return;
+    }
+
+    const fullName = contactForm.fullName.trim();
+    const email = contactForm.email.trim();
+    const phone = contactForm.phone.trim();
+    const message = contactForm.message.trim();
+
+    if (!fullName || !email || !phone || !message) {
+      const errorMessage = 'Please complete your name, email, phone number, and message.';
+      setContactError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Missing information',
+        description: errorMessage,
+      });
+      return;
+    }
+
+    const payload = {
+      propertyId: property.id,
+      fullName,
+      email,
+      phone,
+      message,
+      source: 'Contact Agent',
+      preferredDate: null,
+      preferredTime: null,
+    };
+    const payloadFingerprint = JSON.stringify(payload);
+
+    if (contactPayloadFingerprintRef.current !== payloadFingerprint) {
+      contactIdempotencyKeyRef.current = crypto.randomUUID();
+      contactPayloadFingerprintRef.current = payloadFingerprint;
+    }
+
+    setContactLoading(true);
+    setContactError(null);
+
+    try {
+      await inquiryApi.createInquiry(
+        payload,
+        contactIdempotencyKeyRef.current as string,
+      );
+
       setContactLoading(false);
       setContactSuccess(true);
-    }, 1500);
+      resetContactAttempt();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unable to send your message. Please try again.';
+
+      setContactLoading(false);
+      setContactError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Message not sent',
+        description: errorMessage,
+      });
+    }
   };
 
   const handleShareClick = async () => {
@@ -1201,11 +1328,7 @@ export default function PropertyDetailsPage() {
                           />
 
                           <GhostButton
-                            onClick={() =>
-                              setContactModalOpen(
-                                true,
-                              )
-                            }
+                            onClick={openContactModal}
                           >
                             Request Full Floor Plan
                           </GhostButton>
@@ -1224,11 +1347,7 @@ export default function PropertyDetailsPage() {
                           </p>
 
                           <GhostButton
-                            onClick={() =>
-                              setContactModalOpen(
-                                true,
-                              )
-                            }
+                            onClick={openContactModal}
                           >
                             Request Floor Plan
                           </GhostButton>
@@ -1291,11 +1410,7 @@ export default function PropertyDetailsPage() {
                           </p>
 
                           <GhostButton
-                            onClick={() =>
-                              setContactModalOpen(
-                                true,
-                              )
-                            }
+                            onClick={openContactModal}
                           >
                             Request Video
                           </GhostButton>
@@ -1479,6 +1594,37 @@ export default function PropertyDetailsPage() {
                 <MortgageCalculator
                   property={property}
                 />
+
+                {/* Mortgage Options */}
+                {property.transactionType === 'buy' &&
+                  property.mortgageSupport && (
+                    <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-gold-400/20 bg-gold-400/5 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+                      <div>
+                        <h4 className="font-heading text-lg font-semibold text-cream">
+                          Ready to explore financing?
+                        </h4>
+
+                        <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink/60">
+                          Explore mortgage options and continue with Luxora&apos;s
+                          financing assistance for this property.
+                        </p>
+                      </div>
+
+                      <GoldButton
+                        type="button"
+                        className="shrink-0 justify-center"
+                        onClick={() =>
+                          navigate(
+                            `${ROUTES.SERVICE_MORTGAGE}?propertyId=${encodeURIComponent(
+                              property.id,
+                            )}`,
+                          )
+                        }
+                      >
+                        Explore Mortgage Options
+                      </GoldButton>
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -1486,9 +1632,7 @@ export default function PropertyDetailsPage() {
             <div className="relative">
               <PropertySidebar
                 property={property}
-                onContactClick={() =>
-                  setContactModalOpen(true)
-                }
+                onContactClick={openContactModal}
               />
             </div>
           </div>
@@ -1595,10 +1739,7 @@ export default function PropertyDetailsPage() {
           <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-navy-800 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-300 md:p-8">
             <button
               className="absolute right-6 top-6 rounded-full p-2 text-ink/50 transition-colors hover:bg-white/5 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
-              onClick={() => {
-                setContactModalOpen(false);
-                setContactSuccess(false);
-              }}
+              onClick={closeContactModal}
             >
               <X className="h-5 w-5" />
             </button>
@@ -1680,10 +1821,7 @@ export default function PropertyDetailsPage() {
 
                 <GhostButton
                   className="h-12 w-full justify-center"
-                  onClick={() => {
-                    setContactModalOpen(false);
-                    setContactSuccess(false);
-                  }}
+                  onClick={closeContactModal}
                 >
                   Close
                 </GhostButton>
@@ -1691,13 +1829,30 @@ export default function PropertyDetailsPage() {
             ) : (
               <form
                 onSubmit={handleContactSubmit}
+                noValidate
                 className="space-y-4"
               >
+                {contactError && (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200"
+                  >
+                    {contactError}
+                  </div>
+                )}
+
                 <div>
                   <input
                     type="text"
                     placeholder="Your full name"
                     required
+                    value={contactForm.fullName}
+                    onChange={(event) =>
+                      updateContactField(
+                        'fullName',
+                        event.target.value,
+                      )
+                    }
                     className="w-full rounded-xl border border-white/10 bg-navy-900/50 px-4 py-3 text-sm text-cream shadow-inner transition-all placeholder:text-ink/50 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
                   />
                 </div>
@@ -1707,6 +1862,13 @@ export default function PropertyDetailsPage() {
                     type="email"
                     placeholder="your@email.com"
                     required
+                    value={contactForm.email}
+                    onChange={(event) =>
+                      updateContactField(
+                        'email',
+                        event.target.value,
+                      )
+                    }
                     className="w-full rounded-xl border border-white/10 bg-navy-900/50 px-4 py-3 text-sm text-cream shadow-inner transition-all placeholder:text-ink/50 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
                   />
                 </div>
@@ -1716,6 +1878,13 @@ export default function PropertyDetailsPage() {
                     type="tel"
                     placeholder="+234 800 000 0000"
                     required
+                    value={contactForm.phone}
+                    onChange={(event) =>
+                      updateContactField(
+                        'phone',
+                        event.target.value,
+                      )
+                    }
                     className="w-full rounded-xl border border-white/10 bg-navy-900/50 px-4 py-3 text-sm text-cream shadow-inner transition-all placeholder:text-ink/50 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
                   />
                 </div>
@@ -1724,7 +1893,13 @@ export default function PropertyDetailsPage() {
                   <textarea
                     rows={4}
                     required
-                    defaultValue={`I am interested in ${property.title} and would like more information.`}
+                    value={contactForm.message}
+                    onChange={(event) =>
+                      updateContactField(
+                        'message',
+                        event.target.value,
+                      )
+                    }
                     className="w-full resize-none rounded-xl border border-white/10 bg-navy-900/50 px-4 py-3 text-sm text-cream shadow-inner transition-all placeholder:text-ink/50 focus:border-gold-400/50 focus:outline-none focus:ring-1 focus:ring-gold-400/50"
                   />
                 </div>
