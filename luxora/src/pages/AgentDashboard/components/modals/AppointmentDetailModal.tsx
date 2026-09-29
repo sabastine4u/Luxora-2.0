@@ -476,19 +476,6 @@ export function AppointmentDetailModal({
     navigate(propertyRoute);
   };
 
-  /*
-   * Client navigation stays informational until
-   * the Agent Clients workflow is connected.
-   */
-  const handleViewClient = () => {
-    showToast({
-      type: 'info',
-      title: 'Client Profile',
-      description:
-        'Client profile navigation will be connected to the Agent Clients workflow.',
-    });
-  };
-
   const isPending =
     appointment.appointmentStatus ===
     'Pending';
@@ -753,14 +740,9 @@ export function AppointmentDetailModal({
                     </span>
                   </div>
 
-                  <GhostButton
-                    onClick={
-                      handleViewClient
-                    }
-                    className="w-full justify-center text-xs py-1 mt-2"
-                  >
-                    View Client Profile
-                  </GhostButton>
+                  <div className="mt-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-center text-xs text-ink/40">
+                    Client profile details are not available in the current Agent data source.
+                  </div>
                 </div>
               </div>
 

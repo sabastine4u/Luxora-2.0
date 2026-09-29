@@ -6,16 +6,15 @@ import {
   CheckCircle2,
   FileText,
   CreditCard,
-  Target,
   Milestone,
   AlertCircle,
   FileSignature,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react';
+
 import { Modal } from '../../../../components/ui/Modal';
-import {
-  GoldButton,
-  GhostButton,
-} from '../../../../components/ui/ui';
+import { GhostButton } from '../../../../components/ui/ui';
 import { StatusBadge } from '../../../ManagementDashboard/components/shared/StatusBadge';
 import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
 
@@ -58,14 +57,36 @@ const formatDate = (
     return 'Not provided';
   }
 
-  return date.toLocaleDateString(
-    'en-GB',
-    {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    },
-  );
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const formatDateTime = (
+  value: unknown,
+) => {
+  if (
+    typeof value !== 'string' ||
+    !value
+  ) {
+    return 'Not provided';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Not provided';
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const getString = (
@@ -91,39 +112,60 @@ export function DealDetailModal({
   onClose,
   deal,
 }: DealDetailModalProps) {
-  const [activeTab, setActiveTab] =
-    useState<
-      'overview' | 'documents' | 'timeline'
-    >('overview');
+  const [
+    activeTab,
+    setActiveTab,
+  ] = useState<
+    'overview' | 'documents' | 'timeline'
+  >('overview');
 
   if (!deal) {
     return null;
   }
 
   /*
-   * Read the real Offer fields supplied by Deals.tsx.
+   * Core Deal information.
    */
-  const propertyTitle =
-    getString(
-      deal.property,
-      'Property unavailable',
-    );
+  const dealId = getString(
+    deal.dealId,
+    'Deal ID unavailable',
+  );
 
-  const clientName =
-    getString(
-      deal.client,
-      'Buyer unavailable',
-    );
+  const propertyTitle = getString(
+    deal.property,
+    'Property unavailable',
+  );
 
-  const buyerEmail =
-    getString(
-      deal.buyerEmail,
-    );
+  const clientName = getString(
+    deal.client,
+    'Buyer unavailable',
+  );
 
-  const buyerPhone =
-    getString(
-      deal.buyerPhone,
-    );
+  const buyerEmail = getString(
+    deal.buyerEmail,
+  );
+
+  const buyerPhone = getString(
+    deal.buyerPhone,
+  );
+
+  const ownerName = getString(
+    deal.ownerName,
+    'Owner unavailable',
+  );
+
+  const ownerEmail = getString(
+    deal.ownerEmail,
+  );
+
+  const ownerPhone = getString(
+    deal.ownerPhone,
+  );
+
+  const agency = getString(
+    deal.agency,
+    'Agency unavailable',
+  );
 
   const propertyId =
     deal.propertyId;
@@ -144,26 +186,28 @@ export function DealDetailModal({
       ? deal.counterOfferAmount
       : null;
 
-  const currentValue =
-    counterOfferAmount ??
-    offerAmount;
-
-  const stage =
-    getString(
-      deal.stage,
-      'Offer Submitted',
+  const agreedAmount =
+    getNumber(
+      deal.agreedAmount,
+      counterOfferAmount ??
+        offerAmount,
     );
 
-  const status =
+  const status = getString(
+    deal.status,
+    'Unknown',
+  );
+
+  const agreementStatus =
     getString(
-      deal.status,
-      'Submitted',
+      deal.agreementStatus,
+      'Pending',
     );
 
-  const closingDate =
+  const paymentStatus =
     getString(
-      deal.closingDate,
-      'Not provided',
+      deal.paymentStatus,
+      'Pending',
     );
 
   const transactionType =
@@ -172,10 +216,10 @@ export function DealDetailModal({
       'buy',
     );
 
-  const agency =
+  const closingDate =
     getString(
-      deal.agency,
-      'Agency unavailable',
+      deal.closingDate,
+      'Not provided',
     );
 
   const buyerNotes =
@@ -193,148 +237,252 @@ export function DealDetailModal({
       deal.counterOfferDetails,
     );
 
-  /*
-   * There is currently no Deal/Document/Payment model
-   * connected to this Offer, so these sections show
-   * honest backend availability instead of fabricated data.
-   */
+  const propertyStatus =
+    getString(
+      deal.propertyStatus,
+      'Not supplied',
+    );
 
+  const propertyAvailability =
+    getString(
+      deal.propertyAvailability,
+      'Not supplied',
+    );
+
+  const createdAt =
+    getString(
+      deal.createdAt,
+    );
+
+  const updatedAt =
+    getString(
+      deal.updatedAt,
+    );
+
+  const agreementCompletedAt =
+    getString(
+      deal.agreementCompletedAt,
+    );
+
+  const paymentVerifiedAt =
+    getString(
+      deal.paymentVerifiedAt,
+    );
+
+  const completedAt =
+    getString(
+      deal.completedAt,
+    );
+
+  const cancelledAt =
+    getString(
+      deal.cancelledAt,
+    );
+
+  /*
+   * Build a real Deal lifecycle timeline.
+   *
+   * We only show events for which the backend has
+   * actually supplied data.
+   */
   const activityTimeline = [
     {
-      title:
-        'Offer Created',
-      time: formatDate(
-        deal.createdAt,
+      title: 'Deal Created',
+      time: formatDateTime(
+        createdAt,
       ),
       desc:
-        `Offer submitted at ${formatCurrency(
-          offerAmount,
-        )}.`,
+        'The accepted Offer was converted into a persistent transaction Deal.',
       icon: FileText,
-      color: 'text-blue-400',
+      color:
+        'text-blue-400',
     },
-    ...(counterOfferAmount !== null
+
+    {
+      title: 'Offer Accepted',
+      time: formatDateTime(
+        createdAt,
+      ),
+      desc:
+        `Accepted transaction value: ${formatCurrency(
+          agreedAmount,
+        )}.`,
+      icon: CheckCircle2,
+      color:
+        'text-emerald-400',
+    },
+
+    {
+      title: 'Property Under Offer',
+      time: formatDateTime(
+        createdAt,
+      ),
+      desc:
+        propertyStatus !==
+          'Not supplied'
+          ? `Property status: ${propertyStatus}${
+              propertyAvailability !==
+              'Not supplied'
+                ? ` · Availability: ${propertyAvailability}`
+                : ''
+            }.`
+          : 'The property was moved into the transaction stage when the Deal was created.',
+      icon: Briefcase,
+      color:
+        'text-gold-400',
+    },
+
+    {
+      title:
+        `Agreement: ${agreementStatus}`,
+      time: agreementCompletedAt
+        ? formatDateTime(
+            agreementCompletedAt,
+          )
+        : formatDateTime(
+            updatedAt,
+          ),
+      desc:
+        agreementStatus ===
+        'Completed'
+          ? 'The agreement stage has been completed.'
+          : 'The Deal is still waiting for the agreement stage to be completed.',
+      icon:
+        ShieldCheck,
+      color:
+        agreementStatus ===
+        'Completed'
+          ? 'text-emerald-400'
+          : 'text-orange-400',
+    },
+
+    {
+      title:
+        `Payment: ${paymentStatus}`,
+      time: paymentVerifiedAt
+        ? formatDateTime(
+            paymentVerifiedAt,
+          )
+        : formatDateTime(
+            updatedAt,
+          ),
+      desc:
+        paymentStatus ===
+        'Verified'
+          ? 'Payment has been verified.'
+          : 'Payment verification has not yet been completed.',
+      icon:
+        CreditCard,
+      color:
+        paymentStatus ===
+        'Verified'
+          ? 'text-emerald-400'
+          : 'text-blue-400',
+    },
+
+    ...(status ===
+      'Completed'
       ? [
           {
             title:
-              'Counter Offer',
-            time: formatDate(
-              deal.updatedAt,
-            ),
+              'Deal Completed',
+            time:
+              completedAt
+                ? formatDateTime(
+                    completedAt,
+                  )
+                : formatDateTime(
+                    updatedAt,
+                  ),
             desc:
-              `Counter offer recorded at ${formatCurrency(
-                counterOfferAmount,
-              )}.`,
-            icon: Target,
-            color: 'text-gold-400',
+              'The transaction has been completed.',
+            icon:
+              CheckCircle2,
+            color:
+              'text-emerald-400',
           },
         ]
       : []),
+
+    ...(status ===
+      'Cancelled'
+      ? [
+          {
+            title:
+              'Deal Cancelled',
+            time:
+              cancelledAt
+                ? formatDateTime(
+                    cancelledAt,
+                  )
+                : formatDateTime(
+                    updatedAt,
+                  ),
+            desc:
+              'The transaction Deal has been cancelled.',
+            icon:
+              AlertCircle,
+            color:
+              'text-rose-400',
+          },
+        ]
+      : []),
+
     {
       title:
         `Current Status: ${status}`,
-      time: formatDate(
-        deal.updatedAt,
+      time: formatDateTime(
+        updatedAt,
       ),
       desc:
-        'Latest offer lifecycle state returned by the backend.',
+        'Latest Deal state returned by the backend.',
       icon:
-        status === 'Accepted'
+        status ===
+        'Completed'
           ? CheckCircle2
           : AlertCircle,
       color:
-        status === 'Accepted'
+        status ===
+        'Completed'
           ? 'text-emerald-400'
           : 'text-ink/60',
     },
   ];
 
-  const documentChecklist = [
+  /*
+   * Document management is not yet a real Deal domain.
+   *
+   * These are informational placeholders only. We do not
+   * allow the Agent to fake document actions from this page.
+   */
+  const documentItems = [
     {
       name:
-        'Initial Offer Letter',
-      status: 'Not Connected',
+        'Agreement Record',
+      description:
+        'Agreement document storage is not connected to the Deal API.',
+      status:
+        'Not Connected',
     },
+
     {
       name:
-        'Proof of Funds',
-      status: 'Not Connected',
+        'Payment Evidence',
+      description:
+        'Payment document storage is not connected to the Deal API.',
+      status:
+        'Not Connected',
     },
+
     {
       name:
-        'Purchase Agreement',
-      status: 'Not Connected',
-    },
-    {
-      name:
-        'Title Transfer Documents',
-      status: 'Not Connected',
+        'Completion Documents',
+      description:
+        'Completion document storage is not connected to the Deal API.',
+      status:
+        'Not Connected',
     },
   ];
-
-  const handleRequestSignature =
-    () => {
-      showPlaceholderToast(
-        'Request Signature',
-        'Signature workflow is not connected to the Offer backend yet.',
-      );
-    };
-
-  const handleFlagIssue = () => {
-    showPlaceholderToast(
-      'Flag Issue',
-      'Issue-management workflow is not connected to the Offer backend yet.',
-    );
-  };
-
-  const handleAdvanceStage =
-    () => {
-      showPlaceholderToast(
-        'Advance Stage',
-        'Deal stage advancement will be connected when the Agent negotiation workflow is implemented.',
-      );
-    };
-
-  const handleViewBuyer =
-    () => {
-      showPlaceholderToast(
-        'Buyer Profile',
-        'Buyer profile navigation will be connected to the Agent Clients workflow.',
-      );
-    };
-
-  const handleViewSeller =
-    () => {
-      showPlaceholderToast(
-        'Seller Profile',
-        'Seller/Owner profile navigation will be connected to the Owner workflow.',
-      );
-    };
-
-  const handleDocumentAction =
-    (
-      documentName: string,
-    ) => {
-      showPlaceholderToast(
-        documentName,
-        'Document management is not connected to the current backend yet.',
-      );
-    };
-
-  function showPlaceholderToast(
-    title: string,
-    description: string,
-  ) {
-    /*
-     * Placeholder buttons are deliberately kept because
-     * the existing UI functionality should remain visible.
-     * The parent page already owns the ToastContext, so this
-     * component does not invent another application state layer.
-     */
-    console.info(
-      `${title}: ${description}`,
-    );
-  }
 
   return (
     <Modal
@@ -342,15 +490,6 @@ export function DealDetailModal({
       onClose={onClose}
       title="Deal Overview"
       size="2xl"
-      actionButton={
-        <GoldButton
-          onClick={
-            handleAdvanceStage
-          }
-        >
-          Advance Stage
-        </GoldButton>
-      }
     >
       <div className="space-y-8 pb-4">
         {/* Header Section */}
@@ -368,19 +507,17 @@ export function DealDetailModal({
               <div className="text-ink/60 flex flex-wrap items-center gap-4 mt-1">
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
-                  Property ID:{' '}
-                  {propertyId
-                    ? String(
-                        propertyId,
-                      ).slice(
-                        -8,
-                      )
-                    : 'Unavailable'}
+
+                  Deal:
+                  {' '}
+                  {dealId}
                 </span>
 
                 <span className="flex items-center gap-1">
                   <User className="h-3.5 w-3.5" />
-                  Client:{' '}
+
+                  Buyer:
+                  {' '}
                   {clientName}
                 </span>
               </div>
@@ -392,38 +529,24 @@ export function DealDetailModal({
               />
 
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
-                Value:{' '}
+                Agreed Value:
+                {' '}
                 {formatCurrency(
-                  currentValue,
+                  agreedAmount,
                 )}
               </span>
 
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-gold-400">
-                Stage:{' '}
-                {stage}
+                Agreement:
+                {' '}
+                {agreementStatus}
               </span>
-            </div>
 
-            <div className="flex gap-4 pt-2">
-              <GhostButton
-                onClick={
-                  handleRequestSignature
-                }
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-gold-400 hover:text-gold-300"
-              >
-                <FileSignature className="h-4 w-4" />
-                Request Signature
-              </GhostButton>
-
-              <GhostButton
-                onClick={
-                  handleFlagIssue
-                }
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:text-red-300"
-              >
-                <AlertCircle className="h-4 w-4" />
-                Flag Issue
-              </GhostButton>
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-blue-400">
+                Payment:
+                {' '}
+                {paymentStatus}
+              </span>
             </div>
           </div>
         </div>
@@ -438,7 +561,7 @@ export function DealDetailModal({
             {
               id: 'documents',
               label:
-                'Documents & Checklist',
+                'Documents & Records',
             },
             {
               id: 'timeline',
@@ -524,19 +647,43 @@ export function DealDetailModal({
 
                   <div className="flex justify-between border-b border-white/5 pb-2">
                     <span className="text-ink/60">
-                      Current Value
+                      Agreed Deal Value
                     </span>
 
                     <span className="text-emerald-400 font-bold">
                       {formatCurrency(
-                        currentValue,
+                        agreedAmount,
                       )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="text-ink/60">
+                      Agreement Status
+                    </span>
+
+                    <span className="text-cream font-semibold">
+                      {
+                        agreementStatus
+                      }
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="text-ink/60">
+                      Payment Status
+                    </span>
+
+                    <span className="text-cream font-semibold">
+                      {
+                        paymentStatus
+                      }
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-ink/60">
-                      Estimated Commission
+                      Commission
                     </span>
 
                     <span className="text-gold-400 font-bold">
@@ -546,11 +693,67 @@ export function DealDetailModal({
                 </div>
               </div>
 
+              {/* Deal State */}
+              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
+                  <Milestone className="h-4 w-4 text-ink/60" />
+                  Deal State
+                </h3>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="text-ink/60">
+                      Current Stage
+                    </span>
+
+                    <span className="text-cream font-semibold">
+                      {status}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="text-ink/60">
+                      Transaction
+                    </span>
+
+                    <span className="text-cream capitalize">
+                      {
+                        transactionType
+                      }
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="text-ink/60">
+                      Created
+                    </span>
+
+                    <span className="text-cream">
+                      {formatDate(
+                        createdAt,
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-ink/60">
+                      Last Updated
+                    </span>
+
+                    <span className="text-cream">
+                      {formatDate(
+                        updatedAt,
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Offer Notes */}
               <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
                 <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-ink/60" />
-                  Offer Notes
+                  Transaction Notes
                 </h3>
 
                 <div className="space-y-3">
@@ -583,7 +786,9 @@ export function DealDetailModal({
                       </div>
 
                       <p className="text-xs text-ink/80 leading-relaxed">
-                        {counterOfferDetails}
+                        {
+                          counterOfferDetails
+                        }
                       </p>
                     </div>
                   )}
@@ -600,64 +805,99 @@ export function DealDetailModal({
                 </h3>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-navy-800 p-2.5 rounded-lg border border-white/5">
+                  {/* Buyer */}
+                  <div className="bg-navy-800 p-3 rounded-lg border border-white/5">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-navy-950 flex items-center justify-center text-xs font-bold text-cream">
                         B
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
                         <span className="block text-xs font-semibold text-cream">
                           Buyer
                         </span>
 
-                        <span className="block text-[10px] text-ink/60">
-                          {clientName}
+                        <span className="block text-[10px] text-ink/60 truncate">
+                          {
+                            clientName
+                          }
                         </span>
 
                         {buyerEmail && (
+                          <span className="block text-[10px] text-ink/40 truncate">
+                            {
+                              buyerEmail
+                            }
+                          </span>
+                        )}
+
+                        {buyerPhone && (
                           <span className="block text-[10px] text-ink/40">
-                            {buyerEmail}
+                            {
+                              buyerPhone
+                            }
                           </span>
                         )}
                       </div>
                     </div>
-
-                    <GhostButton
-                      onClick={
-                        handleViewBuyer
-                      }
-                      className="px-2 py-1 text-[10px]"
-                    >
-                      View
-                    </GhostButton>
                   </div>
 
-                  <div className="flex justify-between items-center bg-navy-800 p-2.5 rounded-lg border border-white/5">
+                  {/* Owner */}
+                  <div className="bg-navy-800 p-3 rounded-lg border border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-navy-950 flex items-center justify-center text-xs font-bold text-cream">
+                        O
+                      </div>
+
+                      <div className="min-w-0">
+                        <span className="block text-xs font-semibold text-cream">
+                          Owner
+                        </span>
+
+                        <span className="block text-[10px] text-ink/60 truncate">
+                          {
+                            ownerName
+                          }
+                        </span>
+
+                        {ownerEmail && (
+                          <span className="block text-[10px] text-ink/40 truncate">
+                            {
+                              ownerEmail
+                            }
+                          </span>
+                        )}
+
+                        {ownerPhone && (
+                          <span className="block text-[10px] text-ink/40">
+                            {
+                              ownerPhone
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Agency */}
+                  <div className="bg-navy-800 p-3 rounded-lg border border-white/5">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-navy-950 flex items-center justify-center text-xs font-bold text-cream">
                         A
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
                         <span className="block text-xs font-semibold text-cream">
                           Agency
                         </span>
 
-                        <span className="block text-[10px] text-ink/60">
-                          {agency}
+                        <span className="block text-[10px] text-ink/60 truncate">
+                          {
+                            agency
+                          }
                         </span>
                       </div>
                     </div>
-
-                    <GhostButton
-                      onClick={
-                        handleViewSeller
-                      }
-                      className="px-2 py-1 text-[10px]"
-                    >
-                      View
-                    </GhostButton>
                   </div>
                 </div>
               </div>
@@ -670,13 +910,29 @@ export function DealDetailModal({
                 </h3>
 
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between border-b border-white/5 pb-2">
+                  <div className="flex justify-between border-b border-white/5 pb-2 gap-4">
                     <span className="text-ink/60">
                       Property
                     </span>
 
                     <span className="text-cream text-right">
-                      {propertyTitle}
+                      {
+                        propertyTitle
+                      }
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="text-ink/60">
+                      Property ID
+                    </span>
+
+                    <span className="text-cream text-right break-all">
+                      {propertyId
+                        ? String(
+                            propertyId,
+                          )
+                        : 'Unavailable'}
                     </span>
                   </div>
 
@@ -686,7 +942,9 @@ export function DealDetailModal({
                     </span>
 
                     <span className="text-cream capitalize">
-                      {transactionType}
+                      {
+                        transactionType
+                      }
                     </span>
                   </div>
 
@@ -708,8 +966,32 @@ export function DealDetailModal({
                     </span>
 
                     <span className="text-cream">
-                      {closingDate}
+                      {
+                        closingDate
+                      }
                     </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Backend Availability */}
+              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-ink/60" />
+                  Workflow Availability
+                </h3>
+
+                <div className="rounded-lg border border-dashed border-white/10 bg-navy-800/40 p-4">
+                  <div className="text-sm font-semibold text-cream mb-1">
+                    Read-only Deal view
+                  </div>
+
+                  <div className="text-xs text-ink/60 leading-relaxed">
+                    Agreement, payment,
+                    document, and completion
+                    actions will be enabled
+                    here once their backend
+                    workflows are implemented.
                   </div>
                 </div>
               </div>
@@ -723,49 +1005,59 @@ export function DealDetailModal({
           <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
             <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
               <FileSignature className="h-4 w-4 text-ink/60" />
-              Required Documents
+              Deal Documents & Records
             </h3>
 
-            <div className="mb-4 rounded-lg border border-dashed border-white/10 bg-navy-800/40 p-4">
+            <div className="mb-5 rounded-lg border border-dashed border-white/10 bg-navy-800/40 p-4">
               <div className="text-sm font-semibold text-cream mb-1">
-                Document workflow not connected
+                Document management is not connected
               </div>
 
               <div className="text-xs text-ink/60 leading-relaxed">
-                The current Offer backend does not yet
-                contain document records, upload status,
-                or approval status for this deal.
+                The current Deal API
+                returns transaction state,
+                but it does not yet return
+                document records, upload
+                state, signatures, or approval
+                records.
               </div>
             </div>
 
             <div className="space-y-3">
-              {documentChecklist.map(
+              {documentItems.map(
                 (
                   item,
-                  idx,
+                  index,
                 ) => (
                   <div
-                    key={idx}
-                    className="flex justify-between items-center bg-navy-800 p-3 rounded-lg border border-white/5"
+                    key={index}
+                    className="flex items-center justify-between gap-4 bg-navy-800 p-4 rounded-lg border border-white/5"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-4 w-4 rounded-full border border-ink/40 flex items-center justify-center" />
+                      <div className="h-9 w-9 rounded-xl bg-white/5 flex items-center justify-center">
+                        <FileText className="h-4 w-4 text-ink/60" />
+                      </div>
 
-                      <span className="text-sm text-cream">
-                        {item.name}
-                      </span>
+                      <div>
+                        <div className="text-sm font-semibold text-cream">
+                          {
+                            item.name
+                          }
+                        </div>
+
+                        <div className="text-[10px] text-ink/50 mt-0.5">
+                          {
+                            item.description
+                          }
+                        </div>
+                      </div>
                     </div>
 
-                    <GhostButton
-                      onClick={() =>
-                        handleDocumentAction(
-                          item.name,
-                        )
+                    <span className="shrink-0 text-[10px] px-2 py-1 rounded-full bg-white/5 text-ink/50 border border-white/10">
+                      {
+                        item.status
                       }
-                      className="px-3 py-1 text-xs border border-white/10"
-                    >
-                      {item.status}
-                    </GhostButton>
+                    </span>
                   </div>
                 ),
               )}
@@ -778,7 +1070,7 @@ export function DealDetailModal({
           'timeline' && (
           <div className="rounded-xl border border-white/5 bg-navy-900/50 p-6">
             <ActivityTimeline
-              title="Negotiation & Activity Timeline"
+              title="Deal Activity Timeline"
               items={
                 activityTimeline
               }

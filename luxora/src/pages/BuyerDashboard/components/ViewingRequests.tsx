@@ -18,6 +18,7 @@ import { DataTable } from '../../../components/dashboard/shared/tables/DataTable
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
 import { useToast } from '../../../contexts/ToastContext';
 import { bookingApi } from '../../../api/booking.api';
+import { conversationApi } from '../../../api/conversation.api';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
@@ -42,6 +43,16 @@ interface BackendBooking {
     address?: string;
     coverImage?: string | null;
     images?: string[];
+
+    agent?: {
+      user?: {
+        _id: string;
+        fullName?: string;
+        avatar?: string | null;
+        role?: string;
+      };
+      status?: string;
+    };
   };
 }
 
@@ -52,6 +63,7 @@ interface BackendBooking {
 type BuyerViewingRequest =
   ViewingRequest & {
     propertyId: string;
+    agentUserId: string;
   };
 
 export default function ViewingRequests() {
@@ -151,7 +163,12 @@ export default function ViewingRequests() {
               'Location unavailable',
 
             agent:
+              booking.property?.agent?.user?.fullName ||
               'Assigned Agent',
+
+            agentUserId:
+              booking.property?.agent?.user?._id ||
+              '',
 
             date:
               booking.viewingDate?.split(
@@ -342,18 +359,18 @@ export default function ViewingRequests() {
         ) {
           if (
             a.status ===
-              'Completed' &&
+            'Completed' &&
             b.status !==
-              'Completed'
+            'Completed'
           ) {
             return -1;
           }
 
           if (
             a.status !==
-              'Completed' &&
+            'Completed' &&
             b.status ===
-              'Completed'
+            'Completed'
           ) {
             return 1;
           }
@@ -420,6 +437,7 @@ export default function ViewingRequests() {
         {
           viewingDate: date,
           viewingTime: time,
+          message: notes.trim(),
         },
       );
 
@@ -429,17 +447,17 @@ export default function ViewingRequests() {
       setViewings((current) =>
         current.map((viewing) =>
           viewing.id ===
-          selectedViewing.id
+            selectedViewing.id
             ? {
-                ...viewing,
-                date,
-                time,
-                status:
-                  'Rescheduled',
-                specialRequests:
-                  notes ||
-                  viewing.specialRequests,
-              }
+              ...viewing,
+              date,
+              time,
+              status:
+                'Rescheduled',
+              specialRequests:
+                notes ||
+                viewing.specialRequests,
+            }
             : viewing,
         ),
       );
@@ -448,15 +466,15 @@ export default function ViewingRequests() {
         (current) =>
           current
             ? {
-                ...current,
-                date,
-                time,
-                status:
-                  'Rescheduled',
-                specialRequests:
-                  notes ||
-                  current.specialRequests,
-              }
+              ...current,
+              date,
+              time,
+              status:
+                'Rescheduled',
+              specialRequests:
+                notes ||
+                current.specialRequests,
+            }
             : current,
       );
 
@@ -508,12 +526,12 @@ export default function ViewingRequests() {
         setViewings((current) =>
           current.map((viewing) =>
             viewing.id ===
-            selectedViewing.id
+              selectedViewing.id
               ? {
-                  ...viewing,
-                  status:
-                    'Cancelled',
-                }
+                ...viewing,
+                status:
+                  'Cancelled',
+              }
               : viewing,
           ),
         );
@@ -522,10 +540,10 @@ export default function ViewingRequests() {
           (current) =>
             current
               ? {
-                  ...current,
-                  status:
-                    'Cancelled',
-                }
+                ...current,
+                status:
+                  'Cancelled',
+              }
               : current,
         );
 
@@ -591,12 +609,69 @@ export default function ViewingRequests() {
    * communication workflow is connected.
    */
   const handleContactAgent =
-    () => {
-      setIsDrawerOpen(false);
+    async () => {
+      if (!selectedViewing) {
+        return;
+      }
 
-      navigate(
-        ROUTES.BUYER_DASHBOARD,
-      );
+      if (!selectedViewing.agentUserId) {
+        showToast({
+          type: 'error',
+          title: 'Agent Unavailable',
+          description:
+            'There is no assigned agent available to contact for this viewing.',
+        });
+
+        return;
+      }
+
+      try {
+        const conversationResponse =
+          await conversationApi.createConversation({
+            type: 'direct',
+            targetUserId:
+              selectedViewing.agentUserId,
+          });
+
+        const conversationId =
+          conversationResponse?.conversation?._id ??
+          conversationResponse?.conversation?.id ??
+          conversationResponse?.data?.conversation?._id ??
+          conversationResponse?.data?.conversation?.id;
+
+        if (!conversationId) {
+          throw new Error(
+            'The server did not return a conversation.',
+          );
+        }
+
+        setIsDrawerOpen(false);
+
+        showToast({
+          type: 'success',
+          title: 'Conversation Ready',
+          description:
+            `You can now message ${selectedViewing.agent}.`,
+        });
+
+        navigate(
+          `${ROUTES.BUYER_DASHBOARD}?tab=Messages`,
+        );
+      } catch (error) {
+        console.error(
+          'Failed to contact agent:',
+          error,
+        );
+
+        showToast({
+          type: 'error',
+          title: 'Unable to Contact Agent',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'We could not open a conversation with this agent.',
+        });
+      }
     };
 
   return (
@@ -935,7 +1010,7 @@ export default function ViewingRequests() {
               {selectedViewing.status !==
                 'Completed' &&
                 selectedViewing.status !==
-                  'Cancelled' && (
+                'Cancelled' && (
                   <>
                     <GhostButton
                       size="sm"

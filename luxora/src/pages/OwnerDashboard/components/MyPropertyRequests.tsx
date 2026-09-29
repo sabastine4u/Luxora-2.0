@@ -15,6 +15,7 @@ import { DataTableToolbar } from '../../../components/dashboard/shared/filters/D
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { useToast } from '../../../contexts/ToastContext';
+import { uploadApi } from '../../../api/upload.api';
 import { propertyApi } from '../../../api/property.api';
 import type { PropertyRequest } from '../../../types/owner';
 import ConfirmationModal from './modals/ConfirmationModal';
@@ -58,29 +59,37 @@ export const mapOwnerPropertyToRequest = (
    * Backend lifecycle:
    *
    * Draft + Pending Agency Assignment
-   * → Draft
+   * → Pending Agency Assignment
    *
    * Agency Assigned
-   * → Submitted
+   * → Agency Assigned
    *
    * Agent Assigned
-   * → Submitted
+   * → Agent Assigned
    *
    * Agent Accepted
-   * → Submitted
+   * → Agent Accepted
    *
    * Pending Review
-   * → Submitted
+   * → Pending Review
    *
    * Approved + Documents Verified
    * → Documents Verified
    *
    * Published
    * → Published
+   *
+   * Archived + Owner origin
+   * → Withdrawn
    */
   let status = 'Pending Agency Assignment';
 
-  if (property.status === 'Published') {
+  if (
+    property.status === 'Archived' &&
+    property.origin === 'owner'
+  ) {
+    status = 'Withdrawn';
+  } else if (property.status === 'Published') {
     status = 'Published';
   } else if (
     property.status === 'Approved' &&
@@ -191,6 +200,10 @@ export const mapOwnerPropertyToRequest = (
   const isPublished =
     property.status === 'Published';
 
+  const isWithdrawn =
+    property.status === 'Archived' &&
+    property.origin === 'owner';
+
   return {
     id: property._id,
     name: property.title,
@@ -219,29 +232,38 @@ export const mapOwnerPropertyToRequest = (
         date: property.assignedAt,
         status: hasAgencyAssignment
           ? 'completed'
-          : 'current',
+          : isWithdrawn
+            ? 'pending'
+            : 'current',
       },
       {
         stage: 'Agent Assignment',
         date: property.assignedAt,
         status: hasAgentAssignment
           ? 'completed'
-          : hasAgencyAssignment
-            ? 'current'
-            : 'pending',
+          : isWithdrawn
+            ? 'pending'
+            : hasAgencyAssignment
+              ? 'current'
+              : 'pending',
       },
       {
         stage: 'Agent Acceptance',
         date: property.assignmentRespondedAt,
         status: agentAccepted
           ? 'completed'
-          : hasAgentAssignment
-            ? 'current'
-            : 'pending',
+          : isWithdrawn
+            ? 'pending'
+            : hasAgentAssignment
+              ? 'current'
+              : 'pending',
       },
       {
         stage: 'Review & Verification',
-        date: property.updatedAt,
+        date:
+          isVerified || isPendingReview
+            ? property.updatedAt
+            : undefined,
         status: isVerified
           ? 'completed'
           : isPendingReview
@@ -436,27 +458,138 @@ export default function MyPropertyRequests() {
     sortOrder,
   ]);
 
-  const handleWithdraw = () => {
-    showToast({
-      type: 'success',
-      title: 'Request Withdrawn',
-      description:
-        'Your property request has been withdrawn.',
-    });
+  const handleWithdraw = async () => {
+    if (!selectedReq) {
+      return;
+    }
 
-    setIsWithdrawModalOpen(false);
-    setSelectedReq(null);
+    try {
+      const response =
+        (await propertyApi.withdrawOwnerProperty(
+          selectedReq.id,
+        )) as {
+          property?: any;
+        };
+
+      if (!response.property) {
+        throw new Error(
+          'The property request could not be withdrawn.',
+        );
+      }
+
+      const updatedRequest =
+        mapOwnerPropertyToRequest(
+          response.property,
+        );
+
+      setRequests(
+        (currentRequests) =>
+          currentRequests.map(
+            (request) =>
+              request.id ===
+                updatedRequest.id
+                ? updatedRequest
+                : request,
+          ),
+      );
+
+      setSelectedReq(
+        updatedRequest,
+      );
+
+      setIsWithdrawModalOpen(false);
+
+      showToast({
+        type: 'success',
+        title: 'Request Withdrawn',
+        description:
+          'Your property request has been withdrawn successfully.',
+      });
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'Withdrawal Failed',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'The property request could not be withdrawn.',
+      });
+    }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async (
+    type: string,
+    file: File,
+  ) => {
+    if (!selectedReq) {
+      throw new Error(
+        'Select a property before uploading a document.',
+      );
+    }
+
+    // Upload the file to Luxora's protected document storage endpoint.
+    const uploadResponse =
+      (await uploadApi.uploadPropertyDocuments(
+        [file],
+      )) as {
+        documents?: string[];
+      };
+
+    const documentUrl =
+      uploadResponse.documents?.[0];
+
+    if (!documentUrl) {
+      throw new Error(
+        'The document was uploaded, but no document URL was returned.',
+      );
+    }
+
+    // Attach the uploaded document URL to the actual Owner Property record.
+    const propertyResponse =
+      (await propertyApi.addOwnerPropertyDocuments(
+        selectedReq.id,
+        [
+          {
+            title: type,
+            url: documentUrl,
+          },
+        ],
+      )) as {
+        property?: any;
+      };
+
+    if (!propertyResponse.property) {
+      throw new Error(
+        'The document was uploaded, but the property record could not be updated.',
+      );
+    }
+
+    const updatedRequest =
+      mapOwnerPropertyToRequest(
+        propertyResponse.property,
+      );
+
+    setRequests(
+      (currentRequests) =>
+        currentRequests.map(
+          (request) =>
+            request.id ===
+              updatedRequest.id
+              ? updatedRequest
+              : request,
+        ),
+    );
+
+    setSelectedReq(updatedRequest);
+
+    setIsUploadModalOpen(false);
+
     showToast({
       type: 'success',
       title: 'Document Uploaded',
       description:
-        'Document has been successfully submitted.',
+        `${type} has been uploaded and attached to your property request.`,
     });
-
-    setIsUploadModalOpen(false);
   };
 
   return (
@@ -505,26 +638,37 @@ export default function MyPropertyRequests() {
               <option value="All">
                 All Statuses
               </option>
+
               <option value="Pending Agency Assignment">
                 Pending Agency Assignment
               </option>
+
               <option value="Agency Assigned">
                 Agency Assigned
               </option>
+
               <option value="Agent Assigned">
                 Agent Assigned
               </option>
+
               <option value="Agent Accepted">
                 Agent Accepted
               </option>
+
               <option value="Pending Review">
                 Pending Review
               </option>
+
               <option value="Documents Verified">
                 Documents Verified
               </option>
+
               <option value="Published">
                 Published
+              </option>
+
+              <option value="Withdrawn">
+                Withdrawn
               </option>
             </select>
 
@@ -559,9 +703,11 @@ export default function MyPropertyRequests() {
               <option value="Newest">
                 Newest
               </option>
+
               <option value="Oldest">
                 Oldest
               </option>
+
               <option value="Recently Updated">
                 Recently Updated
               </option>
@@ -705,25 +851,31 @@ export default function MyPropertyRequests() {
                         <Eye className="h-4 w-4" />
                       </button>
 
-                      <button
-                        className="p-2 text-ink/50 hover:text-emerald-400 transition-colors"
-                        title="Upload Documents"
-                        onClick={() =>
-                          setIsUploadModalOpen(true)
-                        }
-                      >
-                        <Upload className="h-4 w-4" />
-                      </button>
+                      {req.status !== 'Withdrawn' && (
+                        <button
+                          className="p-2 text-ink/50 hover:text-emerald-400 transition-colors"
+                          title="Upload Documents"
+                          onClick={() => {
+                            setSelectedReq(req);
+                            setIsUploadModalOpen(true);
+                          }}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </button>
+                      )}
 
-                      <button
-                        className="p-2 text-ink/50 hover:text-rose-400 transition-colors"
-                        title="Withdraw Request"
-                        onClick={() =>
-                          setIsWithdrawModalOpen(true)
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {req.status !== 'Withdrawn' && (
+                        <button
+                          className="p-2 text-ink/50 hover:text-rose-400 transition-colors"
+                          title="Withdraw Request"
+                          onClick={() => {
+                            setSelectedReq(req);
+                            setIsWithdrawModalOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   ),
                 },
@@ -812,28 +964,39 @@ export default function MyPropertyRequests() {
         }
         title="Request Details"
         footerActions={
-          <>
-            <GoldButton
-              className="flex-1 justify-center"
-              onClick={() =>
-                navigate(
-                  '/owner-dashboard?tab=Verification+Progress',
-                )
-              }
-            >
-              Track Progress
-            </GoldButton>
-
+          selectedReq?.status === 'Withdrawn' ? (
             <GhostButton
-              className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
+              className="w-full justify-center"
               onClick={() =>
-                setIsWithdrawModalOpen(true)
+                setSelectedReq(null)
               }
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Withdraw
+              Close
             </GhostButton>
-          </>
+          ) : (
+            <>
+              <GoldButton
+                className="flex-1 justify-center"
+                onClick={() =>
+                  navigate(
+                    '/owner-dashboard?tab=Verification+Progress',
+                  )
+                }
+              >
+                Track Progress
+              </GoldButton>
+
+              <GhostButton
+                className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
+                onClick={() =>
+                  setIsWithdrawModalOpen(true)
+                }
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Withdraw
+              </GhostButton>
+            </>
+          )
         }
       >
         {selectedReq && (
@@ -909,23 +1072,23 @@ export default function MyPropertyRequests() {
                     >
                       <div
                         className={`absolute -left-[9px] top-1 h-4 w-4 rounded-full border-2 bg-navy-950 ${step.status ===
-                            'completed'
-                            ? 'border-emerald-500 bg-emerald-500/20'
-                            : step.status ===
-                              'current'
-                              ? 'border-gold-400 bg-gold-400/20'
-                              : 'border-white/10'
+                          'completed'
+                          ? 'border-emerald-500 bg-emerald-500/20'
+                          : step.status ===
+                            'current'
+                            ? 'border-gold-400 bg-gold-400/20'
+                            : 'border-white/10'
                           }`}
                       />
 
                       <div
                         className={`text-sm font-semibold ${step.status ===
-                            'completed'
-                            ? 'text-cream'
-                            : step.status ===
-                              'current'
-                              ? 'text-gold-400'
-                              : 'text-ink/40'
+                          'completed'
+                          ? 'text-cream'
+                          : step.status ===
+                            'current'
+                            ? 'text-gold-400'
+                            : 'text-ink/40'
                           }`}
                       >
                         {step.stage}
@@ -947,14 +1110,16 @@ export default function MyPropertyRequests() {
                   Submitted Documents
                 </h4>
 
-                <button
-                  className="text-[10px] uppercase tracking-wider font-semibold text-gold-400 hover:text-gold-300"
-                  onClick={() =>
-                    setIsUploadModalOpen(true)
-                  }
-                >
-                  Upload
-                </button>
+                {selectedReq.status !== 'Withdrawn' && (
+                  <button
+                    className="text-[10px] uppercase tracking-wider font-semibold text-gold-400 hover:text-gold-300"
+                    onClick={() =>
+                      setIsUploadModalOpen(true)
+                    }
+                  >
+                    Upload
+                  </button>
+                )}
               </div>
 
               {selectedReq.documents.length > 0 ? (
@@ -975,9 +1140,9 @@ export default function MyPropertyRequests() {
 
                         <span
                           className={`text-xs capitalize ml-4 shrink-0 ${doc.status ===
-                              'verified'
-                              ? 'text-emerald-400'
-                              : 'text-yellow-400'
+                            'verified'
+                            ? 'text-emerald-400'
+                            : 'text-yellow-400'
                             }`}
                         >
                           {doc.status}

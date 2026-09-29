@@ -8,21 +8,18 @@ import {
   AlertCircle,
   TrendingUp,
   Navigation,
-  CalendarDays,
   PieChart,
   ListTodo,
-  Route,
   CalendarClock,
 } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { GhostButton } from '../../../components/ui/ui';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { AppointmentDetailModal } from './modals/AppointmentDetailModal';
 import { useToast } from '../../../contexts/ToastContext';
-import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
 import { EmptyState } from '../../../components/layout/EmptyState';
 import { bookingApi } from '../../../api/booking.api';
 
@@ -88,14 +85,6 @@ export default function Appointments() {
   // Store the booking currently opened in the details modal.
   const [selectedAppt, setSelectedAppt] =
     useState<AppointmentType | null>(null);
-
-  // Keep the existing workflow drawer functionality.
-  const [activeWorkflow, setActiveWorkflow] =
-    useState<{
-      title: string;
-      type: string;
-      data?: Record<string, unknown>;
-    } | null>(null);
 
   /*
    * Load real Buyer viewing requests for the
@@ -172,8 +161,7 @@ export default function Appointments() {
 
               /*
                * Kept only so the existing detail modal
-               * remains compatible until we convert it
-               * completely to Booking.
+               * remains compatible with its current interface.
                */
               inquiryId: '',
 
@@ -351,30 +339,6 @@ export default function Appointments() {
     loadAppointments();
   }, [showToast]);
 
-  // Preserve the existing workflow button functionality.
-  const handleAction = (
-    title: string,
-    type: string,
-    data?: Record<string, unknown>,
-  ) => {
-    setActiveWorkflow({
-      title,
-      type,
-      data,
-    });
-  };
-
-  // Preserve the existing workflow confirmation functionality.
-  const executeWorkflow = () => {
-    showToast({
-      type: 'success',
-      title: 'Action Initiated',
-      description: `Executing: ${activeWorkflow?.title}. Integration pending.`,
-    });
-
-    setActiveWorkflow(null);
-  };
-
   /*
    * Search the real Booking collection by:
    * - Buyer
@@ -411,9 +375,6 @@ export default function Appointments() {
   /*
    * Keep the appointment list synchronized after
    * actions from AppointmentDetailModal.
-   *
-   * The modal will be converted to the Booking API
-   * in the next step.
    */
   const handleAppointmentUpdated = (
     updates: Partial<AppointmentType>,
@@ -436,7 +397,7 @@ export default function Appointments() {
 
             /*
              * Keep the display date synchronized
-             * when a booking is rescheduled.
+             * when a booking schedule changes.
              */
             if (
               updates.scheduledDate
@@ -503,10 +464,9 @@ export default function Appointments() {
   };
 
   /*
-   * Existing preparation checklist.
-   *
-   * This remains untouched for now because the
-   * next step is converting the detail/action flow.
+   * Preparation checklist derived from the current
+   * viewing requests. Unsupported checklist state is
+   * intentionally not persisted.
    */
   const prepChecklist = [
     {
@@ -532,10 +492,9 @@ export default function Appointments() {
   ];
 
   /*
-   * Existing conflict alerts panel.
-   *
-   * These are UI planning helpers and are not yet
-   * backed by a route-planning service.
+   * Schedule guidance based on the current appointments.
+   * There is no route-planning backend, so no travel-time
+   * or conflict data is fabricated here.
    */
   const conflictAlerts = [
     {
@@ -547,7 +506,8 @@ export default function Appointments() {
   ];
 
   /*
-   * Keep the existing daily route planner UI.
+   * Show a simple daily route from the appointment records.
+   * This is a display-only sequence, not a route-optimization result.
    */
   const dailyRoute = [
     {
@@ -615,35 +575,6 @@ export default function Appointments() {
       <DashboardHeader
         name="Schedule & Planning Intelligence"
         subtitle="Optimize your daily route, prepare for meetings, and manage Buyer viewing requests."
-        actions={
-          <div className="flex gap-3">
-            <GhostButton
-              className="flex items-center gap-2"
-              onClick={() =>
-                handleAction(
-                  'Sync Calendar',
-                  'sync_calendar',
-                )
-              }
-            >
-              <CalendarDays className="h-4 w-4" />
-              Sync Calendar
-            </GhostButton>
-
-            <GoldButton
-              className="flex items-center gap-2"
-              onClick={() =>
-                handleAction(
-                  'New Event',
-                  'new_event',
-                )
-              }
-            >
-              <CalendarIcon className="h-4 w-4" />
-              New Event
-            </GoldButton>
-          </div>
-        }
       />
 
       {/* INTELLIGENCE HEADER */}
@@ -1138,18 +1069,6 @@ export default function Appointments() {
                 ),
               )}
             </div>
-
-            <GoldButton
-              className="w-full text-xs py-2 mt-4"
-              onClick={() =>
-                handleAction(
-                  'Generate Viewing Agenda',
-                  'generate_viewing_agenda',
-                )
-              }
-            >
-              Generate Agenda
-            </GoldButton>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
@@ -1204,84 +1123,6 @@ export default function Appointments() {
           );
         }}
       />
-
-      <EnterpriseDetailDrawer
-        isOpen={!!activeWorkflow}
-        onClose={() =>
-          setActiveWorkflow(null)
-        }
-        title={
-          activeWorkflow?.title ||
-          'Workflow'
-        }
-        footerActions={
-          <GoldButton
-            onClick={executeWorkflow}
-            className="w-full justify-center"
-          >
-            Confirm Action
-          </GoldButton>
-        }
-      >
-        <div className="space-y-6">
-          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
-            <h4 className="text-sm font-semibold text-cream mb-2">
-              Workflow Details
-            </h4>
-
-            <p className="text-sm text-ink/60 leading-relaxed">
-              You are about to execute the{' '}
-              <strong>
-                {activeWorkflow?.type}
-              </strong>{' '}
-              workflow. Please review the
-              action details below and confirm
-              to integrate with the backend
-              system.
-            </p>
-          </div>
-
-          {activeWorkflow?.data && (
-            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
-              <h4 className="text-sm font-semibold text-cream mb-4">
-                Context Data
-              </h4>
-
-              <div className="space-y-2 text-sm text-ink/80">
-                {Object.entries(
-                  activeWorkflow.data,
-                ).map(
-                  ([key, value]) => {
-                    if (
-                      typeof value ===
-                        'string' ||
-                      typeof value ===
-                        'number'
-                    ) {
-                      return (
-                        <div
-                          key={key}
-                          className="flex justify-between border-b border-white/5 pb-2"
-                        >
-                          <span className="capitalize">
-                            {key}
-                          </span>
-
-                          <span className="font-medium text-cream">
-                            {value}
-                          </span>
-                        </div>
-                      );
-                    }
-
-                    return null;
-                  },
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </EnterpriseDetailDrawer>
     </div>
   );
 }

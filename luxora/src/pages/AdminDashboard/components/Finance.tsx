@@ -4,7 +4,7 @@ import {
   ArrowDownRight,
   Receipt,
 } from "lucide-react";
-
+import { dealApi } from "../../../api/deal.api";
 import { useEffect, useState } from "react";
 
 import {
@@ -60,17 +60,81 @@ export default function Finance() {
       try {
         setIsLoading(true);
         setError(null);
-
-        const response =
-          await financeApi.getAdminFinanceSummary();
+        const [financeResponse, dealsResponse] =
+          await Promise.all([
+            financeApi.getAdminFinanceSummary(),
+            dealApi.getMyDeals(),
+          ]);
 
         setSummary(
-          response.summary as FinanceSummary,
+          financeResponse.summary as FinanceSummary,
         );
 
+        const rawDealsResponse =
+          dealsResponse as any;
+
+        const dealsPayload =
+          rawDealsResponse?.data ??
+          rawDealsResponse;
+
+        const backendDeals =
+          Array.isArray(
+            dealsPayload?.data?.deals,
+          )
+            ? dealsPayload.data.deals
+            : Array.isArray(
+              dealsPayload?.deals,
+            )
+              ? dealsPayload.deals
+              : [];
+
+        const dealTransactions: FinanceTransaction[] =
+          backendDeals
+            .filter(
+              (deal: any) =>
+                deal.status === 'Completed',
+            )
+            .map(
+              (deal: any) => ({
+                id:
+                  deal.dealId ||
+                  deal._id,
+
+                property:
+                  deal.property?.title ||
+                  'Property unavailable',
+
+                agency:
+                  deal.agency?.name ||
+                  '—',
+
+                value:
+                  Number(
+                    deal.agreedAmount,
+                  ) || 0,
+
+                fee:
+                  ((Number(
+                    deal.agreedAmount,
+                  ) || 0) *
+                    (financeResponse
+                      .summary
+                      ?.platformFeePercent ||
+                      0)) /
+                  100,
+
+                status:
+                  deal.status,
+
+                createdAt:
+                  deal.completedAt ||
+                  deal.updatedAt ||
+                  deal.createdAt,
+              }),
+            );
+
         setTransactions(
-          (response.transactions ||
-            []) as FinanceTransaction[],
+          dealTransactions,
         );
       } catch (err) {
         console.error(
@@ -168,18 +232,17 @@ export default function Finance() {
             {isLoading
               ? "—"
               : formatCurrency(
-                  summary?.totalGMV || 0,
-                  currency,
-                )}
+                summary?.totalGMV || 0,
+                currency,
+              )}
           </div>
 
           {!isLoading && (
             <div
-              className={`mt-2 flex items-center gap-1 text-xs ${
-                isGmvPositive
-                  ? "text-emerald-400"
-                  : "text-rose-400"
-              }`}
+              className={`mt-2 flex items-center gap-1 text-xs ${isGmvPositive
+                ? "text-emerald-400"
+                : "text-rose-400"
+                }`}
             >
               {isGmvPositive ? (
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -209,18 +272,17 @@ export default function Finance() {
             {isLoading
               ? "—"
               : formatCurrency(
-                  summary?.revenue || 0,
-                  currency,
-                )}
+                summary?.revenue || 0,
+                currency,
+              )}
           </div>
 
           {!isLoading && (
             <div
-              className={`mt-2 flex items-center gap-1 text-xs ${
-                isRevenuePositive
-                  ? "text-emerald-400"
-                  : "text-rose-400"
-              }`}
+              className={`mt-2 flex items-center gap-1 text-xs ${isRevenuePositive
+                ? "text-emerald-400"
+                : "text-rose-400"
+                }`}
             >
               {isRevenuePositive ? (
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -250,10 +312,10 @@ export default function Finance() {
             {isLoading
               ? "—"
               : formatCurrency(
-                  summary?.pendingAgencyPayouts ||
-                    0,
-                  currency,
-                )}
+                summary?.pendingAgencyPayouts ||
+                0,
+                currency,
+              )}
           </div>
 
           <GoldButton
@@ -323,7 +385,7 @@ export default function Finance() {
         ) : transactions.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-sm text-ink/50">
-              No finance transactions available yet.
+              No completed Deals available yet.
             </p>
           </div>
         ) : (
@@ -375,6 +437,14 @@ export default function Finance() {
                       tx.fee,
                       currency,
                     )}
+                  </span>
+                ),
+              },
+              {
+                header: "Status",
+                render: (tx) => (
+                  <span className="inline-flex items-center rounded-md border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-xs font-medium text-emerald-300">
+                    {tx.status}
                   </span>
                 ),
               },

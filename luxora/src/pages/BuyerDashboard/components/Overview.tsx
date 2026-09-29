@@ -83,10 +83,11 @@ export default function Overview({
   onNavigate: (tab: string) => void;
 }) {
   const {
-    user,
-    recentlyViewed,
-    unreadCount,
-  } = useSession();
+  user,
+  recentlyViewed,
+  removeRecentlyViewed,
+  unreadCount,
+} = useSession();
 
   const { favoriteProperties: savedProperties } =
     useFavorites();
@@ -202,39 +203,76 @@ export default function Overview({
          * Fetch the actual backend Properties represented
          * by the Buyer's recently viewed IDs.
          */
-        const responses = await Promise.all(
-          recentlyViewed.map((propertyId) =>
-            propertyApi.getPropertyById(propertyId),
-          ),
-        );
-
-        if (!isActive) {
-          return;
-        }
-
-        /*
-         * Extract the Property documents from the
-         * unwrapped API responses.
-         */
-        const rawProperties = responses
-          .map(
-            (response) =>
-              (response as any)?.property,
-          )
-          .filter(Boolean);
-
-        /*
-         * Convert backend Properties into the canonical
-         * frontend Property structure.
-         */
-        const mappedProperties =
-          mapApiPropertiesToProperties(
-            rawProperties,
+        const results = await Promise.all(
+  recentlyViewed.map(
+    async (propertyId) => {
+      try {
+        const response =
+          await propertyApi.getPropertyById(
+            propertyId,
           );
 
-        setRecentViewedProperties(
-          mappedProperties as Property[],
+        return {
+          propertyId,
+          property:
+            (response as any)?.property ??
+            null,
+          failed: false,
+        };
+      } catch (error: any) {
+        /*
+         * A property may have been removed,
+         * sold, unpublished, or otherwise become
+         * unavailable to the public property endpoint.
+         *
+         * Remove only that stale Recently Viewed ID
+         * instead of breaking the whole section.
+         */
+        if (error?.status === 404) {
+          removeRecentlyViewed(
+            propertyId,
+          );
+
+          return {
+            propertyId,
+            property: null,
+            failed: true,
+          };
+        }
+
+        console.error(
+          `Failed to load recently viewed property ${propertyId}:`,
+          error,
         );
+
+        return {
+          propertyId,
+          property: null,
+          failed: true,
+        };
+      }
+    },
+  ),
+);
+
+if (!isActive) {
+  return;
+}
+
+const rawProperties = results
+  .map(
+    (result) => result.property,
+  )
+  .filter(Boolean);
+
+const mappedProperties =
+  mapApiPropertiesToProperties(
+    rawProperties,
+  );
+
+setRecentViewedProperties(
+  mappedProperties as Property[],
+);
       } catch (error) {
         if (!isActive) {
           return;

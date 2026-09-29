@@ -128,7 +128,427 @@ const formatDate = (date?: string) => {
   });
 };
 
-const getArray = <T,>(response: unknown, key: string): T[] => {
+const escapeCsvValue = (value: unknown) => {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const downloadBlob = (
+  blob: Blob,
+  fileName: string
+) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  link.style.display = "none";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
+};
+
+const formatExportDateTime = () => {
+  return new Date().toLocaleString("en-NG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const buildReportCsv = (
+  rows: ReportRow[]
+) => {
+  const header = [
+    "Report",
+    "Category",
+    "Metric",
+    "Value",
+    "Status",
+    "Last Updated",
+  ];
+
+  const body = rows.map((row) =>
+    [
+      row.report,
+      row.category,
+      row.metric,
+      row.value,
+      row.status,
+      row.date,
+    ]
+      .map(escapeCsvValue)
+      .join(",")
+  );
+
+  return [
+    "\ufeffLUXORA AGENT REPORTS",
+    `Generated,${escapeCsvValue(
+      formatExportDateTime()
+    )}`,
+    "",
+    header
+      .map(escapeCsvValue)
+      .join(","),
+    ...body,
+  ].join("\n");
+};
+
+const buildReportPrintHtml = (
+  rows: ReportRow[],
+  title: string,
+  summary: {
+    totalSalesValue: number;
+    acceptedDeals: number;
+    totalCommissionEarned: number;
+    activeListings: number;
+  }
+) => {
+  const rowHtml = rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.report)}</td>
+          <td>${escapeHtml(row.category)}</td>
+          <td>${escapeHtml(row.metric)}</td>
+          <td>${escapeHtml(row.value)}</td>
+          <td>${escapeHtml(row.status)}</td>
+          <td>${escapeHtml(row.date)}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+    <div class="header">
+      <div>
+        <div class="brand">LUXORA</div>
+        <div class="subtle">Agent Reports</div>
+      </div>
+
+      <div class="meta">
+        <div class="title">
+          ${escapeHtml(title)}
+        </div>
+
+        <div class="subtle">
+          Generated ${escapeHtml(
+    formatExportDateTime()
+  )}
+        </div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-card">
+        <div class="label">
+          Reports
+        </div>
+
+        <div class="value">
+          ${rows.length}
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="label">
+          Sales Value
+        </div>
+
+        <div class="value">
+          ${escapeHtml(
+    formatCurrency(
+      summary.totalSalesValue
+    )
+  )}
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="label">
+          Closed Deals
+        </div>
+
+        <div class="value">
+          ${summary.acceptedDeals}
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="label">
+          Commission Earned
+        </div>
+
+        <div class="value">
+          ${escapeHtml(
+    formatCurrency(
+      summary.totalCommissionEarned
+    )
+  )}
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="label">
+          Active Listings
+        </div>
+
+        <div class="value">
+          ${summary.activeListings}
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>
+        Report Summary
+      </h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Report</th>
+            <th>Category</th>
+            <th>Metric</th>
+            <th>Value</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rowHtml ||
+    `
+              <tr>
+                <td colspan="6">
+                  No report data is available for the selected filters.
+                </td>
+              </tr>
+            `
+    }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      This report is generated from the live Agent listings,
+      leads, appointments, deals and commission records
+      currently available in Luxora.
+    </div>
+  `;
+};
+
+const openAgentReportWindow = (
+  title: string,
+  html: string,
+  autoPrint: boolean
+) => {
+  const reportWindow = window.open(
+    "",
+    "_blank",
+    "width=1200,height=850"
+  );
+
+  if (!reportWindow) {
+    return false;
+  }
+
+  reportWindow.document.open();
+
+  reportWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0"
+        />
+
+        <title>${escapeHtml(title)}</title>
+
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            margin: 0;
+            padding: 32px;
+            color: #111827;
+            background: #ffffff;
+            font-family: Arial, sans-serif;
+          }
+
+          .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 24px;
+          }
+
+          .brand {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: .08em;
+          }
+
+          .title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+
+          .subtle {
+            color: #6b7280;
+            font-size: 12px;
+          }
+
+          .meta {
+            text-align: right;
+          }
+
+          .summary {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 28px;
+          }
+
+          .summary-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px;
+          }
+
+          .label {
+            color: #6b7280;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 6px;
+          }
+
+          .value {
+            color: #111827;
+            font-size: 16px;
+            font-weight: 700;
+          }
+
+          .section {
+            margin-top: 24px;
+          }
+
+          .section h2 {
+            margin: 0 0 12px;
+            font-size: 15px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          th,
+          td {
+            padding: 9px;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 11px;
+            vertical-align: top;
+          }
+
+          th {
+            background: #f9fafb;
+            font-weight: 700;
+          }
+
+          .footer {
+            margin-top: 28px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 10px;
+            line-height: 1.5;
+          }
+
+          @media print {
+            body {
+              padding: 16px;
+            }
+
+            @page {
+              margin: 10mm;
+            }
+          }
+
+          @media (max-width: 900px) {
+            .header {
+              flex-direction: column;
+            }
+
+            .meta {
+              text-align: left;
+            }
+
+            .summary {
+              grid-template-columns: repeat(2, 1fr);
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        ${html}
+
+        ${autoPrint
+      ? `
+              <script>
+                window.onload = function () {
+                  setTimeout(function () {
+                    window.focus();
+                    window.print();
+                  }, 250);
+                };
+
+                window.onafterprint = function () {
+                  setTimeout(function () {
+                    window.close();
+                  }, 250);
+                };
+              </script>
+            `
+      : ""
+    }
+      </body>
+    </html>
+  `);
+
+  reportWindow.document.close();
+
+  return true;
+};
+
+const getArray = <T,>(
+  response: unknown,
+  key: string
+): T[] => {
   const result = response as {
     [key: string]: unknown;
     data?: {
@@ -151,7 +571,9 @@ const getArray = <T,>(response: unknown, key: string): T[] => {
   return [];
 };
 
-const getSummary = (response: unknown): CommissionSummary => {
+const getSummary = (
+  response: unknown
+): CommissionSummary => {
   const result = response as {
     summary?: CommissionSummary;
     data?: {
@@ -178,24 +600,47 @@ const getSummary = (response: unknown): CommissionSummary => {
 };
 
 export default function Reports() {
-  const [activeTab, setActiveTab] = useState("All");
-  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null);
+  const [activeTab, setActiveTab] =
+    useState("All");
 
-  const [listings, setListings] = useState<AgentProperty[]>([]);
-  const [leads, setLeads] = useState<AgentLead[]>([]);
-  const [appointments, setAppointments] = useState<AgentAppointment[]>([]);
-  const [deals, setDeals] = useState<AgentDeal[]>([]);
-  const [commissions, setCommissions] = useState<AgentCommission[]>([]);
+  const [activeWorkflow, setActiveWorkflow] =
+    useState<string | null>(null);
+
+  const [listings, setListings] =
+    useState<AgentProperty[]>([]);
+
+  const [leads, setLeads] =
+    useState<AgentLead[]>([]);
+
+  const [appointments, setAppointments] =
+    useState<AgentAppointment[]>([]);
+
+  const [deals, setDeals] =
+    useState<AgentDeal[]>([]);
+
+  const [commissions, setCommissions] =
+    useState<AgentCommission[]>([]);
+
   const [commissionSummary, setCommissionSummary] =
     useState<CommissionSummary>({});
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dateRange, setDateRange] = useState("All Time");
-  const [propertyType, setPropertyType] = useState("All Types");
-  const [statusFilter, setStatusFilter] = useState("All Status");
-  const [sortBy, setSortBy] = useState("Newest");
+  const [searchQuery, setSearchQuery] =
+    useState("");
+
+  const [dateRange, setDateRange] =
+    useState("All Time");
+
+  const [propertyType, setPropertyType] =
+    useState("All Types");
+
+  const [statusFilter, setStatusFilter] =
+    useState("All Status");
+
+  const [sortBy, setSortBy] =
+    useState("Newest");
 
   const reportCategories = [
     "All",
@@ -229,11 +674,17 @@ export default function Reports() {
         ]);
 
         setListings(
-          getArray<AgentProperty>(listingsResponse, "properties")
+          getArray<AgentProperty>(
+            listingsResponse,
+            "properties"
+          )
         );
 
         setLeads(
-          getArray<AgentLead>(leadsResponse, "inquiries")
+          getArray<AgentLead>(
+            leadsResponse,
+            "inquiries"
+          )
         );
 
         setAppointments(
@@ -244,7 +695,10 @@ export default function Reports() {
         );
 
         setDeals(
-          getArray<AgentDeal>(dealsResponse, "offers")
+          getArray<AgentDeal>(
+            dealsResponse,
+            "offers"
+          )
         );
 
         setCommissions(
@@ -255,7 +709,9 @@ export default function Reports() {
         );
 
         setCommissionSummary(
-          getSummary(commissionSummaryResponse)
+          getSummary(
+            commissionSummaryResponse
+          )
         );
       } catch (error) {
         console.error(
@@ -272,25 +728,33 @@ export default function Reports() {
 
   const acceptedDeals = useMemo(() => {
     return deals.filter(
-      (deal) => deal.status === "Accepted"
+      (deal) =>
+        deal.status === "Accepted"
     );
   }, [deals]);
 
   const totalSalesValue = useMemo(() => {
-    return acceptedDeals.reduce((sum, deal) => {
-      return (
-        sum +
-        (deal.counterOfferAmount ??
-          deal.offerAmount ??
-          0)
-      );
-    }, 0);
+    return acceptedDeals.reduce(
+      (sum, deal) => {
+        return (
+          sum +
+          (deal.counterOfferAmount ??
+            deal.offerAmount ??
+            0)
+        );
+      },
+      0
+    );
   }, [acceptedDeals]);
 
   const activeListings = useMemo(() => {
     return listings.filter(
       (property) =>
-        !["Sold", "Rented", "Leased"].includes(
+        ![
+          "Sold",
+          "Rented",
+          "Leased",
+        ].includes(
           property.status || ""
         )
     );
@@ -298,36 +762,44 @@ export default function Reports() {
 
   const closedLeads = useMemo(() => {
     return leads.filter(
-      (lead) => lead.status === "Closed"
+      (lead) =>
+        lead.status === "Closed"
     );
   }, [leads]);
 
-  const leadConversionRate = useMemo(() => {
-    if (leads.length === 0) return 0;
+  const leadConversionRate =
+    useMemo(() => {
+      if (leads.length === 0) return 0;
 
-    return (
-      (closedLeads.length / leads.length) *
-      100
-    );
-  }, [closedLeads.length, leads.length]);
+      return (
+        (closedLeads.length /
+          leads.length) *
+        100
+      );
+    }, [
+      closedLeads.length,
+      leads.length,
+    ]);
 
-  const totalCommissionEarned = useMemo(() => {
-    if (
-      typeof commissionSummary.totalEarned ===
-      "number"
-    ) {
-      return commissionSummary.totalEarned;
-    }
+  const totalCommissionEarned =
+    useMemo(() => {
+      if (
+        typeof commissionSummary.totalEarned ===
+        "number"
+      ) {
+        return commissionSummary.totalEarned;
+      }
 
-    return commissions.reduce(
-      (sum, commission) =>
-        sum + (commission.agentAmount || 0),
-      0
-    );
-  }, [
-    commissionSummary.totalEarned,
-    commissions,
-  ]);
+      return commissions.reduce(
+        (sum, commission) =>
+          sum +
+          (commission.agentAmount || 0),
+        0
+      );
+    }, [
+      commissionSummary.totalEarned,
+      commissions,
+    ]);
 
   const paidCommission = useMemo(() => {
     if (
@@ -340,15 +812,17 @@ export default function Reports() {
     return commissions
       .filter(
         (commission) =>
-          commission.status === "Paid"
+          commission.status ===
+          "Paid"
       )
       .reduce(
         (sum, commission) =>
-          sum + (commission.agentAmount || 0),
+          sum +
+          (commission.agentAmount || 0),
         0
       );
   }, [
-    commissionSummary.paid?.amount,
+    commissionSummary.paid,
     commissions,
   ]);
 
@@ -363,297 +837,356 @@ export default function Reports() {
     return commissions
       .filter(
         (commission) =>
-          commission.status === "Pending"
+          commission.status ===
+          "Pending"
       )
       .reduce(
         (sum, commission) =>
-          sum + (commission.agentAmount || 0),
+          sum +
+          (commission.agentAmount || 0),
         0
       );
   }, [
-    commissionSummary.pending?.amount,
+    commissionSummary.pending,
     commissions,
   ]);
 
-  const reportRows = useMemo<ReportRow[]>(() => {
-    const rows: ReportRow[] = [];
+  const reportRows =
+    useMemo<ReportRow[]>(() => {
+      const rows: ReportRow[] = [];
 
-    const latestDealDate =
-      deals
-        .map(
-          (deal) =>
-            deal.updatedAt || deal.createdAt
-        )
-        .filter(Boolean)
-        .sort()
-        .reverse()[0] || undefined;
+      const latestDealDate =
+        deals
+          .map(
+            (deal) =>
+              deal.updatedAt ||
+              deal.createdAt
+          )
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ||
+        undefined;
 
-    const latestListingDate =
-      listings
-        .map(
-          (property) =>
-            property.updatedAt ||
-            property.createdAt
-        )
-        .filter(Boolean)
-        .sort()
-        .reverse()[0] || undefined;
+      const latestListingDate =
+        listings
+          .map(
+            (property) =>
+              property.updatedAt ||
+              property.createdAt
+          )
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ||
+        undefined;
 
-    const latestLeadDate =
-      leads
-        .map(
-          (lead) =>
-            lead.updatedAt || lead.createdAt
-        )
-        .filter(Boolean)
-        .sort()
-        .reverse()[0] || undefined;
+      const latestLeadDate =
+        leads
+          .map(
+            (lead) =>
+              lead.updatedAt ||
+              lead.createdAt
+          )
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ||
+        undefined;
 
-    const latestAppointmentDate =
-      appointments
-        .map(
-          (appointment) =>
-            appointment.scheduledDate ||
-            appointment.updatedAt ||
-            appointment.createdAt
-        )
-        .filter(Boolean)
-        .sort()
-        .reverse()[0] || undefined;
+      const latestAppointmentDate =
+        appointments
+          .map(
+            (appointment) =>
+              appointment.scheduledDate ||
+              appointment.updatedAt ||
+              appointment.createdAt
+          )
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ||
+        undefined;
 
-    const latestCommissionDate =
-      commissions
-        .map(
-          (commission) =>
-            commission.updatedAt ||
-            commission.createdAt
-        )
-        .filter(Boolean)
-        .sort()
-        .reverse()[0] || undefined;
+      const latestCommissionDate =
+        commissions
+          .map(
+            (commission) =>
+              commission.updatedAt ||
+              commission.createdAt
+          )
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ||
+        undefined;
 
-    const activityLatestDate =
-      [
-        ...listings.map(
-          (property) =>
-            property.updatedAt ||
-            property.createdAt
+      const activityLatestDate =
+        [
+          ...listings.map(
+            (property) =>
+              property.updatedAt ||
+              property.createdAt
+          ),
+          ...leads.map(
+            (lead) =>
+              lead.updatedAt ||
+              lead.createdAt
+          ),
+          ...appointments.map(
+            (appointment) =>
+              appointment.updatedAt ||
+              appointment.createdAt
+          ),
+        ]
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ||
+        undefined;
+
+      rows.push({
+        id: "sales-performance",
+        report:
+          "Sales Performance Report",
+        category: "Sales Reports",
+        metric: `${acceptedDeals.length
+          } accepted deal${acceptedDeals.length ===
+            1
+            ? ""
+            : "s"
+          }`,
+        value:
+          formatCurrency(
+            totalSalesValue
+          ),
+        status: "Available",
+        date: formatDate(
+          latestDealDate
         ),
-        ...leads.map(
-          (lead) =>
-            lead.updatedAt || lead.createdAt
-        ),
-        ...appointments.map(
-          (appointment) =>
-            appointment.updatedAt ||
-            appointment.createdAt
-        ),
-      ]
-        .filter(Boolean)
-        .sort()
-        .reverse()[0] || undefined;
+        rawDate: latestDealDate
+          ? new Date(
+            latestDealDate
+          ).getTime()
+          : 0,
+      });
 
-    rows.push({
-      id: "sales-performance",
-      report: "Sales Performance Report",
-      category: "Sales Reports",
-      metric: `${acceptedDeals.length} accepted deal${
-        acceptedDeals.length === 1
-          ? ""
-          : "s"
-      }`,
-      value: formatCurrency(totalSalesValue),
-      status: "Available",
-      date: formatDate(latestDealDate),
-      rawDate: latestDealDate
-        ? new Date(latestDealDate).getTime()
-        : 0,
-    });
-
-    rows.push({
-      id: "listings-performance",
-      report: "Listings Performance Report",
-      category: "Listings Reports",
-      metric: `${activeListings.length} active listing${
-        activeListings.length === 1
-          ? ""
-          : "s"
-      }`,
-      value: `${listings.length} total`,
-      status: "Available",
-      date: formatDate(latestListingDate),
-      rawDate: latestListingDate
-        ? new Date(
+      rows.push({
+        id:
+          "listings-performance",
+        report:
+          "Listings Performance Report",
+        category: "Listings Reports",
+        metric: `${activeListings.length
+          } active listing${activeListings.length ===
+            1
+            ? ""
+            : "s"
+          }`,
+        value: `${listings.length
+          } total`,
+        status: "Available",
+        date: formatDate(
+          latestListingDate
+        ),
+        rawDate: latestListingDate
+          ? new Date(
             latestListingDate
           ).getTime()
-        : 0,
-    });
+          : 0,
+      });
 
-    rows.push({
-      id: "lead-performance",
-      report: "Lead Performance Report",
-      category: "Leads Reports",
-      metric: `${leads.length} lead${
-        leads.length === 1
-          ? ""
-          : "s"
-      }`,
-      value: `${leadConversionRate.toFixed(
-        1
-      )}% closed`,
-      status: "Available",
-      date: formatDate(latestLeadDate),
-      rawDate: latestLeadDate
-        ? new Date(
+      rows.push({
+        id:
+          "lead-performance",
+        report:
+          "Lead Performance Report",
+        category: "Leads Reports",
+        metric: `${leads.length
+          } lead${leads.length === 1
+            ? ""
+            : "s"
+          }`,
+        value: `${leadConversionRate.toFixed(
+          1
+        )}% closed`,
+        status: "Available",
+        date: formatDate(
+          latestLeadDate
+        ),
+        rawDate: latestLeadDate
+          ? new Date(
             latestLeadDate
           ).getTime()
-        : 0,
-    });
+          : 0,
+      });
 
-    rows.push({
-      id: "viewing-activity",
-      report: "Viewing Activity Report",
-      category: "Viewing Reports",
-      metric: `${appointments.length} appointment${
-        appointments.length === 1
-          ? ""
-          : "s"
-      }`,
-      value: `${appointments.filter(
-        (appointment) =>
-          appointment.appointmentStatus ===
-          "Completed"
-      ).length} completed`,
-      status: "Available",
-      date: formatDate(
-        latestAppointmentDate
-      ),
-      rawDate: latestAppointmentDate
-        ? new Date(
+      rows.push({
+        id: "viewing-activity",
+        report:
+          "Viewing Activity Report",
+        category:
+          "Viewing Reports",
+        metric: `${appointments.length
+          } appointment${appointments.length ===
+            1
+            ? ""
+            : "s"
+          }`,
+        value: `${appointments.filter(
+          (appointment) =>
+            appointment.appointmentStatus ===
+            "Completed"
+        ).length
+          } completed`,
+        status: "Available",
+        date: formatDate(
+          latestAppointmentDate
+        ),
+        rawDate: latestAppointmentDate
+          ? new Date(
             latestAppointmentDate
           ).getTime()
-        : 0,
-    });
+          : 0,
+      });
 
-    rows.push({
-      id: "commission-performance",
-      report: "Commission Performance Report",
-      category: "Commission Reports",
-      metric: `${commissions.length} recorded commission${
-        commissions.length === 1
-          ? ""
-          : "s"
-      }`,
-      value: formatCurrency(
-        totalCommissionEarned
-      ),
-      status: "Available",
-      date: formatDate(
-        latestCommissionDate
-      ),
-      rawDate: latestCommissionDate
-        ? new Date(
+      rows.push({
+        id:
+          "commission-performance",
+        report:
+          "Commission Performance Report",
+        category:
+          "Commission Reports",
+        metric: `${commissions.length
+          } recorded commission${commissions.length ===
+            1
+            ? ""
+            : "s"
+          }`,
+        value:
+          formatCurrency(
+            totalCommissionEarned
+          ),
+        status: "Available",
+        date: formatDate(
+          latestCommissionDate
+        ),
+        rawDate: latestCommissionDate
+          ? new Date(
             latestCommissionDate
           ).getTime()
-        : 0,
-    });
+          : 0,
+      });
 
-    rows.push({
-      id: "agent-activity",
-      report: "Agent Activity Report",
-      category: "Activity Reports",
-      metric: `${listings.length} listings • ${leads.length} leads`,
-      value: `${appointments.length} viewings`,
-      status: "Available",
-      date: formatDate(activityLatestDate),
-      rawDate: activityLatestDate
-        ? new Date(
+      rows.push({
+        id: "agent-activity",
+        report:
+          "Agent Activity Report",
+        category:
+          "Activity Reports",
+        metric: `${listings.length} listings • ${leads.length} leads`,
+        value: `${appointments.length} viewings`,
+        status: "Available",
+        date: formatDate(
+          activityLatestDate
+        ),
+        rawDate: activityLatestDate
+          ? new Date(
             activityLatestDate
           ).getTime()
-        : 0,
-    });
+          : 0,
+      });
 
-    return rows;
-  }, [
-    acceptedDeals.length,
-    activeListings.length,
-    appointments,
-    commissions,
-    deals,
-    leadConversionRate,
-    leads,
-    listings,
-    totalCommissionEarned,
-    totalSalesValue,
-  ]);
+      return rows;
+    }, [
+      acceptedDeals.length,
+      activeListings.length,
+      appointments,
+      commissions,
+      deals,
+      leadConversionRate,
+      leads,
+      listings,
+      totalCommissionEarned,
+      totalSalesValue,
+    ]);
 
-  const filteredRows = useMemo(() => {
-    let rows = [...reportRows];
+  const filteredRows =
+    useMemo(() => {
+      let rows = [...reportRows];
 
-    if (activeTab !== "All") {
-      rows = rows.filter(
-        (row) =>
-          row.category === activeTab
-      );
-    }
+      if (activeTab !== "All") {
+        rows = rows.filter(
+          (row) =>
+            row.category ===
+            activeTab
+        );
+      }
 
-    if (searchQuery.trim()) {
-      const query =
-        searchQuery.toLowerCase();
+      if (searchQuery.trim()) {
+        const query =
+          searchQuery.toLowerCase();
 
-      rows = rows.filter(
-        (row) =>
-          row.report
-            .toLowerCase()
-            .includes(query) ||
-          row.category
-            .toLowerCase()
-            .includes(query) ||
-          row.metric
-            .toLowerCase()
-            .includes(query)
-      );
-    }
+        rows = rows.filter(
+          (row) =>
+            row.report
+              .toLowerCase()
+              .includes(query) ||
+            row.category
+              .toLowerCase()
+              .includes(query) ||
+            row.metric
+              .toLowerCase()
+              .includes(query)
+        );
+      }
 
-    if (propertyType !== "All Types") {
-      // Property-specific report filtering will be
-      // implemented with the future Reports backend.
-    }
+      if (
+        propertyType !==
+        "All Types"
+      ) {
+        // Property-specific report filtering will be
+        // implemented with the future Reports backend.
+      }
 
-    if (dateRange !== "All Time") {
-      // Date-range report filtering will be
-      // implemented with the future Reports backend.
-    }
+      if (
+        dateRange !== "All Time"
+      ) {
+        // Date-range report filtering will be
+        // implemented with the future Reports backend.
+      }
 
-    if (statusFilter !== "All Status") {
-      rows = rows.filter(
-        (row) =>
-          row.status === statusFilter
-      );
-    }
+      if (
+        statusFilter !==
+        "All Status"
+      ) {
+        rows = rows.filter(
+          (row) =>
+            row.status ===
+            statusFilter
+        );
+      }
 
-    if (sortBy === "Oldest") {
-      rows.sort(
-        (a, b) =>
-          a.rawDate - b.rawDate
-      );
-    } else {
-      rows.sort(
-        (a, b) =>
-          b.rawDate - a.rawDate
-      );
-    }
+      if (
+        sortBy === "Oldest"
+      ) {
+        rows.sort(
+          (a, b) =>
+            a.rawDate -
+            b.rawDate
+        );
+      } else {
+        rows.sort(
+          (a, b) =>
+            b.rawDate -
+            a.rawDate
+        );
+      }
 
-    return rows;
-  }, [
-    activeTab,
-    dateRange,
-    propertyType,
-    reportRows,
-    searchQuery,
-    sortBy,
-    statusFilter,
-  ]);
+      return rows;
+    }, [
+      activeTab,
+      dateRange,
+      propertyType,
+      reportRows,
+      searchQuery,
+      sortBy,
+      statusFilter,
+    ]);
 
   const handleWorkflow = (
     action: string,
@@ -666,12 +1199,96 @@ export default function Reports() {
     );
   };
 
+  const handleExport = (
+    format:
+      | "print"
+      | "csv"
+      | "pdf"
+      | "generate",
+    reportRows: ReportRow[] =
+      filteredRows,
+    title = "Agent Reports"
+  ) => {
+    try {
+      if (
+        reportRows.length ===
+        0
+      ) {
+        handleWorkflow(
+          "No report data available"
+        );
+        return;
+      }
+
+      if (
+        format === "csv"
+      ) {
+        const csv =
+          buildReportCsv(
+            reportRows
+          );
+
+        downloadBlob(
+          new Blob([csv], {
+            type: "text/csv;charset=utf-8;",
+          }),
+          `luxora-agent-report-${new Date()
+            .toISOString()
+            .slice(0, 10)}.csv`
+        );
+
+        return;
+      }
+
+      const reportHtml =
+        buildReportPrintHtml(
+          reportRows,
+          title,
+          {
+            totalSalesValue,
+            acceptedDeals:
+              acceptedDeals.length,
+            totalCommissionEarned,
+            activeListings:
+              activeListings.length,
+          }
+        );
+
+      const autoPrint =
+        format === "print" ||
+        format === "pdf";
+
+      const opened =
+        openAgentReportWindow(
+          title,
+          reportHtml,
+          autoPrint
+        );
+
+      if (!opened) {
+        handleWorkflow(
+          "Export could not start"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Failed to export Agent report:",
+        error
+      );
+
+      handleWorkflow(
+        "Export failed"
+      );
+    }
+  };
+
   const totalCommissionPool =
     commissionSummary.totalCommissionPool ??
     commissions.reduce(
       (sum, commission) =>
         sum +
-        (commission.commissionPool || 0),
+        (commission.commissionPool ||
+          0),
       0
     );
 
@@ -685,15 +1302,19 @@ export default function Reports() {
           </h1>
 
           <p className="mt-1 text-sm text-ink/60">
-            Monitor your sales, listings, leads, viewings
-            and commission performance.
+            Monitor your sales,
+            listings, leads,
+            viewings and commission
+            performance.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <GhostButton
             onClick={() =>
-              handleWorkflow("Print Report")
+              handleExport(
+                "print"
+              )
             }
           >
             <Printer className="h-4 w-4" />
@@ -702,7 +1323,9 @@ export default function Reports() {
 
           <GhostButton
             onClick={() =>
-              handleWorkflow("Export CSV")
+              handleExport(
+                "csv"
+              )
             }
           >
             <Download className="h-4 w-4" />
@@ -711,7 +1334,9 @@ export default function Reports() {
 
           <GhostButton
             onClick={() =>
-              handleWorkflow("Export PDF")
+              handleExport(
+                "pdf"
+              )
             }
           >
             <FileText className="h-4 w-4" />
@@ -720,7 +1345,11 @@ export default function Reports() {
 
           <GoldButton
             onClick={() =>
-              handleWorkflow("Generate Report")
+              handleExport(
+                "generate",
+                filteredRows,
+                "Agent Reports"
+              )
             }
           >
             <BarChart3 className="h-4 w-4" />
@@ -733,9 +1362,15 @@ export default function Reports() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <KPICard
           title="Total Reports"
-          value={loading ? "—" : reportRows.length}
+          value={
+            loading
+              ? "—"
+              : reportRows.length
+          }
           icon={FileText}
-          trend={loading ? "—" : "+0"}
+          trend={
+            loading ? "—" : "+0"
+          }
           trendColor="text-ink/40"
         />
 
@@ -744,10 +1379,14 @@ export default function Reports() {
           value={
             loading
               ? "—"
-              : formatCurrency(totalSalesValue)
+              : formatCurrency(
+                totalSalesValue
+              )
           }
           icon={DollarSign}
-          trend={loading ? "—" : "+0"}
+          trend={
+            loading ? "—" : "+0"
+          }
           trendColor="text-ink/40"
         />
 
@@ -759,7 +1398,9 @@ export default function Reports() {
               : acceptedDeals.length
           }
           icon={TrendingUp}
-          trend={loading ? "—" : "+0"}
+          trend={
+            loading ? "—" : "+0"
+          }
           trendColor="text-ink/40"
         />
 
@@ -769,11 +1410,13 @@ export default function Reports() {
             loading
               ? "—"
               : formatCurrency(
-                  totalCommissionEarned
-                )
+                totalCommissionEarned
+              )
           }
           icon={PieChart}
-          trend={loading ? "—" : "+0"}
+          trend={
+            loading ? "—" : "+0"
+          }
           trendColor="text-ink/40"
         />
 
@@ -785,7 +1428,9 @@ export default function Reports() {
               : activeListings.length
           }
           icon={Home}
-          trend={loading ? "—" : "+0"}
+          trend={
+            loading ? "—" : "+0"
+          }
           trendColor="text-ink/40"
         />
       </div>
@@ -799,13 +1444,15 @@ export default function Reports() {
                 key={category}
                 type="button"
                 onClick={() =>
-                  setActiveTab(category)
+                  setActiveTab(
+                    category
+                  )
                 }
-                className={`border-b-2 px-1 pb-3 text-sm font-medium transition ${
-                  activeTab === category
-                    ? "border-gold-400 text-gold-400"
-                    : "border-transparent text-ink/50 hover:text-cream"
-                }`}
+                className={`border-b-2 px-1 pb-3 text-sm font-medium transition ${activeTab ===
+                  category
+                  ? "border-gold-400 text-gold-400"
+                  : "border-transparent text-ink/50 hover:text-cream"
+                  }`}
               >
                 {category}
               </button>
@@ -822,7 +1469,9 @@ export default function Reports() {
 
             <input
               type="text"
-              value={searchQuery}
+              value={
+                searchQuery
+              }
               onChange={(event) =>
                 setSearchQuery(
                   event.target.value
@@ -842,10 +1491,21 @@ export default function Reports() {
             }
             className="rounded-xl border border-white/10 bg-navy-900 px-3 py-2.5 text-sm text-cream outline-none focus:border-gold-400"
           >
-            <option>All Time</option>
-            <option>This Month</option>
-            <option>This Quarter</option>
-            <option>This Year</option>
+            <option>
+              All Time
+            </option>
+
+            <option>
+              This Month
+            </option>
+
+            <option>
+              This Quarter
+            </option>
+
+            <option>
+              This Year
+            </option>
           </select>
 
           <select
@@ -857,10 +1517,21 @@ export default function Reports() {
             }
             className="rounded-xl border border-white/10 bg-navy-900 px-3 py-2.5 text-sm text-cream outline-none focus:border-gold-400"
           >
-            <option>All Types</option>
-            <option>Buy</option>
-            <option>Rent</option>
-            <option>Lease</option>
+            <option>
+              All Types
+            </option>
+
+            <option>
+              Buy
+            </option>
+
+            <option>
+              Rent
+            </option>
+
+            <option>
+              Lease
+            </option>
           </select>
 
           <select
@@ -872,8 +1543,13 @@ export default function Reports() {
             }
             className="rounded-xl border border-white/10 bg-navy-900 px-3 py-2.5 text-sm text-cream outline-none focus:border-gold-400"
           >
-            <option>All Status</option>
-            <option>Available</option>
+            <option>
+              All Status
+            </option>
+
+            <option>
+              Available
+            </option>
           </select>
 
           <select
@@ -885,8 +1561,13 @@ export default function Reports() {
             }
             className="rounded-xl border border-white/10 bg-navy-900 px-3 py-2.5 text-sm text-cream outline-none focus:border-gold-400"
           >
-            <option>Newest</option>
-            <option>Oldest</option>
+            <option>
+              Newest
+            </option>
+
+            <option>
+              Oldest
+            </option>
           </select>
         </div>
       </div>
@@ -904,8 +1585,8 @@ export default function Reports() {
                 {loading
                   ? "Loading..."
                   : formatCurrency(
-                      totalSalesValue
-                    )}
+                    totalSalesValue
+                  )}
               </h3>
             </div>
 
@@ -913,7 +1594,8 @@ export default function Reports() {
           </div>
 
           <p className="text-sm text-ink/50">
-            Based on accepted deals assigned to you.
+            Based on accepted deals
+            assigned to you.
           </p>
         </div>
 
@@ -928,8 +1610,8 @@ export default function Reports() {
                 {loading
                   ? "Loading..."
                   : formatCurrency(
-                      totalCommissionEarned
-                    )}
+                    totalCommissionEarned
+                  )}
               </h3>
             </div>
 
@@ -937,7 +1619,8 @@ export default function Reports() {
           </div>
 
           <p className="text-sm text-ink/50">
-            Recorded agent commission across your deals.
+            Recorded agent commission
+            across your deals.
           </p>
         </div>
 
@@ -952,8 +1635,8 @@ export default function Reports() {
                 {loading
                   ? "Loading..."
                   : `${leadConversionRate.toFixed(
-                      1
-                    )}%`}
+                    1
+                  )}%`}
               </h3>
             </div>
 
@@ -961,7 +1644,8 @@ export default function Reports() {
           </div>
 
           <p className="text-sm text-ink/50">
-            Closed leads compared with all agent leads.
+            Closed leads compared
+            with all agent leads.
           </p>
         </div>
 
@@ -983,7 +1667,8 @@ export default function Reports() {
           </div>
 
           <p className="text-sm text-ink/50">
-            Total listings currently associated with you.
+            Total listings currently
+            associated with you.
           </p>
         </div>
 
@@ -998,8 +1683,8 @@ export default function Reports() {
                 {loading
                   ? "Loading..."
                   : formatCurrency(
-                      paidCommission
-                    )}
+                    paidCommission
+                  )}
               </h3>
             </div>
 
@@ -1021,7 +1706,8 @@ export default function Reports() {
             </h2>
 
             <p className="mt-1 text-sm text-ink/50">
-              Current report summaries are calculated from
+              Current report summaries
+              are calculated from
               your live Agent data.
             </p>
           </div>
@@ -1070,6 +1756,7 @@ export default function Reports() {
                   </div>
                 ),
               },
+
               {
                 header: "Category",
                 render: (
@@ -1080,6 +1767,7 @@ export default function Reports() {
                   </span>
                 ),
               },
+
               {
                 header: "Value",
                 render: (
@@ -1090,6 +1778,7 @@ export default function Reports() {
                   </span>
                 ),
               },
+
               {
                 header: "Status",
                 render: (
@@ -1100,6 +1789,7 @@ export default function Reports() {
                   </span>
                 ),
               },
+
               {
                 header: "Last Updated",
                 render: (
@@ -1110,6 +1800,7 @@ export default function Reports() {
                   </span>
                 ),
               },
+
               {
                 header: "Actions",
                 render: (
@@ -1119,8 +1810,9 @@ export default function Reports() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleWorkflow(
-                          "Print",
+                        handleExport(
+                          "print",
+                          [row],
                           row.report
                         )
                       }
@@ -1133,8 +1825,9 @@ export default function Reports() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleWorkflow(
-                          "Export CSV",
+                        handleExport(
+                          "csv",
+                          [row],
                           row.report
                         )
                       }
@@ -1147,8 +1840,9 @@ export default function Reports() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleWorkflow(
-                          "Export PDF",
+                        handleExport(
+                          "pdf",
+                          [row],
                           row.report
                         )
                       }
@@ -1201,7 +1895,9 @@ export default function Reports() {
           </p>
 
           <p className="mt-2 text-2xl font-semibold text-cream">
-            {loading ? "—" : leads.length}
+            {loading
+              ? "—"
+              : leads.length}
           </p>
         </div>
 
@@ -1226,8 +1922,8 @@ export default function Reports() {
             {loading
               ? "—"
               : formatCurrency(
-                  pendingCommission
-                )}
+                pendingCommission
+              )}
           </p>
         </div>
 
@@ -1240,8 +1936,8 @@ export default function Reports() {
             {loading
               ? "—"
               : formatCurrency(
-                  totalCommissionPool
-                )}
+                totalCommissionPool
+              )}
           </p>
         </div>
       </div>
@@ -1265,18 +1961,22 @@ export default function Reports() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-gold-400/20 bg-gold-400/5 p-4">
-            <p className="text-sm text-gold-200">
-              Report generation and file export are not
-              connected to a dedicated backend Reports service
-              yet.
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-4">
+            <p className="text-sm text-emerald-200">
+              Report data is sourced
+              from your live Agent
+              records.
             </p>
 
             <p className="mt-2 text-xs leading-5 text-ink/50">
-              The page now uses live Agent listings, leads,
-              appointments, deals and commission data. Actual
-              report generation, PDF export and CSV generation
-              can be built later without replacing this page.
+              Print, CSV and PDF
+              exports are generated
+              directly from the report
+              data currently loaded on
+              this page. No separate
+              Reports backend service
+              is required for these
+              exports.
             </p>
           </div>
         </div>

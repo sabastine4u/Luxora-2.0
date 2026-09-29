@@ -20,6 +20,7 @@ import Messages from './components/Messages';
 import Settings from './components/Settings';
 import AdminReports from '../AdminDashboard/components/Reports';
 import AdminComplaints from '../AdminDashboard/components/Complaints';
+import Deals from '../AdminDashboard/components/Deals';
 import { ProcurementOverview } from '../ProcurementDashboard/components/ProcurementRecordCenter';
 import HomeServicesOverview from '../HomeServicesDashboard/components/Overview';
 import IntelligenceOverview from '../IntelligenceDashboard/components/Overview';
@@ -41,8 +42,9 @@ export default function SuperAdminDashboardPage() {
       case 'Revenue': return <Revenue />;
       case 'Management': return <Management />;
       case 'Procurement': return <ProcurementOverview />;
-      case 'Finance': return <Finance />;
-      case 'Reports': return <AdminReports />;
+     case 'Finance': return <Finance />;
+case 'Deals': return <Deals />;
+case 'Reports': return <AdminReports />;
       case 'Fraud Alerts': return <FraudAlerts />;
       // Use the existing real Verification Center so the Super Admin
       // Verification page matches the real verification badge/count.

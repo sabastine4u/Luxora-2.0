@@ -95,11 +95,11 @@ export interface ViewingRequest {
   date: string;
   time: string;
   status:
-    | "Pending"
-    | "Confirmed"
-    | "Completed"
-    | "Cancelled"
-    | "Rescheduled";
+  | "Pending"
+  | "Confirmed"
+  | "Completed"
+  | "Cancelled"
+  | "Rescheduled";
   agent: {
     name: string;
     avatar: string;
@@ -115,10 +115,10 @@ export interface ReportListing {
   description: string;
   attachments: string[];
   status:
-    | "Submitted"
-    | "Under Review"
-    | "Resolved"
-    | "Dismissed";
+  | "Submitted"
+  | "Under Review"
+  | "Resolved"
+  | "Dismissed";
   submittedAt: string;
 }
 
@@ -186,6 +186,7 @@ interface SessionContextType {
   clearCompare: () => void;
 
   addRecentlyViewed: (id: string) => void;
+  removeRecentlyViewed: (id: string) => void;
 
   toggleFavoriteAgent: (id: string) => void;
   isFavoriteAgent: (id: string) => boolean;
@@ -358,6 +359,17 @@ export function SessionProvider({
     addRecentlyViewed,
     setRecentlyViewed,
   } = useRecentlyViewed();
+
+  const removeRecentlyViewed = useCallback(
+    (id: string) => {
+      setRecentlyViewed((prev) =>
+        prev.filter(
+          (propertyId) => propertyId !== id,
+        ),
+      );
+    },
+    [setRecentlyViewed],
+  );
 
   const [favoriteAgents, setFavoriteAgents] =
     useState<string[]>([]);
@@ -852,6 +864,7 @@ export function SessionProvider({
         clearCompare,
 
         addRecentlyViewed,
+        removeRecentlyViewed,
 
         toggleFavoriteAgent,
         isFavoriteAgent,

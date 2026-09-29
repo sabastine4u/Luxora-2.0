@@ -10,6 +10,7 @@ import Agencies from './components/Agencies';
 import InternalStaff from './components/InternalStaff';
 import Complaints from './components/Complaints';
 import Reports from './components/Reports';
+import Deals from './components/Deals';
 import Finance from './components/Finance';
 import Settings from './components/Settings';
 import Messages from './components/Messages';
@@ -34,6 +35,7 @@ export default function AdminDashboardPage() {
       case 'Internal Staff': return <InternalStaff />;
       case 'Complaints': return <Complaints />;
       case 'Reports': return <Reports />;
+      case 'Deals': return <Deals />;
       case 'Finance': return <Finance />;
       case 'Settings': return <Settings />;
       case 'Messages': return <Messages />;

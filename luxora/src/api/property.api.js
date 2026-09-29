@@ -13,6 +13,13 @@ export const propertyApi = {
   getOwnerProperties: () =>
     http.get("/owner/properties"),
 
+  // Attach uploaded document references to an Owner's Property.
+addOwnerPropertyDocuments: (propertyId, documents) =>
+  http.patch(
+    `/properties/${propertyId}/documents`,
+    { documents },
+  ),
+
   // Fetch a single published Property by its MongoDB ID.
   getPropertyById: (propertyId) =>
     http.get(`/properties/${propertyId}`),
@@ -140,4 +147,10 @@ export const propertyApi = {
     http.get(
       "/agency/performance",
     ),
+
+ // Withdraw an Owner-submitted Property request.
+withdrawOwnerProperty: (propertyId) =>
+  http.patch(
+    `/owner/properties/${propertyId}/withdraw`,
+  ),
 };

@@ -15,8 +15,6 @@ import {
   Bed,
   Bath,
   LogOut,
-  Download,
-  AlertTriangle,
   Monitor,
   Globe,
   Moon,
@@ -24,10 +22,14 @@ import {
 } from 'lucide-react';
 import { GhostButton } from '../../../components/ui/ui';
 import { useSession } from '../../../contexts/SessionContext';
-import { Modal } from '../../../components/ui/Modal';
+import { useToast } from '../../../contexts/ToastContext';
 import { SettingsLayout } from '../../../components/dashboard/shared/layouts/SettingsLayout';
 import { SettingsSection } from '../../../components/dashboard/shared/settings/SettingsSection';
 import { SettingsToggle } from '../../../components/dashboard/shared/settings/SettingsToggle';
+
+type RegionalTheme = 'dark' | 'light' | 'system';
+type RegionalLanguage = 'en-GB' | 'en-US' | 'fr';
+type RegionalCurrency = 'NGN' | 'USD' | 'GBP' | 'EUR';
 
 export default function Settings() {
   const {
@@ -37,6 +39,8 @@ export default function Settings() {
     updateProfilePhoto,
     changePassword,
   } = useSession();
+
+  const { showToast } = useToast();
 
   // Store the editable buyer profile information.
   const [fullName, setFullName] = useState(user?.name || '');
@@ -70,6 +74,23 @@ export default function Settings() {
 
   const [minBathrooms, setMinBathrooms] = useState(
     user?.settings?.buyer?.minBathrooms?.toString() || '',
+  );
+
+  // Store account regional preferences locally until Save is pressed.
+  const [theme, setTheme] = useState<RegionalTheme>(
+    (user?.settings?.regional?.theme as RegionalTheme) || 'dark',
+  );
+
+  const [language, setLanguage] = useState<RegionalLanguage>(
+    (user?.settings?.regional?.language as RegionalLanguage) || 'en-GB',
+  );
+
+  const [timeZone, setTimeZone] = useState(
+    user?.settings?.regional?.timeZone || 'Africa/Lagos',
+  );
+
+  const [currency, setCurrency] = useState<RegionalCurrency>(
+    (user?.settings?.regional?.currency as RegionalCurrency) || 'NGN',
   );
 
   // Store notification preferences locally until the Save action persists them.
@@ -117,6 +138,22 @@ export default function Settings() {
       user?.settings?.buyer?.minBathrooms?.toString() || '',
     );
 
+    setTheme(
+      (user?.settings?.regional?.theme as RegionalTheme) || 'dark',
+    );
+
+    setLanguage(
+      (user?.settings?.regional?.language as RegionalLanguage) || 'en-GB',
+    );
+
+    setTimeZone(
+      user?.settings?.regional?.timeZone || 'Africa/Lagos',
+    );
+
+    setCurrency(
+      (user?.settings?.regional?.currency as RegionalCurrency) || 'NGN',
+    );
+
     setNotifs({
       email: user?.settings?.notifications?.email ?? true,
       sms: user?.settings?.notifications?.sms ?? false,
@@ -131,7 +168,6 @@ export default function Settings() {
   // Reference the hidden file input used by the profile-photo controls.
   const profilePhotoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   // Control the Buyer password-change modal.
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
@@ -150,7 +186,12 @@ export default function Settings() {
       // Close the modal only after the backend confirms success.
       setPasswordModalOpen(false);
 
-      console.log('Buyer password changed successfully.');
+      showToast({
+        type: 'success',
+        title: 'Password changed',
+        description:
+          'Your Buyer account password has been updated successfully.',
+      });
     } catch (error: any) {
       // Keep the modal open when the backend rejects the request.
       console.error(
@@ -158,13 +199,14 @@ export default function Settings() {
         error,
       );
 
-      // For now, surface the error in the browser console.
-      // We can connect this to your Toast system later if needed.
-      alert(
-        error?.response?.data?.message ||
-        error?.message ||
-        'We could not change your password.',
-      );
+      showToast({
+        type: 'error',
+        title: 'Password change failed',
+        description:
+          error?.response?.data?.message ||
+          error?.message ||
+          'We could not change your password.',
+      });
     }
   };
 
@@ -177,8 +219,13 @@ export default function Settings() {
   // Store a user-facing save result message.
   const [saveMessage, setSaveMessage] = useState('');
 
-  const toggleNotif = (key: keyof typeof notifs) => {
-    setNotifs((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleNotif = (
+    key: keyof typeof notifs,
+  ) => {
+    setNotifs((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
   // Save the current Buyer settings to the authenticated user's backend record.
@@ -233,6 +280,14 @@ export default function Settings() {
           notifications: {
             ...notifs,
           },
+
+          // Persist regional preferences alongside the other settings.
+          regional: {
+            theme,
+            language,
+            timeZone,
+            currency,
+          },
         },
       });
 
@@ -241,8 +296,20 @@ export default function Settings() {
       setSaveMessage('Settings saved successfully.');
     } catch (error) {
       // Log the technical error and show a safe user-facing message.
-      console.error('Failed to save Buyer settings:', error);
-      setSaveMessage('Unable to save settings. Please try again.');
+      console.error(
+        'Failed to save Buyer settings:',
+        error,
+      );
+
+      setIsSaved(false);
+      setSaveMessage('');
+
+      showToast({
+        type: 'error',
+        title: 'Settings could not be saved',
+        description:
+          'We could not save your Buyer settings. Please try again.',
+      });
     } finally {
       // Always stop the loading state.
       setIsSaving(false);
@@ -268,31 +335,44 @@ export default function Settings() {
       event.target.value = '';
     } catch (error) {
       // Log upload failures for debugging while keeping the UI stable.
-      console.error('Failed to update profile photo:', error);
+      console.error(
+        'Failed to update profile photo:',
+        error,
+      );
 
       // Clear the failed selection.
       event.target.value = '';
+
+      showToast({
+        type: 'error',
+        title: 'Photo upload failed',
+        description:
+          'We could not update your profile photo. Please try again.',
+      });
     }
   };
 
   // Format the real account creation date supplied by the backend.
   const formattedJoinDate = user?.createdAt
     ? new Intl.DateTimeFormat('en-NG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(new Date(user.createdAt))
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }).format(new Date(user.createdAt))
     : 'Not available';
 
   // Convert the backend role value into a readable display value.
   const formattedRole = user?.role
     ? user.role
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (character) => character.toUpperCase())
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (character) =>
+          character.toUpperCase(),
+        )
     : 'Not available';
 
   // Keep the department display honest because the field can be null/undefined.
-  const formattedDepartment = user?.department || 'Not provided';
+  const formattedDepartment =
+    user?.department || 'Not provided';
 
   // The backend provides verification status, so this is real account data.
   const verificationStatus = user?.isVerified
@@ -312,16 +392,15 @@ export default function Settings() {
       onSave={handleSaveSettings}
       isSaving={isSaving}
       isSaved={isSaved}
-      saveSuccess={!!saveMessage}
+      saveSuccess={isSaved}
       successMessage={saveMessage}
     >
       {/* SECTION 1: PROFILE */}
       <SettingsSection title="Profile Information">
         {/* Keep the avatar and profile fields in one horizontal row. */}
-        <div className="flex flex-col md:flex-row gap-8 items-start">
-
+        <div className="flex flex-col items-start gap-8 md:flex-row">
           {/* Profile photo area stays on the left side of the row. */}
-          <div className="flex flex-col items-center gap-3 shrink-0">
+          <div className="flex shrink-0 flex-col items-center gap-3">
             <div className="relative">
               <img
                 src={
@@ -329,14 +408,16 @@ export default function Settings() {
                   'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=200&h=200&fit=crop'
                 }
                 alt="Profile"
-                className="h-28 w-28 rounded-full object-cover border-4 border-navy-900 shadow-xl bg-navy-800"
+                className="h-28 w-28 rounded-full border-4 border-navy-900 object-cover shadow-xl bg-navy-800"
               />
 
               {/* Camera button opens the hidden file picker. */}
               <button
                 type="button"
-                onClick={() => profilePhotoInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-2 bg-gold-400 rounded-full text-navy-900 hover:bg-gold-300 transition-colors shadow-lg"
+                onClick={() =>
+                  profilePhotoInputRef.current?.click()
+                }
+                className="absolute bottom-0 right-0 rounded-full bg-gold-400 p-2 text-navy-900 shadow-lg transition-colors hover:bg-gold-300"
                 aria-label="Change profile photo"
               >
                 <Camera className="h-4 w-4" />
@@ -346,7 +427,9 @@ export default function Settings() {
             {/* Secondary upload control uses the same file picker. */}
             <GhostButton
               size="sm"
-              onClick={() => profilePhotoInputRef.current?.click()}
+              onClick={() =>
+                profilePhotoInputRef.current?.click()
+              }
             >
               Upload Photo
             </GhostButton>
@@ -362,11 +445,10 @@ export default function Settings() {
           </div>
 
           {/* Profile fields occupy the right side of the row. */}
-          <div className="flex-1 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 w-full">
-
+          <div className="grid w-full flex-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* Real account name from SessionContext. */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
                 Full Name
               </label>
 
@@ -380,14 +462,14 @@ export default function Settings() {
                   onChange={(event) =>
                     setFullName(event.target.value)
                   }
-                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 px-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 px-4 py-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Allow the buyer to edit the email address stored on the account. */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
                 Email Address
               </label>
 
@@ -401,14 +483,14 @@ export default function Settings() {
                   onChange={(event) =>
                     setEmail(event.target.value)
                   }
-                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 px-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 px-4 py-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Phone is persisted by the backend and can be edited from Buyer Settings. */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
                 Phone Number
               </label>
 
@@ -423,14 +505,14 @@ export default function Settings() {
                     setPhone(event.target.value)
                   }
                   placeholder="+234..."
-                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 px-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-navy-900/80 px-4 py-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Role is supplied directly by the backend account record. */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
                 Account Role
               </label>
 
@@ -442,7 +524,7 @@ export default function Settings() {
 
             {/* Department is supplied by the backend when one exists. */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
                 Department
               </label>
 
@@ -454,7 +536,7 @@ export default function Settings() {
 
             {/* Date joined is calculated from the real createdAt timestamp. */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
                 Date Joined
               </label>
 
@@ -482,10 +564,11 @@ export default function Settings() {
 
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-navy-900/60 px-3 py-2 text-xs">
             <span
-              className={`h-2 w-2 rounded-full ${user?.isActive === false
-                ? 'bg-rose-400'
-                : 'bg-emerald-400'
-                }`}
+              className={`h-2 w-2 rounded-full ${
+                user?.isActive === false
+                  ? 'bg-rose-400'
+                  : 'bg-emerald-400'
+              }`}
             />
 
             <span className="text-ink/60">
@@ -504,7 +587,7 @@ export default function Settings() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {/* Buyer purpose. */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+            <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
               Purpose
             </label>
 
@@ -513,9 +596,9 @@ export default function Settings() {
               onChange={(event) =>
                 setPurpose(
                   event.target.value as
-                  | 'buy'
-                  | 'rent'
-                  | 'short-let',
+                    | 'buy'
+                    | 'rent'
+                    | 'short-let',
                 )
               }
               className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
@@ -528,7 +611,7 @@ export default function Settings() {
 
           {/* Preferred property types. */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+            <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
               Preferred Property Types
             </label>
 
@@ -539,7 +622,9 @@ export default function Settings() {
                 type="text"
                 value={propertyTypes}
                 onChange={(event) =>
-                  setPropertyTypes(event.target.value)
+                  setPropertyTypes(
+                    event.target.value,
+                  )
                 }
                 placeholder="Apartment, Villa"
                 className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 pl-10 pr-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
@@ -549,7 +634,7 @@ export default function Settings() {
 
           {/* Preferred locations. */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+            <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
               Preferred Locations
             </label>
 
@@ -560,7 +645,9 @@ export default function Settings() {
                 type="text"
                 value={preferredLocations}
                 onChange={(event) =>
-                  setPreferredLocations(event.target.value)
+                  setPreferredLocations(
+                    event.target.value,
+                  )
                 }
                 placeholder="Ikoyi, Victoria Island, Lekki"
                 className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 pl-10 pr-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
@@ -570,7 +657,7 @@ export default function Settings() {
 
           {/* Budget range. */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+            <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
               Budget Range (₦)
             </label>
 
@@ -582,7 +669,9 @@ export default function Settings() {
                   type="number"
                   value={budgetMin}
                   onChange={(event) =>
-                    setBudgetMin(event.target.value)
+                    setBudgetMin(
+                      event.target.value,
+                    )
                   }
                   placeholder="Min"
                   className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 pl-10 pr-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
@@ -596,7 +685,9 @@ export default function Settings() {
                   type="number"
                   value={budgetMax}
                   onChange={(event) =>
-                    setBudgetMax(event.target.value)
+                    setBudgetMax(
+                      event.target.value,
+                    )
                   }
                   placeholder="Max"
                   className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 pl-10 pr-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
@@ -607,7 +698,7 @@ export default function Settings() {
 
           {/* Minimum bedrooms. */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+            <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
               Minimum Bedrooms
             </label>
 
@@ -617,7 +708,9 @@ export default function Settings() {
               <select
                 value={minBedrooms}
                 onChange={(event) =>
-                  setMinBedrooms(event.target.value)
+                  setMinBedrooms(
+                    event.target.value,
+                  )
                 }
                 className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 pl-10 pr-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
               >
@@ -631,7 +724,7 @@ export default function Settings() {
 
           {/* Minimum bathrooms. */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+            <label className="text-xs font-semibold uppercase tracking-wider text-ink/50">
               Minimum Bathrooms
             </label>
 
@@ -641,7 +734,9 @@ export default function Settings() {
               <select
                 value={minBathrooms}
                 onChange={(event) =>
-                  setMinBathrooms(event.target.value)
+                  setMinBathrooms(
+                    event.target.value,
+                  )
                 }
                 className="w-full rounded-xl border border-white/10 bg-navy-900/80 py-3 pl-10 pr-4 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
               >
@@ -701,7 +796,9 @@ export default function Settings() {
                 label={item.label}
                 description={item.desc}
                 checked={
-                  notifs[item.id as keyof typeof notifs]
+                  notifs[
+                    item.id as keyof typeof notifs
+                  ]
                 }
                 onChange={() =>
                   toggleNotif(
@@ -718,7 +815,7 @@ export default function Settings() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-navy-900 rounded-lg">
+                <div className="rounded-lg bg-navy-900 p-2">
                   <KeyRound className="h-5 w-5 text-gold-400" />
                 </div>
 
@@ -735,7 +832,9 @@ export default function Settings() {
 
               <GhostButton
                 size="sm"
-                onClick={() => setPasswordModalOpen(true)}
+                onClick={() =>
+                  setPasswordModalOpen(true)
+                }
               >
                 Change Password
               </GhostButton>
@@ -743,7 +842,7 @@ export default function Settings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-navy-900 rounded-lg">
+                <div className="rounded-lg bg-navy-900 p-2">
                   <Shield className="h-5 w-5 text-emerald-400" />
                 </div>
 
@@ -758,18 +857,18 @@ export default function Settings() {
                 </div>
               </div>
 
-              <GhostButton size="sm">
-                Manage 2FA
-              </GhostButton>
+              <span className="rounded-full border border-white/10 bg-navy-900/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink/50">
+                Not available yet
+              </span>
             </div>
 
-            <div className="border-t border-white/10 pt-4 space-y-4">
+            <div className="space-y-4 border-t border-white/10 pt-4">
               <h4 className="text-sm font-semibold text-cream">
                 Recent Login Activity
               </h4>
 
               {/* The backend does not currently provide login-history records. */}
-              <div className="flex items-center justify-between bg-navy-900/50 p-3 rounded-xl border border-white/5">
+              <div className="flex items-center justify-between rounded-xl border border-white/5 bg-navy-900/50 p-3">
                 <div className="flex items-center gap-3">
                   <Monitor className="h-5 w-5 text-ink/50" />
 
@@ -778,7 +877,7 @@ export default function Settings() {
                       Current browser session
                     </p>
 
-                    <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
                       Active session
                     </p>
                   </div>
@@ -787,8 +886,7 @@ export default function Settings() {
 
               <div className="rounded-xl border border-dashed border-white/10 bg-navy-900/30 p-4">
                 <p className="text-xs text-ink/50">
-                  Detailed login history will appear here once the backend exposes
-                  session activity records.
+                  Detailed login history will appear here once the backend exposes session activity records.
                 </p>
               </div>
             </div>
@@ -796,131 +894,171 @@ export default function Settings() {
         </SettingsSection>
       </div>
 
-      {/* SECTION 5: APPEARANCE */}
+      {/* SECTION 5: APPEARANCE & REGIONAL */}
       <SettingsSection title="Appearance & Regional">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink/50">
               <Moon className="h-4 w-4" />
               Theme
             </label>
 
-            <select className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none">
-              <option>Dark Mode (Default)</option>
-              <option>Light Mode</option>
-              <option>System Default</option>
+            <select
+              value={theme}
+              onChange={(event) =>
+                setTheme(
+                  event.target.value as RegionalTheme,
+                )
+              }
+              className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
+            >
+              <option value="dark">
+                Dark Mode
+              </option>
+
+              <option value="light">
+                Light Mode
+              </option>
+
+              <option value="system">
+                System Default
+              </option>
             </select>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink/50">
               <Globe className="h-4 w-4" />
               Language
             </label>
 
-            <select className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none">
-              <option>English (UK)</option>
-              <option>English (US)</option>
-              <option>French</option>
+            <select
+              value={language}
+              onChange={(event) =>
+                setLanguage(
+                  event.target.value as RegionalLanguage,
+                )
+              }
+              className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
+            >
+              <option value="en-GB">
+                English (UK)
+              </option>
+
+              <option value="en-US">
+                English (US)
+              </option>
+
+              <option value="fr">
+                French
+              </option>
             </select>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink/50">
               <Clock className="h-4 w-4" />
               Time Zone
             </label>
 
-            <select className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none">
-              <option>WAT (UTC+1)</option>
-              <option>GMT (UTC+0)</option>
-              <option>EST (UTC-5)</option>
+            <select
+              value={timeZone}
+              onChange={(event) =>
+                setTimeZone(event.target.value)
+              }
+              className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
+            >
+              <option value="Africa/Lagos">
+                WAT (Africa/Lagos)
+              </option>
+
+              <option value="UTC">
+                UTC
+              </option>
+
+              <option value="America/New_York">
+                Eastern Time
+              </option>
             </select>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink/50 uppercase tracking-wider flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink/50">
               <DollarSign className="h-4 w-4" />
               Currency
             </label>
 
-            <select className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none">
-              <option>NGN (₦)</option>
-              <option>USD ($)</option>
-              <option>GBP (£)</option>
-              <option>EUR (€)</option>
+            <select
+              value={currency}
+              onChange={(event) =>
+                setCurrency(
+                  event.target.value as RegionalCurrency,
+                )
+              }
+              className="w-full rounded-xl border border-white/10 bg-navy-900/80 p-3 text-sm text-cream focus:border-gold-400/50 focus:outline-none"
+            >
+              <option value="NGN">
+                NGN (₦)
+              </option>
+
+              <option value="USD">
+                USD ($)
+              </option>
+
+              <option value="GBP">
+                GBP (£)
+              </option>
+
+              <option value="EUR">
+                EUR (€)
+              </option>
             </select>
           </div>
         </div>
+
+        <p className="mt-4 text-xs leading-5 text-ink/50">
+          These preferences are saved to your Luxora account.
+          Theme and language are currently stored as account
+          preferences; the application interface remains in its
+          current English presentation.
+        </p>
       </SettingsSection>
 
       {/* SECTION 6: ACCOUNT */}
       <SettingsSection
         title="Account Actions"
-        icon={<AlertTriangle className="h-5 w-5" />}
         isDanger
       >
-        <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-center">
-          <GhostButton className="w-full sm:w-auto">
-            <Download className="h-4 w-4 mr-2" />
-            Export My Data
-          </GhostButton>
+        <div className="flex flex-col items-center gap-4 sm:flex-row">
+          <div className="flex-1 rounded-xl border border-white/10 bg-navy-900/40 p-4">
+            <p className="text-sm font-semibold text-cream">
+              Account data management
+            </p>
+
+            <p className="mt-1 text-xs leading-5 text-ink/50">
+              Data export and account deletion are not currently
+              available in the Buyer account area.
+            </p>
+          </div>
 
           <GhostButton
-            onClick={() => setDeleteModalOpen(true)}
-            className="w-full sm:w-auto text-rose-400 border-rose-400/30 hover:bg-rose-400/10"
+            onClick={logout}
+            className="w-full sm:w-auto"
           >
-            Delete Account
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
           </GhostButton>
-
-          <div className="w-full sm:w-auto sm:ml-auto">
-            <GhostButton
-              onClick={logout}
-              className="w-full sm:w-auto"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </GhostButton>
-          </div>
         </div>
       </SettingsSection>
 
       {/* Buyer password change modal. */}
       <PasswordChangeModal
         isOpen={passwordModalOpen}
-        onClose={() => setPasswordModalOpen(false)}
+        onClose={() =>
+          setPasswordModalOpen(false)
+        }
         onSave={handleChangePassword}
       />
-
-      {/* Delete Account Modal */}
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        title="Delete Account"
-        actionButton={
-          <GhostButton
-            className="bg-rose-500/20 text-rose-400 border-rose-500/30 hover:bg-rose-500 hover:text-white"
-            size="sm"
-          >
-            Confirm Deletion
-          </GhostButton>
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-ink/80">
-            Are you sure you want to delete your Luxora account? This action is{' '}
-            <strong className="text-rose-400">
-              permanent and cannot be undone
-            </strong>
-            .
-          </p>
-
-          <p className="text-sm text-ink/80">
-            All your saved properties, offers, messages, and viewing requests
-            will be permanently erased.
-          </p>
-        </div>
-      </Modal>
     </SettingsLayout>
   );
 }

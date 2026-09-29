@@ -2973,6 +2973,7 @@ export const buyerNav: NavItem[] = [
   { label: 'Messages', icon: 'MessageSquare', badge: '2' },
   { label: 'Viewing Requests', icon: 'Eye' },
   { label: 'Offers', icon: 'FileCheck' },
+    { label: 'Deals', icon: 'Briefcase' },
   { label: 'Settings', icon: 'Settings' },
 ];
 
@@ -2983,6 +2984,7 @@ export const ownerNav: NavItem[] = [
   { label: 'Listing Journey', icon: 'Route' },
   { label: 'Messages', icon: 'MessageSquare', badge: '5' },
   { label: 'Offers', icon: 'FileCheck', badge: '3' },
+    { label: 'Deals', icon: 'Briefcase' },
   { label: 'Rental Income', icon: 'Wallet' },
   { label: 'Analytics', icon: 'TrendingUp' },
   { label: 'Settings', icon: 'Settings' },
@@ -3028,6 +3030,7 @@ export const adminNav: NavItem[] = [
   { label: 'Internal Staff', icon: 'ShieldAlert' },
   { label: 'Complaints', icon: 'AlertTriangle', badge: '3' },
   { label: 'Reports', icon: 'FileBarChart' },
+    { label: 'Deals', icon: 'Briefcase' },
   { label: 'Finance', icon: 'Landmark' },
   { label: 'Settings', icon: 'Settings' },
 ];
@@ -3040,6 +3043,7 @@ export const superAdminNav: NavItem[] = [
   { label: 'Management', displayLabel: 'Workforce Oversight', icon: 'Briefcase' },
   { label: 'Procurement', displayLabel: 'Procurement Oversight', icon: 'ShoppingCart' },
   { label: 'Finance', displayLabel: 'Finance Oversight', icon: 'Landmark' },
+    { label: 'Deals', icon: 'Briefcase' },
   { label: 'Reports', icon: 'FileBarChart' },
   // Fraud monitoring has no verified backend source yet.
   {

@@ -1,212 +1,241 @@
 import { useEffect, useState } from 'react';
 import {
   Briefcase,
-  Plus,
   TrendingUp,
   CheckCircle2,
   Download,
   AlertTriangle,
-  Target,
   CheckSquare,
   FileText,
-  FileCheck,
   BrainCircuit,
   ShieldAlert,
   Sparkles,
 } from 'lucide-react';
+
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { DataTable } from '../../../components/dashboard/shared/tables/DataTable';
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
-import { GhostButton, GoldButton } from '../../../components/ui/ui';
+import { GhostButton } from '../../../components/ui/ui';
 import { EnterpriseStatusBadge } from '../../../components/enterprise/EnterpriseStatusBadge';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
 import { DealDetailModal } from './modals/DealDetailModal';
 import { useToast } from '../../../contexts/ToastContext';
-import { EnterpriseDetailDrawer } from '../../../components/enterprise/EnterpriseDetailDrawer';
-import { agentApi } from '../../../api/agent.api';
+import { dealApi } from '../../../api/deal.api';
 
-interface AgentOffer {
+interface BackendDeal {
   _id: string;
-  buyer:
-  | {
+
+  dealId: string;
+
+  offer: {
+    _id: string;
+    offerAmount: number;
+    buyerNotes?: string;
+    agentNotes?: string;
+    status: string;
+    counterOfferAmount?: number | null;
+    counterOfferDetails?: string;
+    estimatedClosing?: string;
+    expiresAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+
+  property: {
+    _id: string;
+    title: string;
+    address?: string;
+    area?: string;
+    city?: string;
+    state?: string;
+    propertyType?: string;
+    transactionType: string;
+    price: number;
+    currency?: string;
+    coverImage?: string;
+    status: string;
+    availabilityStatus: string;
+    owner?: string | null;
+    agent?: string | null;
+    agency?: string | null;
+  } | null;
+
+  buyer: {
     _id: string;
     fullName: string;
     email: string;
     phone?: string;
-  }
-  | null;
+    avatar?: string;
+  } | null;
 
-  property:
-  | {
+  owner: {
     _id: string;
-    title: string;
-    transactionType: string;
-    price: number;
-    agencyFee?: number | null;
-    owner?: {
-      _id: string;
-      fullName: string;
-      email: string;
-    } | null;
-    agent?: string | null;
-    agency?:
-    | string
-    | {
-      _id: string;
-      name: string;
-      status: string;
-    }
-    | null;
-    status: string;
-    availabilityStatus: string;
-  }
-  | null;
+    fullName: string;
+    email: string;
+    phone?: string;
+    avatar?: string;
+  } | null;
 
-  agent?: string | null;
-
-  agency?:
-  | {
+  agency: {
     _id: string;
     name: string;
     status: string;
-  }
-  | null;
+    contactPerson?: string;
+    email?: string;
+    phone?: string;
+  } | null;
 
-  offerAmount: number;
-  buyerNotes?: string;
-  agentNotes?: string;
+  agent: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    status: string;
+    user?: {
+      _id: string;
+      fullName: string;
+      email: string;
+      role: string;
+    };
+  } | null;
+
+  transactionType: string;
+
+  agreedAmount: number;
 
   status:
-  | 'Draft'
-  | 'Submitted'
-  | 'Under Review'
-  | 'Counter Offer Received'
-  | 'Accepted'
-  | 'Rejected'
-  | 'Withdrawn'
-  | 'Expired';
+    | 'Agreement Pending'
+    | 'Agreement Completed'
+    | 'Payment Pending'
+    | 'Completed'
+    | 'Cancelled';
 
-  counterOfferAmount?: number | null;
-  counterOfferDetails?: string;
-  estimatedClosing?: string;
-  expiresAt?: string | null;
+  agreementStatus:
+    | 'Pending'
+    | 'Completed';
+
+  paymentStatus:
+    | 'Pending'
+    | 'Verified';
+
+  agreementCompletedAt: string | null;
+  agreementCompletedBy?: string | null;
+
+  paymentVerifiedAt: string | null;
+  paymentVerifiedBy?: string | null;
+
+  completedAt: string | null;
+  completedBy?: string | null;
+
+  cancelledAt: string | null;
+  cancelledBy?: string | null;
+
+  cancellationReason?: string;
 
   createdAt: string;
   updatedAt: string;
 }
 
-interface DealRecord extends Record<string, unknown> {
+interface DealRecord
+  extends Record<string, unknown> {
   id: string;
+  dealId: string;
+
   offerId: string;
+
   property: string;
   client: string;
+
   value: string;
+
+  agreedAmount: number;
   offerAmount: number;
   counterOfferAmount: number | null;
+
   readiness: number;
+
   stage: string;
   status: string;
+
+  agreementStatus:
+    | 'Pending'
+    | 'Completed';
+
+  paymentStatus:
+    | 'Pending'
+    | 'Verified';
+
   closingDate: string;
+
   commission: string;
+
   buyerEmail: string;
   buyerPhone: string;
+
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+
   propertyId: string | null;
   propertyPrice: number;
+
   transactionType: string;
+
   agency: string;
+
   buyerNotes: string;
   agentNotes: string;
   counterOfferDetails: string;
+
   expiresAt: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
 
 const formatCurrency = (
-  amount: number | null | undefined,
+  amount:
+    | number
+    | null
+    | undefined,
 ) => {
   if (
-    typeof amount !== 'number' ||
+    typeof amount !==
+      'number' ||
     Number.isNaN(amount)
   ) {
     return '₦0';
   }
 
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return new Intl.NumberFormat(
+    'en-NG',
+    {
+      style: 'currency',
+      currency: 'NGN',
+      maximumFractionDigits: 0,
+    },
+  ).format(amount);
 };
 
-/*
- * Convert the Offer status into a simple Deal stage
- * for the existing Deals UI.
- */
-const getDealStage = (
-  status: AgentOffer['status'],
+const getDealProgress = (
+  status: BackendDeal['status'],
 ) => {
   switch (status) {
-    case 'Draft':
-      return 'Draft';
+    case 'Agreement Pending':
+      return 25;
 
-    case 'Submitted':
-      return 'Offer Submitted';
-
-    case 'Under Review':
-      return 'Under Review';
-
-    case 'Counter Offer Received':
-      return 'Negotiation';
-
-    case 'Accepted':
-      return 'Accepted / Closing';
-
-    case 'Rejected':
-      return 'Rejected';
-
-    case 'Withdrawn':
-      return 'Withdrawn';
-
-    case 'Expired':
-      return 'Expired';
-
-    default:
-      return status;
-  }
-};
-
-/*
- * Derive a workflow readiness value from the actual
- * Offer lifecycle state.
- *
- * This is a UI progress indicator, not a backend
- * closing-readiness calculation.
- */
-const getReadiness = (
-  status: AgentOffer['status'],
-) => {
-  switch (status) {
-    case 'Draft':
-      return 10;
-
-    case 'Submitted':
-      return 35;
-
-    case 'Under Review':
+    case 'Agreement Completed':
       return 50;
 
-    case 'Counter Offer Received':
-      return 70;
+    case 'Payment Pending':
+      return 75;
 
-    case 'Accepted':
+    case 'Completed':
       return 100;
 
-    case 'Rejected':
-    case 'Withdrawn':
-    case 'Expired':
+    case 'Cancelled':
       return 0;
 
     default:
@@ -214,458 +243,802 @@ const getReadiness = (
   }
 };
 
-const mapOfferToDeal = (
-  offer: AgentOffer,
+const mapBackendDealToDealRecord = (
+  deal: BackendDeal,
 ): DealRecord => {
+  const offer =
+    deal.offer;
+
+  const property =
+    deal.property;
+
+  const buyer =
+    deal.buyer;
+
+  const owner =
+    deal.owner;
+
+  const agreedAmount =
+    typeof deal.agreedAmount ===
+    'number'
+      ? deal.agreedAmount
+      : 0;
+
   const offerAmount =
-    offer.offerAmount || 0;
+    typeof offer?.offerAmount ===
+    'number'
+      ? offer.offerAmount
+      : agreedAmount;
 
   const counterOfferAmount =
-    typeof offer.counterOfferAmount === 'number'
+    typeof offer?.counterOfferAmount ===
+    'number'
       ? offer.counterOfferAmount
       : null;
 
-  /*
-   * The current Offer model does not store an actual
-   * commission amount, so do not fabricate one here.
-   */
-  const commission = 'Not calculated';
-
   return {
-    id: offer._id,
-    offerId: offer._id,
+    id: deal._id,
+
+    dealId:
+      deal.dealId,
+
+    offerId:
+      offer?._id ||
+      '',
 
     property:
-      offer.property?.title ||
+      property?.title ||
       'Property unavailable',
 
     client:
-      offer.buyer?.fullName ||
+      buyer?.fullName ||
       'Buyer unavailable',
 
-    value: formatCurrency(
-      counterOfferAmount ?? offerAmount,
-    ),
+    value:
+      formatCurrency(
+        agreedAmount,
+      ),
+
+    agreedAmount,
 
     offerAmount,
 
     counterOfferAmount,
 
-    readiness: getReadiness(
-      offer.status,
-    ),
+    readiness:
+      getDealProgress(
+        deal.status,
+      ),
 
-    stage: getDealStage(
-      offer.status,
-    ),
+    stage:
+      deal.status,
 
-    status: offer.status,
+    status:
+      deal.status,
+
+    agreementStatus:
+      deal.agreementStatus,
+
+    paymentStatus:
+      deal.paymentStatus,
 
     closingDate:
-      offer.estimatedClosing ||
+      offer?.estimatedClosing ||
       'Not provided',
 
-    commission,
+    commission:
+      'Not calculated',
 
     buyerEmail:
-      offer.buyer?.email || '',
+      buyer?.email ||
+      '',
 
     buyerPhone:
-      offer.buyer?.phone || '',
+      buyer?.phone ||
+      '',
+
+    ownerName:
+      owner?.fullName ||
+      'Owner unavailable',
+
+    ownerEmail:
+      owner?.email ||
+      '',
+
+    ownerPhone:
+      owner?.phone ||
+      '',
 
     propertyId:
-      offer.property?._id || null,
+      property?._id ||
+      null,
 
     propertyPrice:
-      offer.property?.price || 0,
+      property?.price ||
+      0,
 
     transactionType:
-      offer.property?.transactionType ||
+      deal.transactionType ||
+      property?.transactionType ||
       'buy',
 
     agency:
-      offer.agency?.name ||
+      deal.agency?.name ||
       'Agency unavailable',
 
     buyerNotes:
-      offer.buyerNotes || '',
+      offer?.buyerNotes ||
+      '',
 
     agentNotes:
-      offer.agentNotes || '',
+      offer?.agentNotes ||
+      '',
 
     counterOfferDetails:
-      offer.counterOfferDetails ||
+      offer?.counterOfferDetails ||
       '',
 
     expiresAt:
-      offer.expiresAt || null,
+      offer?.expiresAt ||
+      null,
 
     createdAt:
-      offer.createdAt,
+      deal.createdAt,
 
     updatedAt:
-      offer.updatedAt,
+      deal.updatedAt,
   };
 };
 
+const escapeCsvValue = (
+  value: unknown,
+) => {
+  const stringValue =
+    String(value ?? '');
+
+  if (
+    stringValue.includes(',') ||
+    stringValue.includes('"') ||
+    stringValue.includes('\n')
+  ) {
+    return `"${stringValue.replace(
+      /"/g,
+      '""',
+    )}"`;
+  }
+
+  return stringValue;
+};
+
 export default function Deals() {
-  const { showToast } = useToast();
+  const {
+    showToast,
+  } = useToast();
 
-  const [searchQuery, setSearchQuery] =
-    useState('');
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] = useState('');
 
-  const [deals, setDeals] = useState<
-    DealRecord[]
-  >([]);
+  const [
+    deals,
+    setDeals,
+  ] = useState<DealRecord[]>(
+    [],
+  );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [selectedDeal, setSelectedDeal] =
-    useState<DealRecord | null>(null);
+  const [
+    selectedDeal,
+    setSelectedDeal,
+  ] =
+    useState<DealRecord | null>(
+      null,
+    );
 
-  const [activeWorkflow, setActiveWorkflow] =
-    useState<{
-      title: string;
-      type: string;
-      data?: Record<string, unknown>;
-    } | null>(null);
-
-  /*
-   * Load real Offers assigned to the logged-in Agent.
-   */
   useEffect(() => {
-    const loadDeals = async () => {
-      try {
-        setLoading(true);
+    const loadDeals =
+      async () => {
+        try {
+          setLoading(true);
 
-        const response =
-          await agentApi.getMyDeals();
+          const response =
+            await dealApi.getMyDeals();
 
-        const rawResponse =
-          response as any;
+          const rawResponse =
+            response as any;
 
-        const offers: AgentOffer[] =
-          Array.isArray(
-            rawResponse?.offers,
-          )
-            ? rawResponse.offers
-            : Array.isArray(
-              rawResponse?.data?.offers,
+          /*
+           * Support both:
+           *
+           * response.data.deals
+           *
+           * and
+           *
+           * response.deals
+           *
+           * depending on the HTTP wrapper response shape.
+           */
+          const payload =
+            rawResponse?.data ??
+            rawResponse;
+
+          const backendDeals: BackendDeal[] =
+            Array.isArray(
+              payload?.data?.deals,
             )
-              ? rawResponse.data.offers
-              : [];
+              ? payload.data.deals
+              : Array.isArray(
+                payload?.deals,
+              )
+                ? payload.deals
+                : [];
 
-        const mappedDeals =
-          offers.map(
-            mapOfferToDeal,
+          const mappedDeals =
+            backendDeals.map(
+              mapBackendDealToDealRecord,
+            );
+
+          setDeals(
+            mappedDeals,
+          );
+        } catch (error) {
+          console.error(
+            'Failed to load Agent deals:',
+            error,
           );
 
-        setDeals(mappedDeals);
-      } catch (error) {
-        console.error(
-          'Failed to load Agent deals:',
-          error,
-        );
-
-        showToast({
-          type: 'error',
-          title: 'Unable to load deals',
-          description:
-            'We could not retrieve your active deal pipeline.',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+          showToast({
+            type: 'error',
+            title:
+              'Unable to load deals',
+            description:
+              'We could not retrieve your Deal pipeline.',
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
 
     loadDeals();
   }, [showToast]);
 
-  const handleAction = (
-    title: string,
-    type: string,
-    data?: Record<string, unknown>,
-  ) => {
-    setActiveWorkflow({
-      title,
-      type,
-      data,
-    });
-  };
-
-  const executeWorkflow = () => {
-    showToast({
-      type: 'success',
-      title: 'Action Initiated',
-      description: `Executing: ${activeWorkflow?.title}. Integration pending.`,
-    });
-
-    setActiveWorkflow(null);
-  };
-
-  /*
-   * Search the real backend-driven Deals collection.
-   */
   const filteredDeals =
     deals.filter(
-      (deal) =>
-        deal.property
-          .toLowerCase()
-          .includes(
-            searchQuery.toLowerCase(),
-          ) ||
-        deal.client
-          .toLowerCase()
-          .includes(
-            searchQuery.toLowerCase(),
-          ),
+      (deal) => {
+        const query =
+          searchQuery
+            .trim()
+            .toLowerCase();
+
+        if (!query) {
+          return true;
+        }
+
+        return (
+          deal.property
+            .toLowerCase()
+            .includes(query) ||
+          deal.client
+            .toLowerCase()
+            .includes(query) ||
+          deal.dealId
+            .toLowerCase()
+            .includes(query) ||
+          deal.agency
+            .toLowerCase()
+            .includes(query)
+        );
+      },
     );
 
   const handleViewDeal = (
     deal: DealRecord,
   ) => {
-    setSelectedDeal(deal);
+    setSelectedDeal(
+      deal,
+    );
   };
 
   /*
-   * Calculate real pipeline totals from the Offers
-   * currently assigned to this Agent.
+   * Real Deal lifecycle metrics.
+   *
+   * Unlike the old page, these are based on the
+   * actual Deal lifecycle returned by the backend.
    */
   const activeDeals =
     deals.filter(
       (deal) =>
         ![
-          'Rejected',
-          'Withdrawn',
-          'Expired',
-        ].includes(deal.status),
+          'Completed',
+          'Cancelled',
+        ].includes(
+          deal.status,
+        ),
+    );
+
+  const agreementPendingDeals =
+    deals.filter(
+      (deal) =>
+        deal.status ===
+        'Agreement Pending',
+    );
+
+  const agreementCompletedDeals =
+    deals.filter(
+      (deal) =>
+        deal.status ===
+        'Agreement Completed',
+    );
+
+  const paymentPendingDeals =
+    deals.filter(
+      (deal) =>
+        deal.status ===
+        'Payment Pending',
+    );
+
+  const completedDeals =
+    deals.filter(
+      (deal) =>
+        deal.status ===
+        'Completed',
+    );
+
+  const cancelledDeals =
+    deals.filter(
+      (deal) =>
+        deal.status ===
+        'Cancelled',
     );
 
   const activeDealValue =
     activeDeals.reduce(
-      (total, deal) =>
+      (
+        total,
+        deal,
+      ) =>
         total +
-        (deal.counterOfferAmount ??
-          deal.offerAmount ??
-          0),
+        deal.agreedAmount,
       0,
     );
 
-  const acceptedDeals =
-    deals.filter(
-      (deal) =>
-        deal.status === 'Accepted',
-    ).length;
-
-  const submittedDeals =
-    deals.filter(
-      (deal) =>
-        deal.status ===
-          'Submitted' ||
-        deal.status ===
-          'Under Review',
-    ).length;
+  const totalDealValue =
+    deals.reduce(
+      (
+        total,
+        deal,
+      ) =>
+        total +
+        deal.agreedAmount,
+      0,
+    );
 
   const counterDeals =
     deals.filter(
       (deal) =>
-        deal.status ===
-        'Counter Offer Received',
-    ).length;
+        deal.counterOfferAmount !==
+        null,
+    );
 
-  /*
-   * These are actual offer COUNTS.
-   *
-   * SegmentedProgressBar calculates the visual
-   * percentage from the total, so we should pass
-   * counts here rather than pre-calculated 20/40
-   * percentages.
-   */
-  const initialOfferCount =
+  const verifiedPayments =
     deals.filter(
       (deal) =>
-        deal.status === 'Submitted' ||
-        deal.status === 'Under Review',
+        deal.paymentStatus ===
+        'Verified',
     ).length;
 
-  const closedOrOtherCount =
-    deals.filter((deal) =>
-      [
-        'Rejected',
-        'Withdrawn',
-        'Expired',
-      ].includes(deal.status),
+  const agreementsCompleted =
+    deals.filter(
+      (deal) =>
+        deal.agreementStatus ===
+        'Completed',
     ).length;
+
+  const portfolioReadiness =
+    activeDeals.length >
+    0
+      ? Math.round(
+        activeDeals.reduce(
+          (
+            total,
+            deal,
+          ) =>
+            total +
+            deal.readiness,
+          0,
+        ) /
+        activeDeals.length,
+      )
+      : 0;
 
   const actionCenter = [
     {
-      title: 'Counter-Offer Needed',
-      desc: 'Offers currently have a buyer/owner counter negotiation requiring attention.',
-      icon: AlertTriangle,
-      color: 'text-orange-400',
-      urgency: 'High',
+      title:
+        'Agreement Pending',
+      desc:
+        agreementPendingDeals.length ===
+        1
+          ? '1 Deal is waiting for the agreement stage to be completed.'
+          : `${agreementPendingDeals.length} Deals are waiting for the agreement stage to be completed.`,
+      icon:
+        AlertTriangle,
+      color:
+        'text-orange-400',
+      urgency:
+        agreementPendingDeals.length >
+        0
+          ? 'High'
+          : 'Low',
     },
+
     {
-      title: 'Accepted Offers',
-      desc: 'Accepted offers are ready to move into the closing workflow.',
-      icon: FileCheck,
-      color: 'text-emerald-400',
-      urgency: 'Medium',
+      title:
+        'Payment Pending',
+      desc:
+        paymentPendingDeals.length ===
+        1
+          ? '1 Deal is waiting for payment verification.'
+          : `${paymentPendingDeals.length} Deals are waiting for payment verification.`,
+      icon:
+        CheckSquare,
+      color:
+        'text-blue-400',
+      urgency:
+        paymentPendingDeals.length >
+        0
+          ? 'Medium'
+          : 'Low',
     },
   ];
 
-  const aiInsights = [
+  const dealInsights = [
     {
-      title: 'Negotiation Risk',
-      desc: 'Review counter-offer records before advancing negotiations.',
-      icon: ShieldAlert,
-      color: 'text-rose-400',
+      title:
+        'Agreement Progress',
+      desc:
+        `${agreementsCompleted} of ${deals.length} Deal${deals.length === 1 ? '' : 's'} have a completed agreement.`,
+      icon:
+        FileText,
+      color:
+        'text-gold-400',
     },
+
     {
-      title: 'Pipeline Review',
-      desc: 'Monitor submitted and under-review offers for the next action.',
-      icon: BrainCircuit,
-      color: 'text-blue-400',
+      title:
+        'Payment Verification',
+      desc:
+        `${verifiedPayments} of ${deals.length} Deal${deals.length === 1 ? '' : 's'} have verified payment.`,
+      icon:
+        CheckCircle2,
+      color:
+        'text-emerald-400',
+    },
+
+    {
+      title:
+        'Transaction Value',
+      desc:
+        `${formatCurrency(totalDealValue)} across all Deals returned for your account.`,
+      icon:
+        BrainCircuit,
+      color:
+        'text-blue-400',
     },
   ];
 
   const closingChecklist = [
     {
-      task: 'Title Search Cleared (VI Office)',
-      completed: true,
+      task:
+        'Agreement Progress',
+      completed:
+        deals.length > 0 &&
+        agreementPendingDeals.length ===
+          0,
+      detail:
+        `${agreementsCompleted} / ${deals.length} completed`,
     },
+
     {
-      task: 'Final Walkthrough (Skyline Penthouse)',
-      completed: false,
+      task:
+        'Payment Progress',
+      completed:
+        deals.length > 0 &&
+        paymentPendingDeals.length ===
+          0,
+      detail:
+        `${verifiedPayments} / ${deals.length} verified`,
     },
+
     {
-      task: 'Wire Transfer Confirmation',
-      completed: false,
+      task:
+        'Deal Completion',
+      completed:
+        deals.length > 0 &&
+        completedDeals.length ===
+          deals.length,
+      detail:
+        `${completedDeals.length} / ${deals.length} completed`,
     },
   ];
 
-  const requiredDocuments = [
-    {
-      doc: 'Proof of Funds',
-      deal: 'Skyline Penthouse',
-      status: 'Missing',
-    },
-    {
-      doc: 'Purchase Agreement',
-      deal: 'VI Office',
-      status: 'Approved',
-    },
-  ];
+  const latestDeal =
+    deals.length > 0
+      ? [...deals].sort(
+        (
+          a,
+          b,
+        ) =>
+          new Date(
+            b.createdAt,
+          ).getTime() -
+          new Date(
+            a.createdAt,
+          ).getTime(),
+      )[0]
+      : null;
+
+  const latestCompletedDeal =
+    deals
+      .filter(
+        (deal) =>
+          deal.status ===
+          'Completed',
+      )
+      .sort(
+        (
+          a,
+          b,
+        ) =>
+          new Date(
+            b.updatedAt,
+          ).getTime() -
+          new Date(
+            a.updatedAt,
+          ).getTime(),
+      )[0] ||
+    null;
 
   const closingTimeline = [
     {
-      title: 'Active Offer Pipeline',
-      desc: `${activeDeals.length} active offer(s) currently assigned to you.`,
-      time: 'Current',
-      icon: CheckCircle2,
-      color: 'text-emerald-400',
-    },
-    {
-      title: 'Latest Offer',
+      title:
+        'Active Deal Pipeline',
       desc:
-        deals[0]
-          ? `${deals[0].property} - ${deals[0].value}`
-          : 'No offers available.',
-      time: deals[0]
-        ? new Date(
-          deals[0].createdAt,
-        ).toLocaleDateString()
-        : 'Current',
-      icon: FileText,
-      color: 'text-blue-400',
+        `${activeDeals.length} active Deal${activeDeals.length === 1 ? '' : 's'} currently assigned to you.`,
+      time:
+        'Current',
+      icon:
+        Briefcase,
+      color:
+        'text-emerald-400',
+    },
+
+    {
+      title:
+        'Latest Deal',
+      desc:
+        latestDeal
+          ? `${latestDeal.property} — ${latestDeal.value}`
+          : 'No Deals available.',
+      time:
+        latestDeal
+          ? new Date(
+            latestDeal.createdAt,
+          ).toLocaleDateString()
+          : 'Current',
+      icon:
+        FileText,
+      color:
+        'text-blue-400',
+    },
+
+    {
+      title:
+        'Latest Completed Deal',
+      desc:
+        latestCompletedDeal
+          ? `${latestCompletedDeal.property} — ${latestCompletedDeal.value}`
+          : 'No completed Deal yet.',
+      time:
+        latestCompletedDeal
+          ? new Date(
+            latestCompletedDeal.updatedAt,
+          ).toLocaleDateString()
+          : 'Pending',
+      icon:
+        CheckCircle2,
+      color:
+        'text-gold-400',
     },
   ];
 
   /*
-   * IMPORTANT:
-   * Pass actual COUNTS to SegmentedProgressBar.
-   *
-   * With 5 real offers:
-   * Initial Offer = 1
-   * Counter Offer = 1
-   * Accepted = 1
-   * Closed / Other = 2
-   *
-   * The SegmentedProgressBar itself converts those
-   * counts into 20% / 20% / 20% / 40% widths.
+   * This board now represents the actual Deal lifecycle,
+   * not the old Offer lifecycle.
    */
   const negotiationBoard = [
     {
-      label: 'Initial Offer',
-      value: initialOfferCount,
-      color: 'bg-blue-400',
+      label:
+        'Agreement Pending',
+      value:
+        agreementPendingDeals.length,
+      color:
+        'bg-orange-400',
     },
+
     {
-      label: 'Counter Offer',
-      value: counterDeals,
-      color: 'bg-orange-400',
+      label:
+        'Agreement Completed',
+      value:
+        agreementCompletedDeals.length,
+      color:
+        'bg-blue-400',
     },
+
     {
-      label: 'Accepted',
-      value: acceptedDeals,
-      color: 'bg-emerald-400',
+      label:
+        'Payment Pending',
+      value:
+        paymentPendingDeals.length,
+      color:
+        'bg-gold-400',
     },
+
     {
-      label: 'Closed / Other',
-      value: closedOrOtherCount,
-      color: 'bg-rose-400',
+      label:
+        'Completed',
+      value:
+        completedDeals.length,
+      color:
+        'bg-emerald-400',
     },
   ];
 
-  const portfolioReadiness =
-    activeDeals.length > 0
-      ? Math.round(
-        activeDeals.reduce(
-          (total, deal) =>
-            total + deal.readiness,
-          0,
-        ) / activeDeals.length,
-      )
-      : 0;
+  const handleExportPipeline =
+    () => {
+      if (
+        deals.length ===
+        0
+      ) {
+        showToast({
+          type: 'info',
+          title:
+            'Nothing to export',
+          description:
+            'There are no Deals available to export.',
+        });
+
+        return;
+      }
+
+      const headers = [
+        'Deal ID',
+        'Property',
+        'Buyer',
+        'Agency',
+        'Agreed Amount',
+        'Transaction Type',
+        'Status',
+        'Agreement Status',
+        'Payment Status',
+        'Created',
+        'Updated',
+      ];
+
+      const rows =
+        deals.map(
+          (deal) =>
+            [
+              deal.dealId,
+              deal.property,
+              deal.client,
+              deal.agency,
+              formatCurrency(
+                deal.agreedAmount,
+              ),
+              deal.transactionType,
+              deal.status,
+              deal.agreementStatus,
+              deal.paymentStatus,
+              deal.createdAt,
+              deal.updatedAt,
+            ],
+        );
+
+      const csv = [
+        headers,
+        ...rows,
+      ]
+        .map(
+          (row) =>
+            row
+              .map(
+                escapeCsvValue,
+              )
+              .join(','),
+        )
+        .join('\n');
+
+      const blob =
+        new Blob(
+          [csv],
+          {
+            type:
+              'text/csv;charset=utf-8;',
+          },
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob,
+        );
+
+      const link =
+        document.createElement(
+          'a',
+        );
+
+      link.href =
+        url;
+
+      link.setAttribute(
+        'download',
+        `luxora-deals-${new Date()
+          .toISOString()
+          .slice(
+            0,
+            10,
+          )}.csv`,
+      );
+
+      document.body.appendChild(
+        link,
+      );
+
+      link.click();
+
+      document.body.removeChild(
+        link,
+      );
+
+      URL.revokeObjectURL(
+        url,
+      );
+
+      showToast({
+        type: 'success',
+        title:
+          'Pipeline exported',
+        description:
+          `${deals.length} Deal${deals.length === 1 ? '' : 's'} exported successfully.`,
+      });
+    };
 
   return (
     <div className="space-y-6 pb-12">
       <DashboardHeader
         name="Deal Operations & Workflow"
-        subtitle="Manage deal progress, monitor risks, and streamline closing procedures."
+        subtitle="Manage deal progress, monitor agreement and payment status, and track transaction completion."
         actions={
           <div className="flex gap-3">
             <GhostButton
               className="flex items-center gap-2"
-              onClick={() =>
-                handleAction(
-                  'Export Pipeline',
-                  'export_pipeline',
-                )
+              onClick={
+                handleExportPipeline
               }
             >
               <Download className="h-4 w-4" />
               Export Pipeline
             </GhostButton>
-
-            <GoldButton
-              className="flex items-center gap-2"
-              onClick={() =>
-                handleAction(
-                  'New Deal',
-                  'new_deal',
-                )
-              }
-            >
-              <Plus className="h-4 w-4" />
-              New Deal
-            </GoldButton>
           </div>
         }
       />
 
-      {/* INTELLIGENCE HEADER: DEAL ACTION CENTER */}
+      {/* Deal Action Center */}
       <div className="grid md:grid-cols-4 gap-6">
         <div className="md:col-span-2 bg-gradient-to-br from-navy-800 to-navy-900 border border-white/10 rounded-2xl p-6 flex flex-col justify-center h-full">
           <div className="flex items-center gap-3 mb-4">
@@ -681,24 +1054,59 @@ export default function Deals() {
           <p className="text-sm text-ink/80 leading-relaxed mb-4">
             You have{' '}
             <strong className="text-orange-400">
-              {counterDeals} counter-offer
-              {counterDeals === 1
+              {agreementPendingDeals.length}{' '}
+              agreement-pending
+              {agreementPendingDeals.length ===
+              1
                 ? ''
-                : 's'}
-            </strong>{' '}
-            currently in negotiation.
-            {acceptedDeals > 0 && (
+                : ' Deals'}
+            </strong>
+            {agreementPendingDeals.length ===
+              1 && (
+              <span>
+                {' '}
+                Deal
+              </span>
+            )}
+            .{' '}
+
+            {paymentPendingDeals.length >
+              0 && (
+              <>
+                There{' '}
+                {paymentPendingDeals.length ===
+                1
+                  ? 'is'
+                  : 'are'}{' '}
+                <strong className="text-blue-400">
+                  {
+                    paymentPendingDeals.length
+                  }{' '}
+                  payment-pending
+                  {paymentPendingDeals.length ===
+                  1
+                    ? ''
+                    : ' Deals'}
+                </strong>{' '}
+                requiring verification.
+              </>
+            )}
+
+            {completedDeals.length >
+              0 && (
               <>
                 {' '}
-                You also have{' '}
                 <strong className="text-emerald-400">
-                  {acceptedDeals} accepted
-                  offer
-                  {acceptedDeals === 1
-                    ? ''
-                    : 's'}
+                  {
+                    completedDeals.length
+                  }{' '}
+                  completed
+                  {completedDeals.length ===
+                  1
+                    ? ' Deal'
+                    : ' Deals'}
                 </strong>{' '}
-                ready for the closing workflow.
+                are already closed.
               </>
             )}
           </p>
@@ -706,74 +1114,79 @@ export default function Deals() {
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/10">
             <div>
               <div className="text-xs text-ink/60 mb-1">
-                Actions Required
+                Action Required
               </div>
 
               <div className="text-lg font-bold text-orange-400">
-                {counterDeals +
-                  submittedDeals}
+                {agreementPendingDeals.length +
+                  paymentPendingDeals.length}
               </div>
             </div>
 
             <div>
               <div className="text-xs text-ink/60 mb-1">
-                Offers
+                Active Deals
               </div>
 
               <div className="text-lg font-bold text-blue-400">
-                {deals.length}
+                {activeDeals.length}
               </div>
             </div>
 
             <div>
               <div className="text-xs text-ink/60 mb-1">
-                Accepted
+                Completed
               </div>
 
               <div className="text-lg font-bold text-emerald-400">
-                {acceptedDeals}
+                {completedDeals.length}
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="md:col-span-1 rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-ink/60 mb-4 flex items-center gap-2">
-              <BrainCircuit className="h-4 w-4 text-blue-400" />
-              AI Deal Insights
-            </h3>
-
-            <div className="space-y-4">
-              {aiInsights.map(
-                (insight, idx) => (
-                  <div
-                    key={idx}
-                    className="flex gap-3"
-                  >
-                    <insight.icon
-                      className={`h-4 w-4 shrink-0 ${insight.color}`}
-                    />
-
-                    <div>
-                      <div className="text-xs font-bold text-cream mb-0.5">
-                        {insight.title}
-                      </div>
-
-                      <div className="text-[10px] text-ink/60 leading-tight">
-                        {insight.desc}
-                      </div>
-                    </div>
-                  </div>
-                ),
-              )}
             </div>
           </div>
         </div>
 
         <div className="md:col-span-1 rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
+          <h3 className="text-sm font-semibold text-ink/60 mb-4 flex items-center gap-2">
+            <BrainCircuit className="h-4 w-4 text-blue-400" />
+            Deal Insights
+          </h3>
+
+          <div className="space-y-4">
+            {dealInsights.map(
+              (
+                insight,
+                idx,
+              ) => (
+                <div
+                  key={idx}
+                  className="flex gap-3"
+                >
+                  <insight.icon
+                    className={`h-4 w-4 shrink-0 ${insight.color}`}
+                  />
+
+                  <div>
+                    <div className="text-xs font-bold text-cream mb-0.5">
+                      {
+                        insight.title
+                      }
+                    </div>
+
+                    <div className="text-[10px] text-ink/60 leading-tight">
+                      {
+                        insight.desc
+                      }
+                    </div>
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+        </div>
+
+        <div className="md:col-span-1 rounded-2xl border border-white/10 bg-navy-800/50 p-6 flex flex-col h-full">
           <h3 className="text-sm font-semibold text-ink/60 mb-4 text-center">
-            Closing Readiness Score
+            Deal Progress
           </h3>
 
           <div className="flex-1 flex flex-col justify-center items-center">
@@ -815,7 +1228,7 @@ export default function Deals() {
         </div>
       </div>
 
-      {/* Sales Pipeline KPIs */}
+      {/* Deal Pipeline KPIs */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Active Deals"
@@ -830,35 +1243,35 @@ export default function Deals() {
         />
 
         <KPICard
-          title="Total Offers"
-          value={String(deals.length)}
-          trend={`${acceptedDeals} Accepted`}
+          title="Total Deals"
+          value={String(
+            deals.length,
+          )}
+          trend={`${formatCurrency(
+            totalDealValue,
+          )} Total Value`}
           trendColor="text-emerald-400"
           icon={TrendingUp}
         />
 
         <KPICard
-          title="Counter Offers"
-          value={String(counterDeals)}
-          trend="Negotiation queue"
-          trendColor="text-rose-400"
+          title="Agreement Pending"
+          value={String(
+            agreementPendingDeals.length,
+          )}
+          trend="Agreement workflow"
+          trendColor="text-orange-400"
           icon={FileText}
         />
 
         <KPICard
-          title="Accepted Deals"
-          value={String(acceptedDeals)}
-          trend={
-            deals.length > 0
-              ? `${Math.round(
-                (acceptedDeals /
-                  deals.length) *
-                100,
-              )}% of offers`
-              : '0% of offers'
-          }
+          title="Payment Pending"
+          value={String(
+            paymentPendingDeals.length,
+          )}
+          trend={`${verifiedPayments} Verified`}
           trendColor="text-gold-400"
-          icon={Target}
+          icon={CheckCircle2}
         />
       </div>
 
@@ -866,8 +1279,12 @@ export default function Deals() {
         {/* Main Deals Table */}
         <div className="lg:col-span-3 space-y-6">
           <DataTableToolbar
-            searchValue={searchQuery}
-            onSearchChange={setSearchQuery}
+            searchValue={
+              searchQuery
+            }
+            onSearchChange={
+              setSearchQuery
+            }
             searchPlaceholder="Search deals..."
           />
 
@@ -877,7 +1294,8 @@ export default function Deals() {
                 Loading deals...
               </div>
             </div>
-          ) : filteredDeals.length > 0 ? (
+          ) : filteredDeals.length >
+            0 ? (
             <DataTable
               keyExtractor={(
                 item: DealRecord,
@@ -890,6 +1308,7 @@ export default function Deals() {
                 {
                   header:
                     'Property / Client',
+
                   render: (
                     deal: DealRecord,
                   ) => (
@@ -900,11 +1319,21 @@ export default function Deals() {
 
                       <div>
                         <div className="font-semibold text-cream">
-                          {deal.property}
+                          {
+                            deal.property
+                          }
                         </div>
 
                         <div className="text-xs text-ink/60">
-                          {deal.client}
+                          {
+                            deal.client
+                          }
+                        </div>
+
+                        <div className="text-[10px] text-ink/40 mt-0.5">
+                          {
+                            deal.dealId
+                          }
                         </div>
                       </div>
                     </div>
@@ -912,12 +1341,24 @@ export default function Deals() {
                 },
 
                 {
-                  header: 'Value',
+                  header:
+                    'Value',
+
                   render: (
                     deal: DealRecord,
                   ) => (
-                    <div className="font-bold text-cream">
-                      {deal.value}
+                    <div>
+                      <div className="font-bold text-cream">
+                        {
+                          deal.value
+                        }
+                      </div>
+
+                      <div className="text-[10px] text-ink/40 capitalize">
+                        {
+                          deal.transactionType
+                        }
+                      </div>
                     </div>
                   ),
                 },
@@ -925,6 +1366,7 @@ export default function Deals() {
                 {
                   header:
                     'Readiness Score',
+
                   render: (
                     deal: DealRecord,
                   ) => (
@@ -935,7 +1377,9 @@ export default function Deals() {
                         </span>
 
                         <span className="text-cream">
-                          {deal.readiness}%
+                          {
+                            deal.readiness
+                          }%
                         </span>
                       </div>
 
@@ -946,9 +1390,11 @@ export default function Deals() {
                             90
                               ? 'bg-emerald-400'
                               : deal.readiness >=
-                                  50
+                                50
                                 ? 'bg-gold-400'
-                                : 'bg-rose-400'
+                                : deal.readiness > 0
+                                  ? 'bg-orange-400'
+                                  : 'bg-rose-400'
                           }`}
                           style={{
                             width: `${deal.readiness}%`,
@@ -960,18 +1406,24 @@ export default function Deals() {
                 },
 
                 {
-                  header: 'Stage',
+                  header:
+                    'Stage',
+
                   render: (
                     deal: DealRecord,
                   ) => (
                     <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-white/5 text-ink/80 border border-white/10">
-                      {deal.stage}
+                      {
+                        deal.stage
+                      }
                     </span>
                   ),
                 },
 
                 {
-                  header: 'Status',
+                  header:
+                    'Status',
+
                   render: (
                     deal: DealRecord,
                   ) => (
@@ -984,7 +1436,9 @@ export default function Deals() {
                 },
 
                 {
-                  header: 'Actions',
+                  header:
+                    'Actions',
+
                   render: (
                     deal: DealRecord,
                   ) => (
@@ -1001,7 +1455,9 @@ export default function Deals() {
                   ),
                 },
               ]}
-              data={filteredDeals}
+              data={
+                filteredDeals
+              }
               onRowClick={(
                 deal: DealRecord,
               ) =>
@@ -1021,14 +1477,19 @@ export default function Deals() {
               </div>
 
               <div className="text-xs text-ink/60 mt-1">
-                Offers assigned to you will appear here as deals.
+                Accepted offers become
+                Deals here once the
+                backend creates the
+                transaction record.
               </div>
             </div>
           )}
 
           <SegmentedProgressBar
-            title="Negotiation Progress Board"
-            segments={negotiationBoard}
+            title="Deal Lifecycle Progress"
+            segments={
+              negotiationBoard
+            }
           />
         </div>
 
@@ -1042,14 +1503,20 @@ export default function Deals() {
 
             <div className="space-y-3">
               {actionCenter.map(
-                (action, idx) => (
+                (
+                  action,
+                  idx,
+                ) => (
                   <div
                     key={idx}
                     className={`bg-navy-900/50 p-3 rounded-xl border ${
                       action.urgency ===
                       'High'
                         ? 'border-orange-500/30'
-                        : 'border-white/5'
+                        : action.urgency ===
+                          'Medium'
+                          ? 'border-blue-500/20'
+                          : 'border-white/5'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
@@ -1058,12 +1525,16 @@ export default function Deals() {
                           className={`h-3 w-3 ${action.color}`}
                         />
 
-                        {action.title}
+                        {
+                          action.title
+                        }
                       </div>
                     </div>
 
                     <div className="text-[10px] text-ink/80">
-                      {action.desc}
+                      {
+                        action.desc
+                      }
                     </div>
                   </div>
                 ),
@@ -1074,73 +1545,50 @@ export default function Deals() {
           <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
             <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              Closing Checklist
+              Deal Lifecycle Checklist
             </h3>
 
             <div className="space-y-3">
               {closingChecklist.map(
-                (item, idx) => (
+                (
+                  item,
+                  idx,
+                ) => (
                   <div
                     key={idx}
                     className="flex items-start gap-2"
                   >
-                    <input
-                      type="checkbox"
-                      checked={
+                    <div
+                      className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center ${
                         item.completed
-                      }
-                      readOnly
-                      className="mt-0.5 accent-gold-400 bg-white/5 border-white/10"
-                    />
-
-                    <span
-                      className={`text-xs ${
-                        item.completed
-                          ? 'text-ink/40 line-through'
-                          : 'text-cream'
+                          ? 'border-emerald-400/50 bg-emerald-400/10'
+                          : 'border-white/10 bg-white/5'
                       }`}
                     >
-                      {item.task}
-                    </span>
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-            <h3 className="font-heading text-base font-bold text-cream mb-4 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-400" />
-              Document Tracker
-            </h3>
-
-            <div className="space-y-3">
-              {requiredDocuments.map(
-                (doc, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center bg-navy-900/50 p-3 rounded-xl border border-white/5"
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-cream mb-0.5">
-                        {doc.doc}
-                      </div>
-
-                      <div className="text-[10px] text-ink/60">
-                        {doc.deal}
-                      </div>
+                      {item.completed && (
+                        <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                      )}
                     </div>
 
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded ${
-                        doc.status ===
-                        'Approved'
-                          ? 'bg-emerald-400/10 text-emerald-400'
-                          : 'bg-rose-400/10 text-rose-400'
-                      }`}
-                    >
-                      {doc.status}
-                    </span>
+                    <div className="flex-1">
+                      <div
+                        className={`text-xs ${
+                          item.completed
+                            ? 'text-ink/40 line-through'
+                            : 'text-cream'
+                        }`}
+                      >
+                        {
+                          item.task
+                        }
+                      </div>
+
+                      <div className="text-[10px] text-ink/50 mt-0.5">
+                        {
+                          item.detail
+                        }
+                      </div>
+                    </div>
                   </div>
                 ),
               )}
@@ -1148,7 +1596,7 @@ export default function Deals() {
           </div>
 
           <ActivityTimeline
-            title="Closing Timeline"
+            title="Deal Timeline"
             items={
               closingTimeline
             }
@@ -1161,94 +1609,14 @@ export default function Deals() {
           !!selectedDeal
         }
         onClose={() =>
-          setSelectedDeal(null)
+          setSelectedDeal(
+            null,
+          )
         }
-        deal={selectedDeal}
+        deal={
+          selectedDeal
+        }
       />
-
-      <EnterpriseDetailDrawer
-        isOpen={
-          !!activeWorkflow
-        }
-        onClose={() =>
-          setActiveWorkflow(null)
-        }
-        title={
-          activeWorkflow?.title ||
-          'Workflow'
-        }
-        footerActions={
-          <GoldButton
-            onClick={
-              executeWorkflow
-            }
-            className="w-full justify-center"
-          >
-            Confirm Action
-          </GoldButton>
-        }
-      >
-        <div className="space-y-6">
-          <div className="p-4 rounded-xl border border-white/10 bg-navy-900">
-            <h4 className="text-sm font-semibold text-cream mb-2">
-              Workflow Details
-            </h4>
-
-            <p className="text-sm text-ink/60 leading-relaxed">
-              You are about to execute the{' '}
-              <strong>
-                {
-                  activeWorkflow?.type
-                }
-              </strong>{' '}
-              workflow. Please review the
-              action details below and confirm
-              to integrate with the backend
-              system.
-            </p>
-          </div>
-
-          {activeWorkflow?.data && (
-            <div className="p-4 rounded-xl border border-white/10 bg-navy-900/50">
-              <h4 className="text-sm font-semibold text-cream mb-4">
-                Context Data
-              </h4>
-
-              <div className="space-y-2 text-sm text-ink/80">
-                {Object.entries(
-                  activeWorkflow.data,
-                ).map(
-                  ([key, value]) => {
-                    if (
-                      typeof value ===
-                        'string' ||
-                      typeof value ===
-                        'number'
-                    ) {
-                      return (
-                        <div
-                          key={key}
-                          className="flex justify-between border-b border-white/5 pb-2"
-                        >
-                          <span className="capitalize">
-                            {key}
-                          </span>
-
-                          <span className="font-medium text-cream">
-                            {value}
-                          </span>
-                        </div>
-                      );
-                    }
-
-                    return null;
-                  },
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </EnterpriseDetailDrawer>
     </div>
   );
 }
