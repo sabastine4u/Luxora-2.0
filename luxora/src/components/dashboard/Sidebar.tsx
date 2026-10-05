@@ -75,10 +75,21 @@ import {
   PROCUREMENT_DATA_CHANGED,
   procurementApi,
 } from '../../api/procurement.api';
+
 import { financeApi } from '../../api/finance.api';
-import { superAdminApi } from '../../api/super-admin.api';
-import { intelligenceApi } from '../../api/intelligence.api';
-import { PROPERTY_MANAGEMENT_DATA_CHANGED, propertyManagementApi } from '../../api/property-management.api';
+
+import {
+  superAdminApi,
+} from '../../api/super-admin.api';
+
+import {
+  intelligenceApi,
+} from '../../api/intelligence.api';
+
+import {
+  PROPERTY_MANAGEMENT_DATA_CHANGED,
+  propertyManagementApi,
+} from '../../api/property-management.api';
 
 const iconMap: Record<
   string,
@@ -192,6 +203,15 @@ export default function Sidebar({
   const [adminListingCount, setAdminListingCount] =
     useState<number | null>(null);
 
+  /*
+   * Real count of properties created by the
+   * authenticated Admin or Super Admin.
+   *
+   * This powers the Property Review sidebar badge.
+   */
+  const [propertyReviewCount, setPropertyReviewCount] =
+    useState<number | null>(null);
+
   const [verificationCenterCount, setVerificationCenterCount] =
     useState<number | null>(null);
 
@@ -213,14 +233,21 @@ export default function Sidebar({
   // Real count of active complaints requiring Admin attention.
   const [adminComplaintCount, setAdminComplaintCount] =
     useState<number | null>(null);
+
   const [superAdminCounts, setSuperAdminCounts] =
     useState<Record<string, number> | null>(null);
 
   const [procurementCounts, setProcurementCounts] =
     useState<Record<string, number> | null>(null);
-  const [financeCounts, setFinanceCounts] = useState<Record<string, number> | null>(null);
-  const [intelligenceCounts, setIntelligenceCounts] = useState<Record<string, number> | null>(null);
-  const [propertyManagementCounts, setPropertyManagementCounts] = useState<Record<string, number> | null>(null);
+
+  const [financeCounts, setFinanceCounts] =
+    useState<Record<string, number> | null>(null);
+
+  const [intelligenceCounts, setIntelligenceCounts] =
+    useState<Record<string, number> | null>(null);
+
+  const [propertyManagementCounts, setPropertyManagementCounts] =
+    useState<Record<string, number> | null>(null);
 
   useEffect(() => {
     if (!user?.role) {
@@ -233,54 +260,146 @@ export default function Sidebar({
           .getCounts()
           .then((response: any) => {
             const counts = response?.counts;
+
             setProcurementCounts(
-              counts && typeof counts === 'object' ? counts : null,
+              counts && typeof counts === 'object'
+                ? counts
+                : null,
             );
           })
-          .catch(() => setProcurementCounts(null));
+          .catch(() =>
+            setProcurementCounts(null),
+          );
       };
 
       loadProcurementCounts();
+
       window.addEventListener(
         PROCUREMENT_DATA_CHANGED,
         loadProcurementCounts,
       );
-      return () => window.removeEventListener(
-        PROCUREMENT_DATA_CHANGED,
-        loadProcurementCounts,
-      );
+
+      return () =>
+        window.removeEventListener(
+          PROCUREMENT_DATA_CHANGED,
+          loadProcurementCounts,
+        );
     }
 
     if (user.role === 'Finance Manager') {
-      financeApi.getCounts().then((response: any) => setFinanceCounts(response?.counts || null)).catch(() => setFinanceCounts(null));
+      financeApi
+        .getCounts()
+        .then((response: any) =>
+          setFinanceCounts(
+            response?.counts || null,
+          ),
+        )
+        .catch(() =>
+          setFinanceCounts(null),
+        );
+
       return;
     }
 
     if (user.role === 'Data Analyst') {
-      intelligenceApi.getCounts().then((response: any) => setIntelligenceCounts(response?.data || null)).catch(() => setIntelligenceCounts(null));
+      intelligenceApi
+        .getCounts()
+        .then((response: any) =>
+          setIntelligenceCounts(
+            response?.data || null,
+          ),
+        )
+        .catch(() =>
+          setIntelligenceCounts(null),
+        );
+
       return;
     }
 
     if (user.role === 'Property Manager') {
-      const loadPropertyManagementCounts = () => propertyManagementApi.summary()
-        .then((response: any) => setPropertyManagementCounts(response?.summary || null))
-        .catch(() => setPropertyManagementCounts(null));
+      const loadPropertyManagementCounts =
+        () =>
+          propertyManagementApi
+            .summary()
+            .then((response: any) =>
+              setPropertyManagementCounts(
+                response?.summary || null,
+              ),
+            )
+            .catch(() =>
+              setPropertyManagementCounts(null),
+            );
+
       loadPropertyManagementCounts();
-      window.addEventListener(PROPERTY_MANAGEMENT_DATA_CHANGED, loadPropertyManagementCounts);
-      return () => window.removeEventListener(PROPERTY_MANAGEMENT_DATA_CHANGED, loadPropertyManagementCounts);
+
+      window.addEventListener(
+        PROPERTY_MANAGEMENT_DATA_CHANGED,
+        loadPropertyManagementCounts,
+      );
+
+      return () =>
+        window.removeEventListener(
+          PROPERTY_MANAGEMENT_DATA_CHANGED,
+          loadPropertyManagementCounts,
+        );
     }
 
     if (user.role === 'Super Admin') {
-      superAdminApi.getCounts()
+      superAdminApi
+        .getCounts()
         .then((response: any) => {
-          const counts = response?.counts ?? response?.data?.counts ?? response;
-          setSuperAdminCounts(counts && typeof counts === 'object' ? counts : null);
+          const counts =
+            response?.counts ??
+            response?.data?.counts ??
+            response;
+
+          setSuperAdminCounts(
+            counts &&
+              typeof counts === 'object'
+              ? counts
+              : null,
+          );
         })
-        .catch(() => setSuperAdminCounts(null));
+        .catch(() =>
+          setSuperAdminCounts(null),
+        );
+
+      /*
+       * Property Review is creator-scoped.
+       * Do not use the platform-wide Listings endpoint here.
+       */
+      adminApi
+        .getMyProperties()
+        .then((response) => {
+          const rawResponse =
+            response as any;
+
+          const properties =
+            Array.isArray(
+              rawResponse?.properties,
+            )
+              ? rawResponse.properties
+              : Array.isArray(
+                rawResponse?.data?.properties,
+              )
+                ? rawResponse.data.properties
+                : [];
+
+          setPropertyReviewCount(
+            properties.length,
+          );
+        })
+        .catch(() => {
+          setPropertyReviewCount(null);
+        });
+
       return;
     }
 
     if (user.role === 'Admin') {
+      /*
+       * Existing platform-wide Admin Listings count.
+       */
       adminApi
         .getProperties()
         .then((response) => {
@@ -306,6 +425,34 @@ export default function Sidebar({
           setAdminListingCount(null);
         });
 
+      /*
+       * New creator-scoped Property Review count.
+       */
+      adminApi
+        .getMyProperties()
+        .then((response) => {
+          const rawResponse =
+            response as any;
+
+          const properties =
+            Array.isArray(
+              rawResponse?.properties,
+            )
+              ? rawResponse.properties
+              : Array.isArray(
+                rawResponse?.data?.properties,
+              )
+                ? rawResponse.data.properties
+                : [];
+
+          setPropertyReviewCount(
+            properties.length,
+          );
+        })
+        .catch(() => {
+          setPropertyReviewCount(null);
+        });
+
       adminApi
         .getVerificationCenterCount()
         .then((response) => {
@@ -313,9 +460,11 @@ export default function Sidebar({
             response as any;
 
           const count =
-            typeof rawResponse?.count === 'number'
+            typeof rawResponse?.count ===
+              'number'
               ? rawResponse.count
-              : typeof rawResponse?.data?.count === 'number'
+              : typeof rawResponse?.data
+                ?.count === 'number'
                 ? rawResponse.data.count
                 : null;
 
@@ -324,7 +473,9 @@ export default function Sidebar({
           );
         })
         .catch(() => {
-          setVerificationCenterCount(null);
+          setVerificationCenterCount(
+            null,
+          );
         });
 
       adminApi
@@ -474,8 +625,10 @@ export default function Sidebar({
             complaints.filter(
               (complaint: any) =>
                 complaint.status === 'Open' ||
-                complaint.status === 'In Progress' ||
-                complaint.status === 'Escalated',
+                complaint.status ===
+                'In Progress' ||
+                complaint.status ===
+                'Escalated',
             );
 
           setAdminComplaintCount(
@@ -483,7 +636,9 @@ export default function Sidebar({
           );
         })
         .catch(() => {
-          setAdminComplaintCount(null);
+          setAdminComplaintCount(
+            null,
+          );
         });
 
       return;
@@ -761,6 +916,7 @@ export default function Sidebar({
     setAgentCommissionCount(null);
 
     setAdminListingCount(null);
+    setPropertyReviewCount(null);
     setVerificationCenterCount(null);
     setAdminOwnerCount(null);
     setAdminBuyerCount(null);
@@ -806,11 +962,10 @@ export default function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-navy-950 transition-transform duration-300 lg:translate-x-0 ${
-          open
-            ? 'translate-x-0'
-            : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-navy-950 transition-transform duration-300 lg:translate-x-0 ${open
+          ? 'translate-x-0'
+          : '-translate-x-full'
+          }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
           <button className="flex items-center gap-2.5">
@@ -859,210 +1014,391 @@ export default function Sidebar({
 
             const badgeValue =
               user?.role === 'Super Admin' &&
-                ({ Listings: 'properties', 'Admin Management': 'admins', Agencies: 'agencies', Agents: 'agents', 'Complaint Oversight': 'complaints', Verification: 'verifications', Procurement: 'procurement', 'Home Services': 'serviceTransactions' } as Record<string, string>)[item.label]
-                ? superAdminCounts?.[({ Listings: 'properties', 'Admin Management': 'admins', Agencies: 'agencies', Agents: 'agents', 'Complaint Oversight': 'complaints', Verification: 'verifications', Procurement: 'procurement', 'Home Services': 'serviceTransactions' } as Record<string, string>)[item.label]]
-
-              : user?.role === 'Finance Manager' &&
-              user?.role === 'Finance Manager' &&
-                ({ 'Owner Payments': 'ownerPayments', 'Agency Earnings': 'agencyEarnings', 'Agent Commissions': 'agentCommissions', 'Mortgage Statistics': 'mortgageApplications', Budget: 'procurementBudget', 'Audit Logs': 'auditLogs' } as Record<string, string>)[item.label]
-                ? financeCounts?.[({ 'Owner Payments': 'ownerPayments', 'Agency Earnings': 'agencyEarnings', 'Agent Commissions': 'agentCommissions', 'Mortgage Statistics': 'mortgageApplications', Budget: 'procurementBudget', 'Audit Logs': 'auditLogs' } as Record<string, string>)[item.label]]
-
-              : user?.role === 'Finance Manager' && item.label === 'Refunds'
-                ? undefined
-
-              : user?.role === 'Data Analyst' && item.label === 'Comparable Properties'
-                ? intelligenceCounts?.properties
-
-              : user?.role === 'Procurement Officer' &&
                 ({
-                  'Vendor Directory': 'vendor',
-                  RFQs: 'rfq',
-                  'Purchase Requests': 'request',
-                  'Purchase Orders': 'order',
-                  Contracts: 'contract',
-                  Inventory: 'inventory',
-                  Assets: 'asset',
-                  Invoices: 'invoice',
-                  Budget: 'budget',
-                  Payments: 'payment',
-                } as Record<string, string>)[item.label]
-                ? procurementCounts?.[({
-                  'Vendor Directory': 'vendor',
-                  RFQs: 'rfq',
-                  'Purchase Requests': 'request',
-                  'Purchase Orders': 'order',
-                  Contracts: 'contract',
-                  Inventory: 'inventory',
-                  Assets: 'asset',
-                  Invoices: 'invoice',
-                  Budget: 'budget',
-                  Payments: 'payment',
-                } as Record<string, string>)[item.label]]
+                  Listings: 'properties',
+                  'Admin Management': 'admins',
+                  Agencies: 'agencies',
+                  Agents: 'agents',
+                  'Complaint Oversight':
+                    'complaints',
+                  Verification:
+                    'verifications',
+                  Procurement:
+                    'procurement',
+                  'Home Services':
+                    'serviceTransactions',
+                } as Record<
+                  string,
+                  string
+                >)[item.label]
+                ? superAdminCounts?.[
+                ({
+                  Listings:
+                    'properties',
+                  'Admin Management':
+                    'admins',
+                  Agencies:
+                    'agencies',
+                  Agents:
+                    'agents',
+                  'Complaint Oversight':
+                    'complaints',
+                  Verification:
+                    'verifications',
+                  Procurement:
+                    'procurement',
+                  'Home Services':
+                    'serviceTransactions',
+                } as Record<
+                  string,
+                  string
+                >)[item.label]
+                ]
 
-              : user?.role === 'Procurement Officer' && item.label === 'Messages'
-                ? undefined
+                : user?.role ===
+                  'Finance Manager' &&
+                  ({
+                    'Owner Payments':
+                      'ownerPayments',
+                    'Agency Earnings':
+                      'agencyEarnings',
+                    'Agent Commissions':
+                      'agentCommissions',
+                    'Mortgage Statistics':
+                      'mortgageApplications',
+                    Budget:
+                      'procurementBudget',
+                    'Audit Logs':
+                      'auditLogs',
+                  } as Record<
+                    string,
+                    string
+                  >)[item.label]
+                  ? financeCounts?.[
+                  ({
+                    'Owner Payments':
+                      'ownerPayments',
+                    'Agency Earnings':
+                      'agencyEarnings',
+                    'Agent Commissions':
+                      'agentCommissions',
+                    'Mortgage Statistics':
+                      'mortgageApplications',
+                    Budget:
+                      'procurementBudget',
+                    'Audit Logs':
+                      'auditLogs',
+                  } as Record<
+                    string,
+                    string
+                  >)[item.label]
+                  ]
 
-              : user?.role === 'Property Manager' &&
-                ({ Tenants: 'activeTenants', 'Rent Collection': 'pendingRentPayments', Maintenance: 'openWorkOrders', 'Lease Tracking': 'activeLeases', Inspections: 'pendingInspections', Expenses: 'pendingExpenses' } as Record<string, string>)[item.label]
-                ? propertyManagementCounts?.[({ Tenants: 'activeTenants', 'Rent Collection': 'pendingRentPayments', Maintenance: 'openWorkOrders', 'Lease Tracking': 'activeLeases', Inspections: 'pendingInspections', Expenses: 'pendingExpenses' } as Record<string, string>)[item.label]]
+                  : user?.role ===
+                    'Finance Manager' &&
+                    item.label === 'Refunds'
+                    ? undefined
 
-              : item.label === 'Listings' &&
-                (
-                  user?.role === 'Admin' ||
-                  user?.role === 'Super Admin'
-                ) &&
-                adminListingCount !== null
-                ? adminListingCount
+                    : user?.role ===
+                      'Data Analyst' &&
+                      item.label ===
+                      'Comparable Properties'
+                      ? intelligenceCounts?.properties
 
-                : item.label ===
-                  'Verification Center' &&
-                  (
-                    user?.role === 'Admin' ||
-                    user?.role === 'Super Admin'
-                  ) &&
-                  verificationCenterCount !== null
-                  ? verificationCenterCount
+                      : user?.role ===
+                        'Procurement Officer' &&
+                        ({
+                          'Vendor Directory':
+                            'vendor',
+                          RFQs: 'rfq',
+                          'Purchase Requests':
+                            'request',
+                          'Purchase Orders':
+                            'order',
+                          Contracts:
+                            'contract',
+                          Inventory:
+                            'inventory',
+                          Assets: 'asset',
+                          Invoices: 'invoice',
+                          Budget: 'budget',
+                          Payments: 'payment',
+                        } as Record<
+                          string,
+                          string
+                        >)[item.label]
+                        ? procurementCounts?.[
+                        ({
+                          'Vendor Directory':
+                            'vendor',
+                          RFQs: 'rfq',
+                          'Purchase Requests':
+                            'request',
+                          'Purchase Orders':
+                            'order',
+                          Contracts:
+                            'contract',
+                          Inventory:
+                            'inventory',
+                          Assets: 'asset',
+                          Invoices: 'invoice',
+                          Budget: 'budget',
+                          Payments: 'payment',
+                        } as Record<
+                          string,
+                          string
+                        >)[item.label]
+                        ]
 
-                  : item.label === 'Owners' &&
-                    (
-                      user?.role === 'Admin' ||
-                      user?.role === 'Super Admin'
-                    ) &&
-                    adminOwnerCount !== null
-                    ? adminOwnerCount
+                        : user?.role ===
+                          'Procurement Officer' &&
+                          item.label ===
+                          'Messages'
+                          ? undefined
 
-                    : item.label === 'Buyers' &&
-                      (
-                        user?.role === 'Admin' ||
-                        user?.role === 'Super Admin'
-                      ) &&
-                      adminBuyerCount !== null
-                      ? adminBuyerCount
+                          : user?.role ===
+                            'Property Manager' &&
+                            ({
+                              Tenants:
+                                'activeTenants',
+                              'Rent Collection':
+                                'pendingRentPayments',
+                              Maintenance:
+                                'openWorkOrders',
+                              'Lease Tracking':
+                                'activeLeases',
+                              Inspections:
+                                'pendingInspections',
+                              Expenses:
+                                'pendingExpenses',
+                            } as Record<
+                              string,
+                              string
+                            >)[item.label]
+                            ? propertyManagementCounts?.[
+                            ({
+                              Tenants:
+                                'activeTenants',
+                              'Rent Collection':
+                                'pendingRentPayments',
+                              Maintenance:
+                                'openWorkOrders',
+                              'Lease Tracking':
+                                'activeLeases',
+                              Inspections:
+                                'pendingInspections',
+                              Expenses:
+                                'pendingExpenses',
+                            } as Record<
+                              string,
+                              string
+                            >)[item.label]
+                            ]
 
-                      : item.label === 'Agents' &&
-                        (
-                          user?.role === 'Admin' ||
-                          user?.role === 'Super Admin'
-                        ) &&
-                        adminAgentCount !== null
-                        ? adminAgentCount
-
-                        : item.label === 'Agencies' &&
-                          (
-                            user?.role === 'Admin' ||
-                            user?.role === 'Super Admin'
-                          ) &&
-                          adminAgencyCount !== null
-                          ? adminAgencyCount
-
-                          : item.label ===
-                            'Internal Staff' &&
-                            (
-                              user?.role === 'Admin' ||
-                              user?.role === 'Super Admin'
-                            ) &&
-                            adminStaffCount !== null
-                            ? adminStaffCount
-
-                            // Live active Complaints count.
+                            /*
+                             * Existing platform-wide Listings badge.
+                             */
                             : item.label ===
-                              'Complaints' &&
+                              'Listings' &&
                               (
-                                user?.role === 'Admin' ||
-                                user?.role === 'Super Admin'
+                                user?.role ===
+                                'Admin' ||
+                                user?.role ===
+                                'Super Admin'
                               ) &&
-                              adminComplaintCount !== null
-                              ? adminComplaintCount
+                              adminListingCount !==
+                              null
+                              ? adminListingCount
 
+                              /*
+                               * NEW:
+                               * Creator-scoped Property Review badge.
+                               */
                               : item.label ===
-                                'Assignments' &&
-                                user?.role === 'Agent' &&
-                                agentAssignmentCount !== null
-                                ? agentAssignmentCount
+                                'Properties' &&
+                                (
+                                  user?.role ===
+                                  'Admin' ||
+                                  user?.role ===
+                                  'Super Admin'
+                                ) &&
+                                propertyReviewCount !==
+                                null
+                                ? propertyReviewCount
 
                                 : item.label ===
-                                  'My Listings' &&
-                                  user?.role === 'Agent' &&
-                                  agentListingCount !== null
-                                  ? agentListingCount
+                                  'Verification Center' &&
+                                  (
+                                    user?.role ===
+                                    'Admin' ||
+                                    user?.role ===
+                                    'Super Admin'
+                                  ) &&
+                                  verificationCenterCount !==
+                                  null
+                                  ? verificationCenterCount
 
                                   : item.label ===
-                                    'Clients' &&
-                                    user?.role === 'Agent' &&
-                                    agentClientCount !== null
-                                    ? agentClientCount
+                                    'Owners' &&
+                                    (
+                                      user?.role ===
+                                      'Admin' ||
+                                      user?.role ===
+                                      'Super Admin'
+                                    ) &&
+                                    adminOwnerCount !== null
+                                    ? adminOwnerCount
 
                                     : item.label ===
-                                      'Leads' &&
-                                      user?.role === 'Agent' &&
-                                      agentLeadCount !== null
-                                      ? agentLeadCount
+                                      'Buyers' &&
+                                      (
+                                        user?.role ===
+                                        'Admin' ||
+                                        user?.role ===
+                                        'Super Admin'
+                                      ) &&
+                                      adminBuyerCount !== null
+                                      ? adminBuyerCount
 
                                       : item.label ===
-                                        'Appointments' &&
-                                        user?.role === 'Agent' &&
-                                        agentAppointmentCount !==
-                                        null
-                                        ? agentAppointmentCount
+                                        'Agents' &&
+                                        (
+                                          user?.role ===
+                                          'Admin' ||
+                                          user?.role ===
+                                          'Super Admin'
+                                        ) &&
+                                        adminAgentCount !== null
+                                        ? adminAgentCount
 
                                         : item.label ===
-                                          'Deals' &&
-                                          user?.role ===
-                                          'Agent' &&
-                                          agentDealCount !==
+                                          'Agencies' &&
+                                          (
+                                            user?.role ===
+                                            'Admin' ||
+                                            user?.role ===
+                                            'Super Admin'
+                                          ) &&
+                                          adminAgencyCount !==
                                           null
-                                          ? agentDealCount
+                                          ? adminAgencyCount
 
                                           : item.label ===
-                                            'Commissions' &&
-                                            user?.role ===
-                                            'Agent' &&
-                                            agentCommissionCount !==
-                                            null
-                                            ? agentCommissionCount
-
-                                            : item.label ===
-                                              'Listings' &&
+                                            'Internal Staff' &&
+                                            (
                                               user?.role ===
-                                              'Agency' &&
-                                              assignmentCount !==
+                                              'Admin' ||
+                                              user?.role ===
+                                              'Super Admin'
+                                            ) &&
+                                            adminStaffCount !==
+                                            null
+                                            ? adminStaffCount
+
+                                            // Live active Complaints count.
+                                            : item.label ===
+                                              'Complaints' &&
+                                              (
+                                                user?.role ===
+                                                'Admin' ||
+                                                user?.role ===
+                                                'Super Admin'
+                                              ) &&
+                                              adminComplaintCount !==
                                               null
-                                              ? assignmentCount
+                                              ? adminComplaintCount
 
                                               : item.label ===
-                                                'Assignment Center' &&
-                                                user?.role ===
-                                                'Agency' &&
-                                                assignmentCount !==
+                                                'Assignments' &&
+                                                user?.role === 'Agent' &&
+                                                agentAssignmentCount !==
                                                 null
-                                                ? assignmentCount
+                                                ? agentAssignmentCount
 
                                                 : item.label ===
-                                                  'Agents' &&
-                                                  user?.role ===
-                                                  'Agency' &&
-                                                  agentCount !==
+                                                  'My Listings' &&
+                                                  user?.role === 'Agent' &&
+                                                  agentListingCount !==
                                                   null
-                                                  ? agentCount
+                                                  ? agentListingCount
 
                                                   : item.label ===
-                                                    'Leads' &&
-                                                    user?.role ===
-                                                    'Agency' &&
-                                                    leadCount !==
+                                                    'Clients' &&
+                                                    user?.role === 'Agent' &&
+                                                    agentClientCount !==
                                                     null
-                                                    ? leadCount
+                                                    ? agentClientCount
 
                                                     : item.label ===
-                                                      'My Favorites'
-                                                      ? favoriteCount
+                                                      'Leads' &&
+                                                      user?.role === 'Agent' &&
+                                                      agentLeadCount !== null
+                                                      ? agentLeadCount
 
-                                                      // Never use the old hardcoded Complaints badge.
                                                       : item.label ===
-                                                        'Complaints'
-                                                        ? undefined
+                                                        'Appointments' &&
+                                                        user?.role === 'Agent' &&
+                                                        agentAppointmentCount !==
+                                                        null
+                                                        ? agentAppointmentCount
 
-                                                        : item.badge;
+                                                        : item.label ===
+                                                          'Deals' &&
+                                                          user?.role === 'Agent' &&
+                                                          agentDealCount !==
+                                                          null
+                                                          ? agentDealCount
+
+                                                          : item.label ===
+                                                            'Commissions' &&
+                                                            user?.role === 'Agent' &&
+                                                            agentCommissionCount !==
+                                                            null
+                                                            ? agentCommissionCount
+
+                                                            : item.label ===
+                                                              'Properties' &&
+                                                              user?.role === 'Agency' &&
+                                                              assignmentCount !==
+                                                              null
+                                                              ? assignmentCount
+
+                                                              : item.label ===
+                                                                'Listings' &&
+                                                                user?.role === 'Agency' &&
+                                                                assignmentCount !==
+                                                                null
+                                                                ? assignmentCount
+
+                                                                : item.label ===
+                                                                  'Assignment Center' &&
+                                                                  user?.role === 'Agency' &&
+                                                                  assignmentCount !==
+                                                                  null
+                                                                  ? assignmentCount
+
+                                                                  : item.label ===
+                                                                    'Agents' &&
+                                                                    user?.role === 'Agency' &&
+                                                                    agentCount !== null
+                                                                    ? agentCount
+
+                                                                    : item.label ===
+                                                                      'Leads' &&
+                                                                      user?.role === 'Agency' &&
+                                                                      leadCount !== null
+                                                                      ? leadCount
+
+                                                                      : item.label ===
+                                                                        'My Favorites'
+                                                                        ? favoriteCount
+
+                                                                        // Never use the old hardcoded Complaints badge.
+                                                                        : item.label ===
+                                                                          'Complaints'
+                                                                          ? undefined
+
+                                                                          : item.badge;
 
             return (
               <button
@@ -1072,18 +1408,16 @@ export default function Sidebar({
                     item.label,
                   )
                 }
-                className={`group mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ${
-                  isActive
-                    ? 'border border-gold-400/20 bg-gold-400/10 text-gold-200'
-                    : 'border border-transparent text-ink/60 hover:bg-white/5 hover:text-cream'
-                }`}
+                className={`group mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ${isActive
+                  ? 'border border-gold-400/20 bg-gold-400/10 text-gold-200'
+                  : 'border border-transparent text-ink/60 hover:bg-white/5 hover:text-cream'
+                  }`}
               >
                 <Icon
-                  className={`h-4 w-4 shrink-0 ${
-                    isActive
-                      ? 'text-gold-400'
-                      : ''
-                  }`}
+                  className={`h-4 w-4 shrink-0 ${isActive
+                    ? 'text-gold-400'
+                    : ''
+                    }`}
                 />
 
                 <span className="flex-1 text-left font-medium">

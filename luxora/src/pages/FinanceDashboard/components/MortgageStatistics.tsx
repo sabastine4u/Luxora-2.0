@@ -221,7 +221,9 @@ export default function MortgageStatistics() {
         setError('');
 
         const response =
-          (await mortgageApi.getFinanceMortgageApplications()) as MortgageOperationsResponse;
+          (await mortgageApi.getFinanceMortgageApplications({
+            status: 'all',
+          })) as MortgageOperationsResponse;
 
         setApplications(
           response.applications || [],
@@ -1083,8 +1085,8 @@ export default function MortgageStatistics() {
         >
           <RefreshCw
             className={`h-4 w-4 ${loading
-                ? 'animate-spin'
-                : ''
+              ? 'animate-spin'
+              : ''
               }`}
           />
           Refresh
@@ -1578,8 +1580,8 @@ export default function MortgageStatistics() {
                     >
                       <div
                         className={`relative z-10 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-4 border-navy-900 ${stage.completed
-                            ? 'bg-gold-400'
-                            : 'bg-white/10'
+                          ? 'bg-gold-400'
+                          : 'bg-white/10'
                           }`}
                       >
                         {stage.completed && (
@@ -1591,8 +1593,8 @@ export default function MortgageStatistics() {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p
                             className={`text-sm font-semibold ${stage.completed
-                                ? 'text-cream'
-                                : 'text-ink/40'
+                              ? 'text-cream'
+                              : 'text-ink/40'
                               }`}
                           >
                             {stage.label}

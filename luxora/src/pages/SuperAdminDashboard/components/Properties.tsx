@@ -22,7 +22,7 @@ import {
 
 import type { Property } from '../../../types/property';
 
-import { agentApi } from '../../../api/agent.api';
+import { adminApi } from '../../../api/admin.api';
 
 import {
   GhostButton,
@@ -41,50 +41,86 @@ import { EnterpriseDetailDrawer } from '../../../components/enterprise/Enterpris
 
 import { ROUTES } from '../../../constants/routes';
 
-type BackendAgentProperty = {
+type BackendSuperAdminProperty = {
   _id: string;
+
   title?: string;
+
   description?: string;
+
   propertyType?: string;
+
   transactionType?: string;
+
   state?: string;
+
   city?: string;
+
   area?: string;
+
   price?: number | null;
+
   rentAmount?: number | null;
+
   currency?: string;
+
   priceFrequency?: string;
+
   bedrooms?: number | null;
+
   bathrooms?: number | null;
+
   parkingSpaces?: number | null;
+
   propertySize?: number | null;
+
   propertySizeUnit?: string | null;
+
   yearBuilt?: number | null;
+
   images?: string[];
+
   coverImage?: string | null;
+
   videoUrl?: string | null;
+
   virtualTourUrl?: string | null;
+
   brochureUrl?: string | null;
+
   floorPlans?: string[];
+
   amenities?: string[];
+
   status?: string;
+
   availabilityStatus?: string;
+
   verificationLevel?: string;
+
   assignmentStatus?: string | null;
+
   origin?: string;
+
   createdAt?: string;
+
   updatedAt?: string;
+
   agent?: string | null;
 
   owner?: {
     _id?: string;
+
     fullName?: string;
+
     email?: string;
   } | null;
 
   agency?: {
     _id?: string;
+
     name?: string;
+
     status?: string;
   } | null;
 
@@ -93,43 +129,59 @@ type BackendAgentProperty = {
 
 type PropertyAnalytics = {
   views: number;
+
   saves: number;
+
   offers: number;
 };
 
-type AgentListingsAnalytics = {
+type SuperAdminListingsAnalytics = {
   totalViews: number;
+
   totalSaves: number;
+
   totalOffers: number;
+
   byProperty: Record<
     string,
     PropertyAnalytics
   >;
 };
 
-type AgentListingProperty =
-  Property & {
-    lifecycleStatus: string;
-    views: number;
-    saves: number;
-    offers: number;
-    ownerName: string;
-    ownerEmail: string;
-    ownerPhone: string;
-    agencyName: string;
-    assignmentStatusDisplay: string;
-  };
+type SuperAdminListingProperty = Property & {
+  lifecycleStatus: string;
 
-const EMPTY_ANALYTICS: AgentListingsAnalytics =
+  views: number;
+
+  saves: number;
+
+  offers: number;
+
+  ownerName: string;
+
+  ownerEmail: string;
+
+  ownerPhone: string;
+
+  agencyName: string;
+
+  assignmentStatusDisplay: string;
+};
+
+const EMPTY_ANALYTICS: SuperAdminListingsAnalytics =
   {
     totalViews: 0,
+
     totalSaves: 0,
+
     totalOffers: 0,
+
     byProperty: {},
   };
 
 const formatCurrency = (
   value?: number | null,
+
   currency = 'NGN',
 ) => {
   if (
@@ -144,7 +196,9 @@ const formatCurrency = (
       'en-NG',
       {
         style: 'currency',
+
         currency,
+
         maximumFractionDigits: 0,
       },
     ).format(value);
@@ -156,7 +210,7 @@ const formatCurrency = (
 };
 
 const getPriceValue = (
-  property: BackendAgentProperty,
+  property: BackendSuperAdminProperty,
 ) => {
   if (
     typeof property.price ===
@@ -195,7 +249,7 @@ const getPriceFrequency = (
 };
 
 const getCanonicalStatus = (
-  property: BackendAgentProperty,
+  property: BackendSuperAdminProperty,
 ): Property['status'] => {
   switch (property.status) {
     case 'Sold':
@@ -214,6 +268,10 @@ const getCanonicalStatus = (
       return 'Under Offer';
 
     case 'Pending':
+
+    case 'Pending Review':
+
+    case 'Approved':
       return 'Pending';
 
     default:
@@ -225,23 +283,29 @@ const getCanonicalStatus = (
 };
 
 const normalizeProperty = (
-  property: BackendAgentProperty,
+  property: BackendSuperAdminProperty,
+
   analytics: PropertyAnalytics,
-): AgentListingProperty => {
+): SuperAdminListingProperty => {
   const location = [
     property.area,
+
     property.city,
+
     property.state,
   ]
     .filter(Boolean)
-    .join(', ') || 'Location unavailable';
+    .join(', ') ||
+    'Location unavailable';
 
   const priceValue =
     getPriceValue(property);
 
   const price = formatCurrency(
     priceValue,
-    property.currency || 'NGN',
+
+    property.currency ||
+      'NGN',
   );
 
   return {
@@ -252,15 +316,18 @@ const normalizeProperty = (
       'Untitled Property',
 
     description:
-      property.description || '',
+      property.description ||
+      '',
 
     location,
 
     city:
-      property.city || '',
+      property.city ||
+      '',
 
     state:
-      property.state || '',
+      property.state ||
+      '',
 
     price,
 
@@ -270,7 +337,8 @@ const normalizeProperty = (
     monthly: price,
 
     currency:
-      property.currency || 'NGN',
+      property.currency ||
+      'NGN',
 
     priceFrequency:
       getPriceFrequency(
@@ -312,11 +380,15 @@ const normalizeProperty = (
 
     verified:
       property.verificationLevel
-        ? [property.verificationLevel]
+        ? [
+            property.verificationLevel,
+          ]
         : [],
 
     agent: {
-      name: 'You',
+      name: property.agent
+        ? 'Assigned Agent'
+        : 'Unassigned',
 
       agency:
         property.agency?.name ||
@@ -336,7 +408,8 @@ const normalizeProperty = (
     },
 
     amenities:
-      property.amenities || [],
+      property.amenities ||
+      [],
 
     parkingSpaces:
       property.parkingSpaces ??
@@ -347,7 +420,8 @@ const normalizeProperty = (
       undefined,
 
     floorPlans:
-      property.floorPlans || [],
+      property.floorPlans ||
+      [],
 
     videoUrl:
       property.videoUrl ||
@@ -419,16 +493,27 @@ const normalizeProperty = (
       '—',
 
     assignmentStatusDisplay:
-      property.origin === 'agent'
-        ? 'Self Created'
+      property.origin === 'admin'
+        ? property.assignmentStatus ||
+          'Administrative Listing'
         : property.assignmentStatus ||
-          'Agent Accepted',
+          'Unassigned',
+
+    origin:
+      property.origin === 'admin' ||
+      property.origin === 'luxora'
+        ? property.origin
+        : 'admin',
+
+    createdByRole:
+      'Super Admin',
   };
 };
 
 export default function Properties() {
-  const { showToast } =
-    useToast();
+  const {
+    showToast,
+  } = useToast();
 
   const navigate =
     useNavigate();
@@ -441,16 +526,15 @@ export default function Properties() {
   const [
     properties,
     setProperties,
-  ] =
-    useState<
-      AgentListingProperty[]
-    >([]);
+  ] = useState<
+    SuperAdminListingProperty[]
+  >([]);
 
   const [
     analytics,
     setAnalytics,
   ] =
-    useState<AgentListingsAnalytics>(
+    useState<SuperAdminListingsAnalytics>(
       EMPTY_ANALYTICS,
     );
 
@@ -468,45 +552,54 @@ export default function Properties() {
     selectedProperty,
     setSelectedProperty,
   ] =
-    useState<
-      AgentListingProperty | null
-    >(null);
+    useState<SuperAdminListingProperty | null>(
+      null,
+    );
 
   const [
     activeWorkflow,
     setActiveWorkflow,
-  ] =
-    useState<{
-      title: string;
-      type: string;
-      data?: Record<
-        string,
-        unknown
-      >;
-    } | null>(null);
+  ] = useState<{
+    title: string;
 
-  const loadListings =
+    type: string;
+
+    data?: Record<
+      string,
+      unknown
+    >;
+  } | null>(null);
+
+  const loadProperties =
     useCallback(
       async () => {
         setLoading(true);
+
         setLoadError(false);
 
         try {
+          /*
+           * This endpoint is intentionally creator-scoped.
+           *
+           * The backend determines the scope from:
+           * createdBy = authenticated Super Admin
+           * createdByRole = "Super Admin"
+           */
           const response =
-            await agentApi.getMyListings();
+            await adminApi.getMyProperties();
 
           const backendProperties =
             Array.isArray(
               response?.properties,
             )
-              ? (response.properties as BackendAgentProperty[])
+              ? (response.properties as BackendSuperAdminProperty[])
               : [];
 
           const backendAnalytics =
             response?.analytics ||
             EMPTY_ANALYTICS;
 
-          const normalizedAnalytics: AgentListingsAnalytics =
+          const normalizedAnalytics: SuperAdminListingsAnalytics =
             {
               totalViews:
                 typeof backendAnalytics.totalViews ===
@@ -543,12 +636,15 @@ export default function Properties() {
               (property) =>
                 normalizeProperty(
                   property,
+
                   normalizedAnalytics
                     .byProperty[
                     property._id
                   ] || {
                     views: 0,
+
                     saves: 0,
+
                     offers: 0,
                   },
                 ),
@@ -556,7 +652,7 @@ export default function Properties() {
           );
         } catch (error) {
           console.error(
-            'Unable to load Agent Properties:',
+            'Unable to load Super Admin Properties:',
             error,
           );
 
@@ -574,27 +670,30 @@ export default function Properties() {
 
           showToast({
             type: 'error',
+
             title:
               'Unable to load properties',
+
             description:
-              'We could not retrieve your accepted listings.',
+              'We could not retrieve the properties created by your Super Admin account.',
           });
         } finally {
-          setLoading(
-            false,
-          );
+          setLoading(false);
         }
       },
+
       [showToast],
     );
 
   useEffect(() => {
-    loadListings();
-  }, [loadListings]);
+    void loadProperties();
+  }, [loadProperties]);
 
-  const handleAction = (
+  const handleWorkflow = (
     title: string,
+
     type: string,
+
     data?: Record<
       string,
       unknown
@@ -602,36 +701,44 @@ export default function Properties() {
   ) => {
     setActiveWorkflow({
       title,
+
       type,
+
       data,
     });
   };
 
-  const executeWorkflow =
-    () => {
-      showToast({
-        type: 'success',
-        title:
-          'Action Initiated',
-        description:
-          `Executing: ${activeWorkflow?.title}. Integration pending.`,
-      });
+  const executeWorkflow = () => {
+    showToast({
+      type: 'success',
 
-      setActiveWorkflow(
-        null,
-      );
-    };
+      title:
+        'Action Initiated',
+
+      description:
+        `Executing: ${activeWorkflow?.title}. Integration pending.`,
+    });
+
+    setActiveWorkflow(
+      null,
+    );
+  };
 
   const getStatusColor = (
     status?: string,
   ) => {
     switch (status) {
       case 'Available':
+
       case 'Published':
         return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
 
       case 'Pending':
+
       case 'Pending Review':
+
+      case 'Approved':
+
       case 'Agent Assigned':
         return 'text-gold-400 bg-gold-400/10 border-gold-400/20';
 
@@ -667,10 +774,17 @@ export default function Properties() {
         (property) =>
           [
             property.title,
+
             property.location,
+
             property.type,
+
             property.transactionType,
+
             property.lifecycleStatus,
+
+            property.ownerName,
+
             property.agencyName,
           ].some(
             (value) =>
@@ -681,6 +795,7 @@ export default function Properties() {
       );
     }, [
       properties,
+
       searchQuery,
     ]);
 
@@ -700,16 +815,27 @@ export default function Properties() {
         'Sold',
     ).length;
 
+  const pendingReviewListings =
+    properties.filter(
+      (property) =>
+        property.lifecycleStatus ===
+        'Pending Review',
+    ).length;
+
   const kpis = [
     {
       label:
         'Active Listings',
+
       value: loading
         ? '—'
         : activeListings.toString(),
+
       icon: Building2,
+
       color:
         'text-emerald-400',
+
       bg:
         'bg-emerald-400/10',
     },
@@ -717,12 +843,16 @@ export default function Properties() {
     {
       label:
         'Total Views',
+
       value: loading
         ? '—'
         : analytics.totalViews.toLocaleString(),
+
       icon: Eye,
+
       color:
         'text-blue-400',
+
       bg:
         'bg-blue-400/10',
     },
@@ -730,12 +860,16 @@ export default function Properties() {
     {
       label:
         'Total Saves',
+
       value: loading
         ? '—'
         : analytics.totalSaves.toLocaleString(),
+
       icon: Heart,
+
       color:
         'text-rose-400',
+
       bg:
         'bg-rose-400/10',
     },
@@ -743,37 +877,44 @@ export default function Properties() {
     {
       label:
         'Total Offers',
+
       value: loading
         ? '—'
         : analytics.totalOffers.toLocaleString(),
+
       icon: FileCheck,
+
       color:
         'text-gold-400',
+
       bg:
         'bg-gold-400/10',
     },
 
     {
       label:
-        'Sold Properties',
+        'Pending Review',
+
       value: loading
         ? '—'
-        : soldListings.toString(),
+        : pendingReviewListings.toString(),
+
       icon: FileText,
+
       color:
         'text-indigo-400',
+
       bg:
         'bg-indigo-400/10',
     },
   ];
 
-  /*
-   * Open the public Property Details page.
-   */
   const handleViewFullDetails = (
     propertyId: string,
   ) => {
-    setSelectedProperty(null);
+    setSelectedProperty(
+      null,
+    );
 
     navigate(
       ROUTES.PROPERTY_DETAILS.replace(
@@ -783,155 +924,114 @@ export default function Properties() {
     );
   };
 
-  /*
-   * Navigate to the Agent Offers section.
-   */
-  const handleViewOffers = (
-    propertyId: string,
-  ) => {
-    setSelectedProperty(null);
-
-    navigate(
-      `${ROUTES.AGENT_DASHBOARD}?tab=Offers&propertyId=${encodeURIComponent(
-        propertyId,
-      )}`,
-    );
-  };
-
-  /*
-   * Navigate to the Agent Appointments section.
-   *
-   * The Appointments page already uses the real
-   * Booking API for the Agent's viewing requests.
-   */
-  const handleScheduleViewing = (
-    propertyId: string,
-  ) => {
-    setSelectedProperty(null);
-
-    navigate(
-      `${ROUTES.AGENT_DASHBOARD}?tab=Appointments&propertyId=${encodeURIComponent(
-        propertyId,
-      )}`,
-    );
-  };
-
-  /*
-   * Navigate to Create Listing in edit mode.
-   *
-   * CreateListingPage will use editId to load
-   * the existing Property for editing.
-   */
   const handleEditListing = (
     propertyId: string,
   ) => {
-    setSelectedProperty(null);
+    setSelectedProperty(
+      null,
+    );
 
     navigate(
       `${ROUTES.CREATE_LISTING}?editId=${encodeURIComponent(
         propertyId,
-      )}`,
+      )}&adminEdit=true`,
     );
   };
 
-  /*
-   * Share the public Property Details URL.
-   *
-   * 1. Use the browser's native share sheet when available.
-   * 2. Fall back to clipboard when available.
-   * 3. Fall back to a simple prompt when clipboard access is unavailable.
-   */
-  const handleShareListing = async (
-    property: AgentListingProperty,
-  ) => {
-    const propertyUrl =
-      `${window.location.origin}${ROUTES.PROPERTY_DETAILS.replace(
-        ':id',
-        property.id,
-      )}`;
+  const handleShareListing =
+    async (
+      property: SuperAdminListingProperty,
+    ) => {
+      const propertyUrl =
+        `${window.location.origin}${ROUTES.PROPERTY_DETAILS.replace(
+          ':id',
+          property.id,
+        )}`;
 
-    try {
-      if (
-        typeof navigator !==
-          'undefined' &&
-        typeof navigator.share ===
-          'function'
-      ) {
-        await navigator.share({
-          title:
-            property.title,
-          text:
-            `View ${property.title} on Luxora.`,
-          url: propertyUrl,
-        });
+      try {
+        if (
+          typeof navigator !==
+            'undefined' &&
+          typeof navigator.share ===
+            'function'
+        ) {
+          await navigator.share({
+            title:
+              property.title,
 
-        return;
-      }
+            text:
+              `View ${property.title} on Luxora.`,
 
-      if (
-        typeof navigator !==
-          'undefined' &&
-        navigator.clipboard
-      ) {
-        await navigator.clipboard.writeText(
+            url: propertyUrl,
+          });
+
+          return;
+        }
+
+        if (
+          typeof navigator !==
+            'undefined' &&
+          navigator.clipboard
+        ) {
+          await navigator.clipboard.writeText(
+            propertyUrl,
+          );
+
+          showToast({
+            type: 'success',
+
+            title:
+              'Listing Link Copied',
+
+            description:
+              'The public property link has been copied to your clipboard.',
+          });
+
+          return;
+        }
+
+        window.prompt(
+          'Copy this property link:',
+
           propertyUrl,
+        );
+      } catch (error) {
+        if (
+          error instanceof
+            DOMException &&
+          error.name ===
+            'AbortError'
+        ) {
+          return;
+        }
+
+        console.error(
+          'Failed to share property:',
+          error,
         );
 
         showToast({
-          type: 'success',
+          type: 'error',
+
           title:
-            'Listing Link Copied',
+            'Unable to Share Listing',
+
           description:
-            'The public property link has been copied to your clipboard.',
+            'The property link could not be shared or copied.',
         });
-
-        return;
       }
-
-      window.prompt(
-        'Copy this property link:',
-        propertyUrl,
-      );
-    } catch (error) {
-      /*
-       * A cancelled native share is not an error
-       * that should be shown to the user.
-       */
-      if (
-        error instanceof
-          DOMException &&
-        error.name ===
-          'AbortError'
-      ) {
-        return;
-      }
-
-      console.error(
-        'Failed to share property:',
-        error,
-      );
-
-      showToast({
-        type: 'error',
-        title:
-          'Unable to Share Listing',
-        description:
-          'The property link could not be shared or copied.',
-      });
-    }
-  };
+    };
 
   return (
     <div className="space-y-6 relative h-full flex flex-col pb-12">
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-heading text-2xl font-bold text-cream">
-            My Properties
+            Properties
           </h2>
 
           <p className="text-sm text-ink/60">
-            Manage listings assigned to you.
+            Review and manage properties created by your Super Admin account.
           </p>
         </div>
 
@@ -939,32 +1039,33 @@ export default function Properties() {
           <GhostButton
             size="sm"
             onClick={() =>
-              handleAction(
+              handleWorkflow(
                 'Export CSV',
+
                 'export',
               )
             }
           >
             <ArrowUpRight className="h-4 w-4 mr-2" />
+
             Export CSV
           </GhostButton>
 
           <GoldButton
             size="sm"
             onClick={() =>
-              handleAction(
-                'Add Listing',
-                'add_listing',
+              navigate(
+                ROUTES.CREATE_LISTING,
               )
             }
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Listing
+
+            Create Listing
           </GoldButton>
         </div>
       </div>
 
-      {/* SUMMARY CARDS */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {kpis.map(
           (kpi) => (
@@ -994,7 +1095,6 @@ export default function Properties() {
         )}
       </div>
 
-      {/* SEARCH & FILTER */}
       <DataTableToolbar
         searchValue={
           searchQuery
@@ -1002,7 +1102,7 @@ export default function Properties() {
         onSearchChange={
           setSearchQuery
         }
-        searchPlaceholder="Search by title or location..."
+        searchPlaceholder="Search by title, owner, or location..."
         actions={
           <>
             <GhostButton
@@ -1010,6 +1110,7 @@ export default function Properties() {
               className="bg-navy-900/80"
             >
               <Filter className="h-4 w-4 mr-2" />
+
               Status
             </GhostButton>
 
@@ -1018,6 +1119,7 @@ export default function Properties() {
               className="bg-navy-900/80"
             >
               <Briefcase className="h-4 w-4 mr-2" />
+
               Property Type
             </GhostButton>
 
@@ -1026,6 +1128,7 @@ export default function Properties() {
               className="bg-navy-900/80"
             >
               <MapPin className="h-4 w-4 mr-2" />
+
               Location
             </GhostButton>
 
@@ -1034,22 +1137,19 @@ export default function Properties() {
               className="bg-navy-900/80"
             >
               <SlidersHorizontal className="h-4 w-4 mr-2" />
+
               Sort: Newest
             </GhostButton>
           </>
         }
       />
 
-      {/* CONTENT */}
       {loading ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from(
-            { length: 8 },
-          ).map(
-            (
-              _,
-              index,
-            ) => (
+          {Array.from({
+            length: 8,
+          }).map(
+            (_, index) => (
               <div
                 key={index}
                 className="overflow-hidden rounded-3xl border border-white/10 bg-navy-800/50 animate-pulse"
@@ -1058,8 +1158,11 @@ export default function Properties() {
 
                 <div className="space-y-3 p-6">
                   <div className="h-3 w-1/3 rounded bg-white/5" />
+
                   <div className="h-5 w-4/5 rounded bg-white/5" />
+
                   <div className="h-4 w-2/3 rounded bg-white/5" />
+
                   <div className="h-10 w-full rounded bg-white/5" />
                 </div>
               </div>
@@ -1075,21 +1178,23 @@ export default function Properties() {
           </h3>
 
           <p className="mt-2 text-sm text-ink/60">
-            The Agent listings request did not complete successfully.
+            The Super Admin Property request did not complete successfully.
           </p>
 
           <GoldButton
             size="sm"
             className="mt-5"
-            onClick={
-              loadListings
+            onClick={() =>
+              void loadProperties()
             }
           >
             <RefreshCw className="h-4 w-4 mr-2" />
+
             Retry
           </GoldButton>
         </div>
-      ) : filteredProperties.length === 0 ? (
+      ) : filteredProperties.length ===
+        0 ? (
         <div className="py-12">
           <EmptyState
             icon={
@@ -1098,18 +1203,18 @@ export default function Properties() {
             title="No properties found."
             description={
               searchQuery
-                ? 'You do not have any listings matching your search.'
-                : 'You do not have any accepted listings yet.'
+                ? 'You do not have any properties matching your search.'
+                : 'You do not have any properties created by this Super Admin account yet.'
             }
             actionLabel={
               searchQuery
                 ? 'Clear Search'
-                : 'Refresh Listings'
+                : 'Refresh Properties'
             }
             onAction={() =>
               searchQuery
                 ? setSearchQuery('')
-                : loadListings()
+                : void loadProperties()
             }
           />
         </div>
@@ -1128,7 +1233,6 @@ export default function Properties() {
                   )
                 }
               >
-                {/* REAL LIFECYCLE STATUS */}
                 <div className="absolute top-4 left-4 z-10">
                   <span
                     className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase shadow-lg backdrop-blur-md ${getStatusColor(
@@ -1149,11 +1253,11 @@ export default function Properties() {
                   />
                 </div>
 
-                {/* REAL PROPERTY ANALYTICS */}
                 <div className="absolute bottom-[88px] left-0 right-0 bg-navy-950/80 backdrop-blur-sm p-3 border-t border-white/10 grid grid-cols-3 gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-none">
                   <div className="text-center">
                     <div className="text-xs text-ink/50 mb-0.5 flex items-center justify-center gap-1">
                       <Eye className="h-3 w-3" />
+
                       Views
                     </div>
 
@@ -1165,6 +1269,7 @@ export default function Properties() {
                   <div className="text-center border-l border-white/10">
                     <div className="text-xs text-ink/50 mb-0.5 flex items-center justify-center gap-1">
                       <Heart className="h-3 w-3" />
+
                       Saves
                     </div>
 
@@ -1176,6 +1281,7 @@ export default function Properties() {
                   <div className="text-center border-l border-white/10">
                     <div className="text-xs text-ink/50 mb-0.5 flex items-center justify-center gap-1">
                       <FileCheck className="h-3 w-3" />
+
                       Offers
                     </div>
 
@@ -1190,7 +1296,6 @@ export default function Properties() {
         </div>
       )}
 
-      {/* PROPERTY DETAILS SIDE PANEL */}
       {selectedProperty && (
         <>
           <div
@@ -1203,7 +1308,6 @@ export default function Properties() {
           />
 
           <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-navy-900 border-l border-white/10 shadow-2xl flex flex-col">
-            {/* PANEL HEADER */}
             <div className="flex items-center justify-between p-6 border-b border-white/10 relative overflow-hidden">
               <div className="absolute inset-0 opacity-20">
                 {selectedProperty.image && (
@@ -1250,9 +1354,7 @@ export default function Properties() {
               </div>
             </div>
 
-            {/* PANEL CONTENT */}
             <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar relative z-10">
-              {/* STATUS + PRICE */}
               <div className="flex items-center justify-between gap-4">
                 <div className="font-heading text-3xl font-bold text-gold-400">
                   {
@@ -1271,7 +1373,6 @@ export default function Properties() {
                 </span>
               </div>
 
-              {/* QUICK ACTIONS */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <GoldButton
                   size="sm"
@@ -1282,51 +1383,67 @@ export default function Properties() {
                   }
                 >
                   <FileText className="h-4 w-4 mr-2" />
+
                   Edit Listing
                 </GoldButton>
 
                 <GhostButton
                   size="sm"
                   onClick={() =>
-                    handleShareListing(
+                    void handleShareListing(
                       selectedProperty,
                     )
                   }
                 >
                   <Send className="h-4 w-4 mr-2" />
+
                   Share
                 </GhostButton>
 
                 <GhostButton
                   size="sm"
                   onClick={() =>
-                    handleScheduleViewing(
-                      selectedProperty.id,
+                    handleWorkflow(
+                      'Schedule Viewing',
+
+                      'schedule_viewing',
+
+                      {
+                        propertyId:
+                          selectedProperty.id,
+                      },
                     )
                   }
                 >
                   <CalendarIcon className="h-4 w-4 mr-2" />
+
                   Schedule
                 </GhostButton>
 
                 <GhostButton
                   size="sm"
                   onClick={() =>
-                    handleViewOffers(
-                      selectedProperty.id,
+                    handleWorkflow(
+                      'View Offers',
+
+                      'view_offers',
+
+                      {
+                        propertyId:
+                          selectedProperty.id,
+                      },
                     )
                   }
                 >
                   <FileCheck className="h-4 w-4 mr-2" />
+
                   View Offers (
                   {
                     selectedProperty.offers
-                  }
-                  )
+                  })
                 </GhostButton>
               </div>
 
-              {/* PROPERTY INFO */}
               <div className="space-y-4">
                 <h4 className="font-heading text-sm font-bold text-cream uppercase tracking-wider text-ink/60 border-b border-white/5 pb-2">
                   Property Info
@@ -1400,7 +1517,6 @@ export default function Properties() {
                 </div>
               </div>
 
-              {/* REAL PERFORMANCE METRICS */}
               <div className="space-y-4">
                 <h4 className="font-heading text-sm font-bold text-cream uppercase tracking-wider text-ink/60 border-b border-white/5 pb-2">
                   Performance Metrics
@@ -1410,6 +1526,7 @@ export default function Properties() {
                   <div className="bg-navy-800/50 border border-white/5 rounded-xl p-3">
                     <div className="flex items-center gap-2 text-ink/50 text-xs mb-1">
                       <Eye className="h-3.5 w-3.5" />
+
                       Views
                     </div>
 
@@ -1421,6 +1538,7 @@ export default function Properties() {
                   <div className="bg-navy-800/50 border border-white/5 rounded-xl p-3">
                     <div className="flex items-center gap-2 text-ink/50 text-xs mb-1">
                       <Heart className="h-3.5 w-3.5" />
+
                       Saves
                     </div>
 
@@ -1432,6 +1550,7 @@ export default function Properties() {
                   <div className="bg-navy-800/50 border border-white/5 rounded-xl p-3">
                     <div className="flex items-center gap-2 text-ink/50 text-xs mb-1">
                       <FileCheck className="h-3.5 w-3.5" />
+
                       Offers
                     </div>
 
@@ -1442,7 +1561,6 @@ export default function Properties() {
                 </div>
               </div>
 
-              {/* OWNER INFO */}
               <div className="space-y-4">
                 <h4 className="font-heading text-sm font-bold text-cream uppercase tracking-wider text-ink/60 border-b border-white/5 pb-2">
                   Owner Info
@@ -1499,7 +1617,6 @@ export default function Properties() {
                 </div>
               </div>
 
-              {/* VIEW FULL DETAILS */}
               <GhostButton
                 className="w-full text-gold-400 hover:text-gold-300"
                 onClick={() =>
@@ -1509,6 +1626,7 @@ export default function Properties() {
                 }
               >
                 View Full Details
+
                 <ArrowRight className="h-4 w-4 ml-2" />
               </GhostButton>
             </div>
@@ -1516,7 +1634,6 @@ export default function Properties() {
         </>
       )}
 
-      {/* EXISTING WORKFLOW DRAWER */}
       <EnterpriseDetailDrawer
         isOpen={
           !!activeWorkflow
@@ -1554,7 +1671,7 @@ export default function Properties() {
                   activeWorkflow?.type
                 }
               </strong>{' '}
-              workflow. Please review the action details below and confirm to integrate with the backend system.
+              workflow. Review the action details below and confirm to continue.
             </p>
           </div>
 
@@ -1577,21 +1694,15 @@ export default function Properties() {
                     typeof value ===
                       'number' ? (
                       <div
-                        key={
-                          key
-                        }
+                        key={key}
                         className="flex justify-between gap-4 border-b border-white/5 pb-2"
                       >
                         <span className="capitalize">
-                          {
-                            key
-                          }
+                          {key}
                         </span>
 
                         <span className="font-medium text-cream text-right">
-                          {
-                            value
-                          }
+                          {value}
                         </span>
                       </div>
                     ) : null,

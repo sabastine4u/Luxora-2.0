@@ -60,11 +60,23 @@ const config: Record<
    * here rather than the older finance transaction source.
    */
 
-  Transactions: {
-    title: 'Transactions',
-    empty:
-      'No Deal transactions are available.',
-  },
+ Transactions: {
+  call: 'getTransactions',
+  key: 'transactions',
+  title: 'Transactions',
+  empty:
+    'No financial transaction records are available.',
+  columns: [
+    ['Reference', 'reference'],
+    ['Type', 'type'],
+    ['Amount', 'amount'],
+    ['Direction', 'direction'],
+    ['Status', 'status'],
+    ['Source', 'sourceDomain'],
+    ['Date', 'date'],
+    ['Description', 'description'],
+  ],
+},
 
   'Owner Payments': {
     call: 'getOwnerPayments',
@@ -812,14 +824,7 @@ export function FinanceDataView({
 }: {
   tab: string;
 }) {
-  if (
-    tab ===
-    'Transactions'
-  ) {
-    return (
-      <FinanceDealTransactionsView />
-    );
-  }
+
 
   const item =
     config[tab];
@@ -1239,64 +1244,407 @@ export function FinanceOverview() {
  */
 
 export function FinanceReports() {
-  const [
-    report,
-    setReport,
-  ] = useState<any>(
-    null,
-  );
+  const [report, setReport] = useState<any>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const [
-    error,
-    setError,
-  ] = useState('');
+  const loadReport = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
 
-  useEffect(() => {
-    financeApi
-      .getReports()
-      .then(setReport)
-      .catch(
-        (err: any) =>
-          setError(
-            err.message,
-          ),
+      const response: any = await financeApi.getReports();
+
+      /*
+       * Support both:
+       * - an already-unwrapped Axios response
+       * - a normal AxiosResponse shape
+       */
+      const payload = response?.data ?? response;
+
+      const reports =
+        payload?.reports ??
+        payload?.data?.reports ??
+        null;
+
+      setReport(reports);
+    } catch (err: any) {
+      console.error(
+        'Failed to load Finance report:',
+        err,
       );
+
+      setError(
+        err?.message ||
+          'Unable to load Finance report.',
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void loadReport();
+  }, [loadReport]);
+
+  const data = report?.report ?? {};
+
+  const counts = data?.counts ?? {};
+
+  const formatCurrency = (value: number) =>
+    currency(Number(value) || 0);
+
+  const formatDateTime = (value?: string) => {
+    if (!value) {
+      return '—';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleString('en-NG', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  };
+
+  const financialMetrics = [
+    {
+      label: 'Realized Service Revenue',
+      value: formatCurrency(
+        data.realizedServiceRevenue,
+      ),
+      description:
+        'Completed Home Services revenue',
+      icon: CreditCard,
+      iconColor: 'text-emerald-400',
+      backgroundColor:
+        'bg-emerald-400/10',
+    },
+    {
+      label: 'Owner Payments Collected',
+      value: formatCurrency(
+        data.ownerPaymentsCollected,
+      ),
+      description:
+        'Owner payments recorded as collected',
+      icon: CheckCircle2,
+      iconColor: 'text-blue-400',
+      backgroundColor:
+        'bg-blue-400/10',
+    },
+    {
+      label: 'Paid Commission Obligations',
+      value: formatCurrency(
+        data.paidCommissionObligations,
+      ),
+      description:
+        'Commission obligations already paid',
+      icon: CheckCircle2,
+      iconColor: 'text-gold-400',
+      backgroundColor:
+        'bg-gold-400/10',
+    },
+    {
+      label: 'Pending Commission Obligations',
+      value: formatCurrency(
+        data.pendingCommissionObligations,
+      ),
+      description:
+        'Commission obligations still pending',
+      icon: RefreshCw,
+      iconColor: 'text-yellow-400',
+      backgroundColor:
+        'bg-yellow-400/10',
+    },
+    {
+      label: 'Pending Owner Payments',
+      value: formatCurrency(
+        data.pendingOwnerPayments,
+      ),
+      description:
+        'Owner payments not yet collected',
+      icon: AlertCircle,
+      iconColor: 'text-orange-400',
+      backgroundColor:
+        'bg-orange-400/10',
+    },
+    {
+      label: 'Active Mortgage Applications',
+      value: String(
+        Number(
+          data.activeMortgageApplications,
+        ) || 0,
+      ),
+      description:
+        'Applications currently active',
+      icon: CreditCard,
+      iconColor: 'text-purple-400',
+      backgroundColor:
+        'bg-purple-400/10',
+    },
+  ];
+
+  const reportCounts = [
+    {
+      label: 'Owner Payments',
+      value:
+        Number(counts.ownerPayments) || 0,
+    },
+    {
+      label: 'Agency Earnings',
+      value:
+        Number(counts.agencyEarnings) || 0,
+    },
+    {
+      label: 'Agent Commissions',
+      value:
+        Number(counts.agentCommissions) || 0,
+    },
+    {
+      label: 'Mortgage Applications',
+      value:
+        Number(counts.mortgageApplications) || 0,
+    },
+    {
+      label: 'Procurement Budgets',
+      value:
+        Number(counts.procurementBudget) || 0,
+    },
+    {
+      label: 'Audit Logs',
+      value:
+        Number(counts.auditLogs) || 0,
+    },
+  ];
+
   return (
-    <div className="space-y-6 max-w-5xl">
-      <h2 className="font-heading text-2xl font-bold text-cream">
-        Finance Reports
-      </h2>
+    <div className="space-y-8 max-w-7xl">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-heading text-2xl font-bold text-cream">
+            Finance Reports
+          </h2>
 
-      {error ? (
-        <p className="text-rose-300">
-          {error}
-        </p>
-      ) : !report ? (
-        <p className="text-ink/50">
-          Loading report…
-        </p>
-      ) : (
-        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
-          <p className="text-ink/60">
-            {
-              report
-                ?.reports
-                ?.report
-                ?.note
-            }
+          <p className="mt-1 text-sm text-ink/60">
+            Consolidated financial reporting from the Finance data service.
           </p>
+        </div>
 
-          <pre className="mt-4 overflow-auto text-sm text-cream">
-            {JSON.stringify(
-              report
-                ?.reports
-                ?.report,
-              null,
-              2,
+        <GhostButton
+          className="flex items-center gap-2"
+          onClick={() => void loadReport()}
+          disabled={loading}
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${
+              loading ? 'animate-spin' : ''
+            }`}
+          />
+
+          {loading
+            ? 'Refreshing...'
+            : 'Refresh Report'}
+        </GhostButton>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-rose-400" />
+
+            <div>
+              <p className="font-medium text-rose-300">
+                Unable to load Finance report
+              </p>
+
+              <p className="mt-1 text-sm text-rose-300/70">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && !report ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map(
+              (_, index) => (
+                <div
+                  key={index}
+                  className="rounded-2xl border border-white/10 bg-navy-800/50 p-6"
+                >
+                  <div className="h-11 w-11 animate-pulse rounded-xl bg-white/5" />
+
+                  <div className="mt-5 h-4 w-36 animate-pulse rounded bg-white/5" />
+
+                  <div className="mt-3 h-8 w-44 animate-pulse rounded bg-white/5" />
+
+                  <div className="mt-3 h-3 w-52 animate-pulse rounded bg-white/5" />
+                </div>
+              ),
             )}
-          </pre>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+              <div className="h-6 w-48 animate-pulse rounded bg-white/5" />
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map(
+                  (_, index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl border border-white/10 bg-navy-900/40 p-4"
+                    >
+                      <div className="h-3 w-24 animate-pulse rounded bg-white/5" />
+                      <div className="mt-3 h-7 w-12 animate-pulse rounded bg-white/5" />
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+              <div className="h-6 w-40 animate-pulse rounded bg-white/5" />
+              <div className="mt-4 h-20 w-full animate-pulse rounded bg-white/5" />
+            </div>
+          </div>
+        </>
+      ) : report ? (
+        <>
+          {/* Financial Summary */}
+          <div>
+            <div className="mb-4">
+              <h3 className="font-heading text-lg font-bold text-cream">
+                Financial Summary
+              </h3>
+
+              <p className="mt-1 text-sm text-ink/50">
+                Current values available from the Finance reporting service.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {financialMetrics.map(
+                (metric) => {
+                  const Icon =
+                    metric.icon;
+
+                  return (
+                    <div
+                      key={metric.label}
+                      className="rounded-2xl border border-white/10 bg-navy-800/50 p-6"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div
+                          className={`flex h-11 w-11 items-center justify-center rounded-xl ${metric.backgroundColor}`}
+                        >
+                          <Icon
+                            className={`h-5 w-5 ${metric.iconColor}`}
+                          />
+                        </div>
+                      </div>
+
+                      <p className="mt-5 text-sm text-ink/60">
+                        {metric.label}
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-cream">
+                        {metric.value}
+                      </p>
+
+                      <p className="mt-2 text-xs text-ink/40">
+                        {metric.description}
+                      </p>
+                    </div>
+                  );
+                },
+              )}
+            </div>
+          </div>
+
+          {/* Report Coverage + Reporting Notes */}
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+              <div>
+                <h3 className="font-heading text-lg font-bold text-cream">
+                  Report Coverage
+                </h3>
+
+                <p className="mt-1 text-sm text-ink/50">
+                  Records currently represented by the Finance reporting layer.
+                </p>
+              </div>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {reportCounts.map(
+                  (item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-white/10 bg-navy-900/40 p-4"
+                    >
+                      <p className="text-xs uppercase tracking-wide text-ink/40">
+                        {item.label}
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-cream">
+                        {item.value}
+                      </p>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400/10">
+                  <AlertCircle className="h-5 w-5 text-blue-400" />
+                </div>
+
+                <div>
+                  <h3 className="font-heading text-lg font-bold text-cream">
+                    Reporting Scope
+                  </h3>
+
+                  <p className="text-xs text-ink/40">
+                    Current Finance rules
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm leading-6 text-ink/60">
+                {data.note ||
+                  'Finance reporting currently includes only data supported by completed financial domains.'}
+              </p>
+
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="text-xs uppercase tracking-wide text-ink/40">
+                  Generated
+                </p>
+
+                <p className="mt-2 text-sm font-medium text-cream">
+                  {formatDateTime(
+                    report.generatedAt,
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-navy-800/50 p-8 text-center">
+          <p className="text-sm text-ink/50">
+            No Finance report data is currently available.
+          </p>
         </div>
       )}
     </div>

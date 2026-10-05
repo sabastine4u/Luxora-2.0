@@ -1201,7 +1201,7 @@ export default function Clients() {
                     }
                     className="h-8 px-3 text-xs"
                   >
-                    View Details
+                   View Client
                   </GhostButton>
                 ),
               },

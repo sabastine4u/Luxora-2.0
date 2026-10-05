@@ -69,6 +69,7 @@ export interface AgencyLead {
   source: string;
   age: number;
   lastContact: string;
+  inquirerId?: string | null;
 }
 
 export interface AgencyCommission {

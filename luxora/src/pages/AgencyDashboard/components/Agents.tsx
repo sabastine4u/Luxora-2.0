@@ -225,9 +225,8 @@ export default function Agents() {
 const agentsWithWorkload = agents.map((agent) => ({
   ...agent,
 
-  // Use zero temporarily for the calculated workload.
-  // The Agent table itself remains completely real.
-  assigned: 0,
+  // Calculate the Agent's real assigned Property count.
+  assigned: getAgentListingCount(String(agent.id)),
 }));
 
   // Search the real Agent roster.

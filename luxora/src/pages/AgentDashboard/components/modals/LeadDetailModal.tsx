@@ -25,6 +25,11 @@ import { ActivityTimeline } from '../../../../components/dashboard/shared/timeli
 
 import { agentApi } from '../../../../api/agent.api';
 
+// Real direct messaging APIs.
+// These persist the conversation and message in the backend.
+import { conversationApi } from '../../../../api/conversation.api';
+import { messageApi } from '../../../../api/message.api';
+
 // Define the Lead activity shape returned by the backend.
 interface LeadActivity {
   action: string;
@@ -99,12 +104,38 @@ export function LeadDetailModal({
   const [viewingNote, setViewingNote] =
     useState('');
 
-  // Track whether an API operation is currently running.
+  // Track whether an existing Lead action is currently running.
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
-  // Store an API error for display inside the modal.
+  // Store an API error for the existing Lead actions.
   const [errorMessage, setErrorMessage] =
+    useState('');
+
+  // Control the real Lead messaging composer.
+  const [
+    isMessageComposerOpen,
+    setIsMessageComposerOpen,
+  ] = useState(false);
+
+  // Store the message currently being written to the Lead.
+  const [messageText, setMessageText] =
+    useState('');
+
+  // Keep messaging submission separate from status/note/viewing submission.
+  // This prevents sending a message from unnecessarily blocking the
+  // other controls unless the messaging operation itself is running.
+  const [isMessaging, setIsMessaging] =
+    useState(false);
+
+  // Show a dedicated messaging success state after the backend accepts
+  // the message.
+  const [messageSuccess, setMessageSuccess] =
+    useState(false);
+
+  // Store a dedicated messaging error so the composer can explain
+  // messaging failures without replacing the Lead action error.
+  const [messageError, setMessageError] =
     useState('');
 
   // Synchronize modal state whenever the selected Lead changes.
@@ -140,8 +171,15 @@ export function LeadDetailModal({
       // Reset the temporary new-note input.
       setNewNote('');
 
-      // Clear any previous API error.
+      // Clear any previous Lead API error.
       setErrorMessage('');
+
+      // Reset the real messaging composer whenever a different
+      // Lead is opened.
+      setIsMessageComposerOpen(false);
+      setMessageText('');
+      setMessageSuccess(false);
+      setMessageError('');
 
       // Always open a newly selected Lead on the profile tab.
       setActiveTab('profile');
@@ -169,37 +207,37 @@ export function LeadDetailModal({
   ) as LeadNote[];
 
   // Read the populated Property object preserved by the parent Leads page.
-const property = (
-  currentLead?.propertyData &&
-  typeof currentLead.propertyData === 'object'
-    ? currentLead.propertyData
-    : currentLead?.property &&
-        typeof currentLead.property === 'object'
-      ? currentLead.property
-      : null
-) as Record<string, unknown> | null;
+  const property = (
+    currentLead?.propertyData &&
+    typeof currentLead.propertyData === 'object'
+      ? currentLead.propertyData
+      : currentLead?.property &&
+          typeof currentLead.property === 'object'
+        ? currentLead.property
+        : null
+  ) as Record<string, unknown> | null;
 
-// Read the populated Agency object preserved by the parent Leads page.
-const agency = (
-  currentLead?.agencyData &&
-  typeof currentLead.agencyData === 'object'
-    ? currentLead.agencyData
-    : currentLead?.agency &&
-        typeof currentLead.agency === 'object'
-      ? currentLead.agency
-      : null
-) as Record<string, unknown> | null;
+  // Read the populated Agency object preserved by the parent Leads page.
+  const agency = (
+    currentLead?.agencyData &&
+    typeof currentLead.agencyData === 'object'
+      ? currentLead.agencyData
+      : currentLead?.agency &&
+          typeof currentLead.agency === 'object'
+        ? currentLead.agency
+        : null
+  ) as Record<string, unknown> | null;
 
-// Read the populated Owner object preserved by the parent Leads page.
-const owner = (
-  currentLead?.ownerData &&
-  typeof currentLead.ownerData === 'object'
-    ? currentLead.ownerData
-    : currentLead?.owner &&
-        typeof currentLead.owner === 'object'
-      ? currentLead.owner
-      : null
-) as Record<string, unknown> | null;
+  // Read the populated Owner object preserved by the parent Leads page.
+  const owner = (
+    currentLead?.ownerData &&
+    typeof currentLead.ownerData === 'object'
+      ? currentLead.ownerData
+      : currentLead?.owner &&
+          typeof currentLead.owner === 'object'
+        ? currentLead.owner
+        : null
+  ) as Record<string, unknown> | null;
 
   // Convert real backend activities into the existing timeline component format.
   const communicationTimeline =
@@ -292,6 +330,117 @@ const owner = (
     Boolean(
       currentLead?.scheduledTime,
     );
+
+  // Start the real Agent-to-Lead messaging workflow.
+  const handleSendMessage = async () => {
+    if (
+      isMessaging ||
+      messageSuccess ||
+      !currentLead
+    ) {
+      return;
+    }
+
+    // The parent Leads page preserves the real Luxora User ID
+    // associated with this Inquiry.
+    const inquirerId = String(
+      currentLead.inquirerId || '',
+    );
+
+    // Anonymous inquiries do not have a Luxora User account.
+    // They can still remain valid Leads, but they cannot participate
+    // in an authenticated conversation.
+    if (!inquirerId) {
+      setMessageError(
+        'This Lead is not linked to a Luxora user account and cannot receive direct messages.',
+      );
+
+      return;
+    }
+
+    const body =
+      messageText.trim();
+
+    // The backend message validator requires an actual message body.
+    if (!body) {
+      setMessageError(
+        'Please enter a message.',
+      );
+
+      return;
+    }
+
+    // Keep the frontend validation aligned with the backend's
+    // current 2,000-character message limit.
+    if (body.length > 2000) {
+      setMessageError(
+        'Message cannot exceed 2000 characters.',
+      );
+
+      return;
+    }
+
+    try {
+      // Only the messaging controls enter the messaging loading state.
+      setIsMessaging(true);
+      setMessageError('');
+
+      /*
+       * Create or reuse the real direct conversation.
+       *
+       * The backend is responsible for determining the authenticated
+       * sender from the JWT and validating the target User.
+       */
+      const conversationResponse =
+        await conversationApi.createConversation({
+          type: 'direct',
+          targetUserId:
+            inquirerId,
+        });
+
+      /*
+       * Support the same response shapes used by the existing
+       * messaging implementations in the frontend.
+       */
+      const conversationId =
+        conversationResponse?.conversation?._id ??
+        conversationResponse?.conversation?.id ??
+        conversationResponse?.data?.conversation?._id ??
+        conversationResponse?.data?.conversation?.id;
+
+      if (!conversationId) {
+        throw new Error(
+          'The server did not return a conversation.',
+        );
+      }
+
+      // Persist the actual message in the real conversation.
+      await messageApi.sendMessage(
+        String(conversationId),
+        body,
+      );
+
+      // Show a successful send state in the modal.
+      setMessageSuccess(true);
+      setMessageText('');
+      setMessageError('');
+    } catch (error) {
+      // Do not silently fail. Keep the modal open and explain
+      // the actual message operation failure to the Agent.
+      console.error(
+        'Failed to send Agent Lead message:',
+        error,
+      );
+
+      setMessageError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to send the message. Please try again.',
+      );
+    } finally {
+      setIsMessaging(false);
+    }
+  };
 
   // Update the Lead status using the tested backend endpoint.
   const handleUpdateStatus = async () => {
@@ -561,11 +710,16 @@ const owner = (
             </div>
 
             <div className="flex gap-4 pt-2">
-              {/* Messaging remains disabled until the messaging backend exists. */}
+              {/* Real messaging button. */}
               <GhostButton
-                disabled
+                onClick={() => {
+                  // Open a clean message composer for the selected Lead.
+                  setIsMessageComposerOpen(true);
+                  setMessageText('');
+                  setMessageSuccess(false);
+                  setMessageError('');
+                }}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm"
-                title="Messaging workflow is not implemented yet"
               >
                 <MessageSquare className="h-4 w-4" />
                 Message
@@ -595,6 +749,148 @@ const owner = (
                 Book Meeting
               </GhostButton>
             </div>
+
+            {/* Real direct-message composer. */}
+            {isMessageComposerOpen && (
+              <div className="rounded-xl border border-white/10 bg-navy-900/70 p-4">
+                {messageSuccess ? (
+                  <div className="space-y-3 text-center">
+                    <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-400" />
+
+                    <div className="text-sm font-semibold text-cream">
+                      Message Sent
+                    </div>
+
+                    <div className="text-xs text-ink/60">
+                      Your message was sent to this Lead successfully.
+                    </div>
+
+                    <div className="flex justify-center gap-3 pt-1">
+                      <GhostButton
+                        type="button"
+                        disabled={
+                          isMessaging
+                        }
+                        onClick={() => {
+                          setIsMessageComposerOpen(
+                            false,
+                          );
+                          setMessageSuccess(
+                            false,
+                          );
+                          setMessageText('');
+                          setMessageError('');
+                        }}
+                      >
+                        Close
+                      </GhostButton>
+
+                      <GoldButton
+                        type="button"
+                        disabled={
+                          isMessaging
+                        }
+                        onClick={() => {
+                          setIsMessageComposerOpen(
+                            true,
+                          );
+                          setMessageSuccess(
+                            false,
+                          );
+                          setMessageText('');
+                          setMessageError('');
+                        }}
+                      >
+                        Send Another
+                      </GoldButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-sm font-semibold text-cream">
+                        Message Lead
+                      </div>
+
+                      <div className="mt-1 text-xs text-ink/50">
+                        Send a private message through Luxora's real conversation system.
+                      </div>
+                    </div>
+
+                    {messageError && (
+                      <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
+                        {messageError}
+                      </div>
+                    )}
+
+                    <textarea
+                      rows={4}
+                      value={
+                        messageText
+                      }
+                      onChange={(
+                        event,
+                      ) => {
+                        setMessageText(
+                          event.target.value,
+                        );
+
+                        // Clear the previous validation error once
+                        // the Agent starts correcting the message.
+                        if (messageError) {
+                          setMessageError('');
+                        }
+                      }}
+                      maxLength={2000}
+                      disabled={
+                        isMessaging
+                      }
+                      placeholder="Write your message to this Lead..."
+                      className="w-full resize-none rounded-xl border border-white/10 bg-navy-800 px-3 py-3 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 disabled:opacity-60"
+                    />
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-[10px] text-ink/40">
+                        {messageText.length}/2000
+                      </span>
+
+                      <div className="flex gap-3">
+                        <GhostButton
+                          type="button"
+                          disabled={
+                            isMessaging
+                          }
+                          onClick={() => {
+                            setIsMessageComposerOpen(
+                              false,
+                            );
+                            setMessageText('');
+                            setMessageError('');
+                          }}
+                        >
+                          Cancel
+                        </GhostButton>
+
+                        <GoldButton
+                          type="button"
+                          disabled={
+                            isMessaging ||
+                            !messageText.trim()
+                          }
+                          onClick={
+                            handleSendMessage
+                          }
+                        >
+                          {isMessaging
+                            ? 'Sending...'
+                            : 'Send Message'}
+                        </GoldButton>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -680,10 +976,10 @@ const owner = (
                       <Building2 className="h-4 w-4 text-gold-400" />
 
                       {String(
-  property?.title ||
-    currentLead.property ||
-    'Property unavailable',
-)}
+                        property?.title ||
+                          currentLead.property ||
+                          'Property unavailable',
+                      )}
                     </span>
                   </div>
 

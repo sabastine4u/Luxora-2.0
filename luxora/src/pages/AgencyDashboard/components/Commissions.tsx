@@ -337,43 +337,100 @@ export default function Commissions() {
   };
 
   // Approve a Pending commission and move it to Processing.
-  const handleApprovePayout = async (
-    commission: CommissionRecord
-  ) => {
-    try {
-      setIsActionLoading(true);
-      setPayrollMessage('');
+ const handleApprovePayout = async (
+  commission: CommissionRecord
+) => {
+  try {
+    setIsActionLoading(true);
+    setPayrollMessage('');
 
-      // Ask the backend to move the commission into Processing.
+    // Move the real backend commission from Pending to Processing.
+    const response =
       await propertyApi.updateAgencyCommissionStatus(
         commission.id,
         'Processing'
       );
 
-      setPayrollMessage(
-        `Commission ${commission.id} moved to Processing.`
-      );
+    // The shared HTTP client unwraps the success envelope,
+    // so the updated commission is expected here.
+    const updatedCommission =
+      response?.data?.commission ||
+      response?.commission;
 
-      // Refresh the ledger and KPI totals after the status change.
-      await loadCommissionData();
-
-      // Close the drawer after the operation succeeds.
-      setSelectedCommission(null);
-      setIsDrawerOpen(false);
-    } catch (error: any) {
-      console.error(
-        'Failed to approve commission payout:',
-        error
+    if (!updatedCommission) {
+      throw new Error(
+        'The commission was updated, but the updated record was not returned.'
       );
-
-      setPayrollMessage(
-        error?.message ||
-        'Unable to approve the commission payout.'
-      );
-    } finally {
-      setIsActionLoading(false);
     }
-  };
+
+    // Convert the returned backend commission into the
+    // exact structure used by the Agency Commission UI.
+    const mappedCommission =
+      mapCommission(updatedCommission);
+
+    // Update the ledger immediately so the UI reflects
+    // the successful backend mutation without depending
+    // on a second request.
+    setCommissions((currentCommissions) =>
+      currentCommissions.map((current) =>
+        current.id === commission.id
+          ? mappedCommission
+          : current
+      )
+    );
+
+    // Update the selected commission as well.
+    setSelectedCommission(mappedCommission);
+
+    // Update the KPI summary locally.
+    setSummary((currentSummary) => ({
+      ...currentSummary,
+      pending: {
+        amount: Math.max(
+          0,
+          currentSummary.pending.amount -
+            Number(
+              updatedCommission.agencyAmount || 0
+            )
+        ),
+        count: Math.max(
+          0,
+          currentSummary.pending.count - 1
+        ),
+      },
+      processing: {
+        amount:
+          currentSummary.processing.amount +
+          Number(
+            updatedCommission.agencyAmount || 0
+          ),
+        count:
+          currentSummary.processing.count + 1,
+      },
+    }));
+
+    setPayrollMessage(
+      `Commission ${commission.id} moved to Processing.`
+    );
+
+    // Close the drawer immediately after the backend
+    // confirms the status change.
+    setSelectedCommission(null);
+    setIsDrawerOpen(false);
+  } catch (error: any) {
+    console.error(
+      'Failed to approve commission payout:',
+      error
+    );
+
+    setPayrollMessage(
+      error?.message ||
+      'Unable to approve the commission payout.'
+    );
+  } finally {
+    setIsActionLoading(false);
+  }
+};
 
   // Run payroll and mark all Processing commissions as Paid.
   const handleRunPayroll = async () => {

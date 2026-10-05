@@ -151,6 +151,22 @@ export const mapOwnerPropertyToRequest = (
     progress = 100;
   }
 
+
+  // Convert the backend Agency object into the format
+  // expected by the existing Owner dashboard.
+  const agency =
+    property.agency &&
+      typeof property.agency === 'object'
+      ? {
+        name:
+          property.agency.name ||
+          'Assigned Agency',
+        status:
+          property.agency.status ||
+          undefined,
+      }
+      : null;
+
   // Convert the backend agent object into the format
   // expected by the existing Owner dashboard.
   const agent = property.agent
@@ -217,6 +233,7 @@ export const mapOwnerPropertyToRequest = (
     lastUpdated: property.updatedAt,
     status,
     progress,
+    agency,
     agent,
 
     // Build the existing timeline from the real
@@ -344,6 +361,37 @@ export default function MyPropertyRequests() {
   const [isUploadModalOpen, setIsUploadModalOpen] =
     useState(false);
 
+  // Owner document uploads are allowed only during the
+  // initial submission/review stages.
+  // Owner document uploads are allowed only during the
+  // initial submission/review stages.
+  const canUploadOwnerDocuments = (
+    request: PropertyRequest | null,
+  ) => {
+    if (!request) {
+      return false;
+    }
+
+    return (
+      request.status === 'Pending Agency Assignment' ||
+      request.status === 'Pending Review'
+    );
+  };
+
+  // Owner withdrawal is allowed only before the property
+  // progresses beyond Draft/Pending Review.
+  const canWithdrawOwnerRequest = (
+    request: PropertyRequest | null,
+  ) => {
+    if (!request) {
+      return false;
+    }
+
+    return (
+      request.status === 'Pending Agency Assignment' ||
+      request.status === 'Pending Review'
+    );
+  };
   /*
    * The Owner dashboard can open this page with
    * ?action=submit.
@@ -851,7 +899,7 @@ export default function MyPropertyRequests() {
                         <Eye className="h-4 w-4" />
                       </button>
 
-                      {req.status !== 'Withdrawn' && (
+                      {canUploadOwnerDocuments(req) && (
                         <button
                           className="p-2 text-ink/50 hover:text-emerald-400 transition-colors"
                           title="Upload Documents"
@@ -864,7 +912,7 @@ export default function MyPropertyRequests() {
                         </button>
                       )}
 
-                      {req.status !== 'Withdrawn' && (
+                      {canWithdrawOwnerRequest(req) && (
                         <button
                           className="p-2 text-ink/50 hover:text-rose-400 transition-colors"
                           title="Withdraw Request"
@@ -974,9 +1022,13 @@ export default function MyPropertyRequests() {
               Close
             </GhostButton>
           ) : (
-            <>
+            <div className="flex gap-3 w-full">
               <GoldButton
-                className="flex-1 justify-center"
+                className={
+                  canWithdrawOwnerRequest(selectedReq)
+                    ? 'flex-1 justify-center'
+                    : 'w-full justify-center'
+                }
                 onClick={() =>
                   navigate(
                     '/owner-dashboard?tab=Verification+Progress',
@@ -986,16 +1038,18 @@ export default function MyPropertyRequests() {
                 Track Progress
               </GoldButton>
 
-              <GhostButton
-                className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
-                onClick={() =>
-                  setIsWithdrawModalOpen(true)
-                }
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Withdraw
-              </GhostButton>
-            </>
+              {canWithdrawOwnerRequest(selectedReq) && (
+                <GhostButton
+                  className="flex-1 justify-center border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
+                  onClick={() =>
+                    setIsWithdrawModalOpen(true)
+                  }
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Withdraw
+                </GhostButton>
+              )}
+            </div>
           )
         }
       >
@@ -1110,7 +1164,7 @@ export default function MyPropertyRequests() {
                   Submitted Documents
                 </h4>
 
-                {selectedReq.status !== 'Withdrawn' && (
+                {canUploadOwnerDocuments(selectedReq) && (
                   <button
                     className="text-[10px] uppercase tracking-wider font-semibold text-gold-400 hover:text-gold-300"
                     onClick={() =>
@@ -1158,15 +1212,45 @@ export default function MyPropertyRequests() {
               )}
             </div>
 
+
             {/* Assigned Staff */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5">
+                <div className="text-xs text-ink/50 mb-2">
+                  Assigned Agency
+                </div>
+
+                {selectedReq.agency ? (
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-gold-400/10 border border-gold-400/20 flex items-center justify-center shrink-0">
+                      <Building2 className="h-4 w-4 text-gold-400" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-cream truncate">
+                        {selectedReq.agency.name}
+                      </div>
+
+                      {selectedReq.agency.status && (
+                        <div className="text-[11px] text-ink/40 mt-0.5">
+                          {selectedReq.agency.status}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-ink/40 italic">
+                    Pending Assignment
+                  </div>
+                )}
+              </div>
+
               <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5">
                 <div className="text-xs text-ink/50 mb-2">
                   Assigned Agent
                 </div>
 
-                {selectedReq.agent.name !==
-                  'Unassigned' ? (
+                {selectedReq.agent.name !== 'Unassigned' ? (
                   <div className="flex items-center gap-3">
                     <img
                       src={selectedReq.agent.avatar}
@@ -1191,8 +1275,7 @@ export default function MyPropertyRequests() {
                 </div>
 
                 <div className="text-xs text-ink/70 leading-relaxed">
-                  {selectedReq.notes ||
-                    'No notes available.'}
+                  {selectedReq.notes || 'No notes available.'}
                 </div>
               </div>
             </div>

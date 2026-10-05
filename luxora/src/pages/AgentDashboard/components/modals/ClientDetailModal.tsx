@@ -23,6 +23,10 @@ import {
 import { StatusBadge } from '../../../ManagementDashboard/components/shared/StatusBadge';
 import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
 
+// Real direct messaging APIs.
+import { conversationApi } from '../../../../api/conversation.api';
+import { messageApi } from '../../../../api/message.api';
+
 interface ClientDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,6 +41,28 @@ export function ClientDetailModal({
   const [activeTab, setActiveTab] = useState<
     'profile' | 'transactions' | 'communication'
   >('profile');
+
+  // Control the real Client messaging composer.
+  const [
+    isMessageComposerOpen,
+    setIsMessageComposerOpen,
+  ] = useState(false);
+
+  // Store the message currently being written to the Client.
+  const [messageText, setMessageText] =
+    useState('');
+
+  // Keep messaging submission separate from the rest of the modal.
+  const [isMessaging, setIsMessaging] =
+    useState(false);
+
+  // Store a dedicated messaging error so it does not replace Client data.
+  const [messageError, setMessageError] =
+    useState('');
+
+  // Show a dedicated success state after the message is persisted.
+  const [messageSuccess, setMessageSuccess] =
+    useState(false);
 
   if (!client) return null;
 
@@ -228,17 +254,117 @@ export function ClientDetailModal({
     },
   ];
 
+  // Start the real Agent-to-Client messaging workflow.
+  const handleSendMessage = async () => {
+    if (
+      isMessaging ||
+      messageSuccess ||
+      !client
+    ) {
+      return;
+    }
+
+    // Anonymous inquiry contacts do not have a Luxora User account.
+    if (!isRegisteredUser) {
+      setMessageError(
+        'This Client is not linked to a Luxora user account and cannot receive direct messages.',
+      );
+
+      return;
+    }
+
+    const body =
+      messageText.trim();
+
+    if (!body) {
+      setMessageError(
+        'Please enter a message.',
+      );
+
+      return;
+    }
+
+    if (body.length > 2000) {
+      setMessageError(
+        'Message cannot exceed 2000 characters.',
+      );
+
+      return;
+    }
+
+    if (
+      !clientEmail.trim() ||
+      clientEmail === 'N/A'
+    ) {
+      setMessageError(
+        'This Client does not have an email address available for messaging.',
+      );
+
+      return;
+    }
+
+    try {
+      setIsMessaging(true);
+      setMessageError('');
+
+      /*
+       * Create or reuse the real direct conversation.
+       *
+       * IMPORTANT:
+       * The frontend sends only the Client email.
+       * The backend resolves the actual Luxora User from the
+       * authenticated Agent's Inquiry relationship.
+       */
+      const conversationResponse =
+        await conversationApi.createConversation({
+          type: 'direct',
+          clientEmail:
+            clientEmail.trim(),
+        });
+
+      const conversationId =
+        conversationResponse?.conversation?._id ??
+        conversationResponse?.conversation?.id ??
+        conversationResponse?.data?.conversation?._id ??
+        conversationResponse?.data?.conversation?.id;
+
+      if (!conversationId) {
+        throw new Error(
+          'The server did not return a conversation.',
+        );
+      }
+
+      // Persist the actual message in the real conversation.
+      await messageApi.sendMessage(
+        String(conversationId),
+        body,
+      );
+
+      setMessageSuccess(true);
+      setMessageText('');
+      setMessageError('');
+    } catch (error) {
+      console.error(
+        'Failed to send Agent Client message:',
+        error,
+      );
+
+      setMessageError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to send the message. Please try again.',
+      );
+    } finally {
+      setIsMessaging(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Client Details"
       size="2xl"
-      actionButton={
-        <GoldButton disabled>
-          Edit Client
-        </GoldButton>
-      }
     >
       <div className="space-y-8 pb-4">
         {/* Header Profile Section */}
@@ -258,6 +384,7 @@ export function ClientDetailModal({
               <div className="mt-1 flex flex-col gap-2 text-ink/60 md:flex-row md:items-center md:gap-4">
                 <span className="flex items-center gap-1">
                   <Mail className="h-3.5 w-3.5" />
+
                   {
                     clientEmail
                   }
@@ -265,6 +392,7 @@ export function ClientDetailModal({
 
                 <span className="flex items-center gap-1">
                   <Phone className="h-3.5 w-3.5" />
+
                   {
                     clientPhone
                   }
@@ -288,18 +416,38 @@ export function ClientDetailModal({
 
               {/* Use the real latest property type instead of a fake VIP label. */}
               <span className="inline-flex items-center rounded-full border border-white/10 bg-navy-800/50 px-2.5 py-0.5 text-xs font-semibold text-gold-400">
-                {clientType}
+                {
+                  clientType
+                }
               </span>
             </div>
 
             <div className="flex gap-4 pt-2">
-              {/* Messaging backend is not implemented yet. */}
+              {/* Real messaging button. */}
               <GhostButton
-                disabled
+                disabled={
+                  isMessaging ||
+                  !isRegisteredUser
+                }
+                onClick={() => {
+                  setIsMessageComposerOpen(
+                    true,
+                  );
+                  setMessageText('');
+                  setMessageSuccess(
+                    false,
+                  );
+                  setMessageError('');
+                }}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm"
+                title={
+                  isRegisteredUser
+                    ? 'Message Client'
+                    : 'This Client does not have a registered Luxora account'
+                }
               >
                 <MessageSquare className="h-4 w-4" />
-                Message
+                Message Client
               </GhostButton>
 
               {/* Call scheduling backend is not implemented yet. */}
@@ -311,6 +459,152 @@ export function ClientDetailModal({
                 Schedule Call
               </GhostButton>
             </div>
+
+            {/* Real direct-message composer. */}
+            {isMessageComposerOpen && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-navy-900/70 p-4">
+                {messageSuccess ? (
+                  <div className="space-y-3 text-center">
+                    <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-400" />
+
+                    <div className="text-sm font-semibold text-cream">
+                      Message Sent
+                    </div>
+
+                    <div className="text-xs text-ink/60">
+                      Your message was sent to this Client successfully.
+                    </div>
+
+                    <div className="flex justify-center gap-3 pt-1">
+                      <GhostButton
+                        type="button"
+                        disabled={
+                          isMessaging
+                        }
+                        onClick={() => {
+                          setIsMessageComposerOpen(
+                            false,
+                          );
+                          setMessageSuccess(
+                            false,
+                          );
+                          setMessageText('');
+                          setMessageError('');
+                        }}
+                      >
+                        Close
+                      </GhostButton>
+
+                      <GoldButton
+                        type="button"
+                        disabled={
+                          isMessaging
+                        }
+                        onClick={() => {
+                          setMessageSuccess(
+                            false,
+                          );
+                          setMessageText('');
+                          setMessageError('');
+                        }}
+                      >
+                        Send Another
+                      </GoldButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-sm font-semibold text-cream">
+                        Message Client
+                      </div>
+
+                      <div className="mt-1 text-xs text-ink/50">
+                        Send a private message through Luxora's real conversation system.
+                      </div>
+                    </div>
+
+                    {messageError && (
+                      <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
+                        {
+                          messageError
+                        }
+                      </div>
+                    )}
+
+                    <textarea
+                      rows={4}
+                      value={
+                        messageText
+                      }
+                      onChange={(
+                        event,
+                      ) => {
+                        setMessageText(
+                          event.target.value,
+                        );
+
+                        if (
+                          messageError
+                        ) {
+                          setMessageError(
+                            '',
+                          );
+                        }
+                      }}
+                      maxLength={2000}
+                      disabled={
+                        isMessaging
+                      }
+                      placeholder="Write your message to this Client..."
+                      className="w-full resize-none rounded-xl border border-white/10 bg-navy-800 px-3 py-3 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 disabled:opacity-60"
+                    />
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-[10px] text-ink/40">
+                        {
+                          messageText.length
+                        }
+                        /2000
+                      </span>
+
+                      <div className="flex gap-3">
+                        <GhostButton
+                          type="button"
+                          disabled={
+                            isMessaging
+                          }
+                          onClick={() => {
+                            setIsMessageComposerOpen(
+                              false,
+                            );
+                            setMessageText('');
+                            setMessageError('');
+                          }}
+                        >
+                          Cancel
+                        </GhostButton>
+
+                        <GoldButton
+                          type="button"
+                          disabled={
+                            isMessaging ||
+                            !messageText.trim()
+                          }
+                          onClick={
+                            handleSendMessage
+                          }
+                        >
+                          {isMessaging
+                            ? 'Sending...'
+                            : 'Send Message'}
+                        </GoldButton>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -414,6 +708,7 @@ export function ClientDetailModal({
 
                     <span className="flex items-center gap-1 text-cream">
                       <Clock className="h-3.5 w-3.5 text-ink/40" />
+
                       {
                         lastContact
                       }
@@ -751,6 +1046,7 @@ export function ClientDetailModal({
 
                     <span className="flex items-center gap-1 text-cream">
                       <Clock className="h-3.5 w-3.5 text-ink/40" />
+
                       {
                         lastContact
                       }
@@ -797,14 +1093,13 @@ export function ClientDetailModal({
                   </div>
 
                   <p className="mt-1 text-xs leading-relaxed text-ink/60">
-                    Direct Client messaging
-                    and support-ticket
-                    history are not yet
-                    available in the current
-                    backend. The communication
-                    information above is
-                    derived from the real
-                    inquiry relationship.
+                    Direct Client messaging is now
+                    available through Luxora's real
+                    conversation system. Support-ticket
+                    history is not yet exposed by the
+                    current backend. The communication
+                    information above is derived from
+                    the real inquiry relationship.
                   </p>
                 </div>
               </div>

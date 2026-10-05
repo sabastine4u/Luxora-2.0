@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Briefcase,
   TrendingUp,
@@ -8,7 +8,6 @@ import {
   CheckSquare,
   FileText,
   BrainCircuit,
-  ShieldAlert,
   Sparkles,
 } from 'lucide-react';
 
@@ -106,19 +105,20 @@ interface BackendDeal {
   agreedAmount: number;
 
   status:
-    | 'Agreement Pending'
-    | 'Agreement Completed'
-    | 'Payment Pending'
-    | 'Completed'
-    | 'Cancelled';
+  | 'Agreement Pending'
+  | 'Agreement Completed'
+  | 'Payment Pending'
+  | 'Payment Verified'
+  | 'Completed'
+  | 'Cancelled';
 
   agreementStatus:
-    | 'Pending'
-    | 'Completed';
+  | 'Pending'
+  | 'Completed';
 
   paymentStatus:
-    | 'Pending'
-    | 'Verified';
+  | 'Pending'
+  | 'Verified';
 
   agreementCompletedAt: string | null;
   agreementCompletedBy?: string | null;
@@ -160,12 +160,12 @@ interface DealRecord
   status: string;
 
   agreementStatus:
-    | 'Pending'
-    | 'Completed';
+  | 'Pending'
+  | 'Completed';
 
   paymentStatus:
-    | 'Pending'
-    | 'Verified';
+  | 'Pending'
+  | 'Verified';
 
   closingDate: string;
 
@@ -203,7 +203,7 @@ const formatCurrency = (
 ) => {
   if (
     typeof amount !==
-      'number' ||
+    'number' ||
     Number.isNaN(amount)
   ) {
     return '₦0';
@@ -230,6 +230,9 @@ const getDealProgress = (
       return 50;
 
     case 'Payment Pending':
+      return 75;
+
+    case 'Payment Verified':
       return 75;
 
     case 'Completed':
@@ -260,19 +263,19 @@ const mapBackendDealToDealRecord = (
 
   const agreedAmount =
     typeof deal.agreedAmount ===
-    'number'
+      'number'
       ? deal.agreedAmount
       : 0;
 
   const offerAmount =
     typeof offer?.offerAmount ===
-    'number'
+      'number'
       ? offer.offerAmount
       : agreedAmount;
 
   const counterOfferAmount =
     typeof offer?.counterOfferAmount ===
-    'number'
+      'number'
       ? offer.counterOfferAmount
       : null;
 
@@ -440,72 +443,88 @@ export default function Deals() {
       null,
     );
 
-  useEffect(() => {
-    const loadDeals =
-      async () => {
-        try {
-          setLoading(true);
+  const [
+    isCompletingAgreement,
+    setIsCompletingAgreement,
+  ] = useState(false);
 
-          const response =
-            await dealApi.getMyDeals();
+  const [
+    isCancellingDeal,
+    setIsCancellingDeal,
+  ] = useState(false);
 
-          const rawResponse =
-            response as any;
+  const loadDeals = useCallback(
+    async () => {
+      try {
+        setLoading(true);
 
-          /*
-           * Support both:
-           *
-           * response.data.deals
-           *
-           * and
-           *
-           * response.deals
-           *
-           * depending on the HTTP wrapper response shape.
-           */
-          const payload =
-            rawResponse?.data ??
-            rawResponse;
+        const response =
+          await dealApi.getMyDeals();
 
-          const backendDeals: BackendDeal[] =
-            Array.isArray(
-              payload?.data?.deals,
+        const rawResponse =
+          response as any;
+
+        /*
+         * Support both:
+         *
+         * response.data.deals
+         *
+         * and
+         *
+         * response.deals
+         *
+         * depending on the HTTP wrapper response shape.
+         */
+        const payload =
+          rawResponse?.data ??
+          rawResponse;
+
+        const backendDeals: BackendDeal[] =
+          Array.isArray(
+            payload?.data?.deals,
+          )
+            ? payload.data.deals
+            : Array.isArray(
+              payload?.deals,
             )
-              ? payload.data.deals
-              : Array.isArray(
-                payload?.deals,
-              )
-                ? payload.deals
-                : [];
+              ? payload.deals
+              : [];
 
-          const mappedDeals =
-            backendDeals.map(
-              mapBackendDealToDealRecord,
-            );
-
-          setDeals(
-            mappedDeals,
-          );
-        } catch (error) {
-          console.error(
-            'Failed to load Agent deals:',
-            error,
+        const mappedDeals =
+          backendDeals.map(
+            mapBackendDealToDealRecord,
           );
 
-          showToast({
-            type: 'error',
-            title:
-              'Unable to load deals',
-            description:
-              'We could not retrieve your Deal pipeline.',
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
+        setDeals(
+          mappedDeals,
+        );
 
+        return mappedDeals;
+      } catch (error) {
+        console.error(
+          'Failed to load Agent deals:',
+          error,
+        );
+
+        showToast({
+          type: 'error',
+          title:
+            'Unable to load deals',
+          description:
+            'We could not retrieve your Deal pipeline.',
+        });
+
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [showToast],
+  );
+
+  useEffect(() => {
     loadDeals();
-  }, [showToast]);
+  }, [loadDeals]);
 
   const filteredDeals =
     deals.filter(
@@ -544,6 +563,188 @@ export default function Deals() {
     );
   };
 
+  const handleCompleteAgreement = async () => {
+    if (!selectedDeal?.id) {
+      return;
+    }
+
+    try {
+      setIsCompletingAgreement(true);
+
+      const response =
+        await dealApi.completeAgreement(
+          selectedDeal.id,
+        );
+
+      const rawResponse =
+        response as any;
+
+      const updatedBackendDeal =
+        rawResponse?.data?.deal ??
+        rawResponse?.deal;
+
+      if (updatedBackendDeal) {
+        const updatedDealRecord =
+          mapBackendDealToDealRecord(
+            updatedBackendDeal as BackendDeal,
+          );
+
+        setDeals((currentDeals) =>
+          currentDeals.map(
+            (deal) =>
+              deal.id ===
+                updatedDealRecord.id
+                ? updatedDealRecord
+                : deal,
+          ),
+        );
+
+        setSelectedDeal(
+          updatedDealRecord,
+        );
+      } else {
+        const refreshedDeals =
+          await loadDeals();
+
+        const refreshedDeal =
+          refreshedDeals?.find(
+            (deal) =>
+              deal.id ===
+              selectedDeal.id,
+          );
+
+        if (refreshedDeal) {
+          setSelectedDeal(
+            refreshedDeal,
+          );
+        }
+      }
+
+      showToast({
+        type: 'success',
+        title: 'Agreement completed',
+        description:
+          'The Deal has moved to the Agreement Completed stage.',
+      });
+    } catch (error) {
+      console.error(
+        'Failed to complete Deal agreement:',
+        error,
+      );
+
+      showToast({
+        type: 'error',
+        title: 'Unable to complete agreement',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'We could not update the Deal agreement stage.',
+      });
+    } finally {
+      setIsCompletingAgreement(false);
+    }
+  };
+
+  const handleCancelDeal = async (
+    reason: string,
+  ) => {
+    if (!selectedDeal?.id) {
+      return;
+    }
+
+    const trimmedReason =
+      reason.trim();
+
+    if (!trimmedReason) {
+      showToast({
+        type: 'error',
+        title: 'Cancellation reason required',
+        description:
+          'Please provide a reason before cancelling the Deal.',
+      });
+
+      return;
+    }
+
+    try {
+      setIsCancellingDeal(true);
+
+      const response =
+        await dealApi.cancelDeal(
+          selectedDeal.id,
+          trimmedReason,
+        );
+
+      const rawResponse =
+        response as any;
+
+      const updatedBackendDeal =
+        rawResponse?.data?.deal ??
+        rawResponse?.deal;
+
+      if (updatedBackendDeal) {
+        const updatedDealRecord =
+          mapBackendDealToDealRecord(
+            updatedBackendDeal as BackendDeal,
+          );
+
+        setDeals((currentDeals) =>
+          currentDeals.map(
+            (deal) =>
+              deal.id ===
+                updatedDealRecord.id
+                ? updatedDealRecord
+                : deal,
+          ),
+        );
+
+        setSelectedDeal(
+          updatedDealRecord,
+        );
+      } else {
+        const refreshedDeals =
+          await loadDeals();
+
+        const refreshedDeal =
+          refreshedDeals?.find(
+            (deal) =>
+              deal.id ===
+              selectedDeal.id,
+          );
+
+        if (refreshedDeal) {
+          setSelectedDeal(
+            refreshedDeal,
+          );
+        }
+      }
+
+      showToast({
+        type: 'success',
+        title: 'Deal cancelled',
+        description:
+          'The Deal has been cancelled and the property is available again.',
+      });
+    } catch (error) {
+      console.error(
+        'Failed to cancel Deal:',
+        error,
+      );
+
+      showToast({
+        type: 'error',
+        title: 'Unable to cancel Deal',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'We could not cancel this Deal.',
+      });
+    } finally {
+      setIsCancellingDeal(false);
+    }
+  };
+
+
   /*
    * Real Deal lifecycle metrics.
    *
@@ -578,8 +779,17 @@ export default function Deals() {
   const paymentPendingDeals =
     deals.filter(
       (deal) =>
+        deal.agreementStatus ===
+        'Completed' &&
+        deal.paymentStatus ===
+        'Pending',
+    );
+
+  const paymentVerifiedDeals =
+    deals.filter(
+      (deal) =>
         deal.status ===
-        'Payment Pending',
+        'Payment Verified',
     );
 
   const completedDeals =
@@ -641,7 +851,7 @@ export default function Deals() {
 
   const portfolioReadiness =
     activeDeals.length >
-    0
+      0
       ? Math.round(
         activeDeals.reduce(
           (
@@ -662,7 +872,7 @@ export default function Deals() {
         'Agreement Pending',
       desc:
         agreementPendingDeals.length ===
-        1
+          1
           ? '1 Deal is waiting for the agreement stage to be completed.'
           : `${agreementPendingDeals.length} Deals are waiting for the agreement stage to be completed.`,
       icon:
@@ -671,7 +881,7 @@ export default function Deals() {
         'text-orange-400',
       urgency:
         agreementPendingDeals.length >
-        0
+          0
           ? 'High'
           : 'Low',
     },
@@ -681,7 +891,7 @@ export default function Deals() {
         'Payment Pending',
       desc:
         paymentPendingDeals.length ===
-        1
+          1
           ? '1 Deal is waiting for payment verification.'
           : `${paymentPendingDeals.length} Deals are waiting for payment verification.`,
       icon:
@@ -690,7 +900,7 @@ export default function Deals() {
         'text-blue-400',
       urgency:
         paymentPendingDeals.length >
-        0
+          0
           ? 'Medium'
           : 'Low',
     },
@@ -738,7 +948,7 @@ export default function Deals() {
       completed:
         deals.length > 0 &&
         agreementPendingDeals.length ===
-          0,
+        0,
       detail:
         `${agreementsCompleted} / ${deals.length} completed`,
     },
@@ -749,7 +959,7 @@ export default function Deals() {
       completed:
         deals.length > 0 &&
         paymentPendingDeals.length ===
-          0,
+        0,
       detail:
         `${verifiedPayments} / ${deals.length} verified`,
     },
@@ -760,7 +970,7 @@ export default function Deals() {
       completed:
         deals.length > 0 &&
         completedDeals.length ===
-          deals.length,
+        deals.length,
       detail:
         `${completedDeals.length} / ${deals.length} completed`,
     },
@@ -863,18 +1073,27 @@ export default function Deals() {
   const negotiationBoard = [
     {
       label:
-        'Agreement Pending',
+        'Payment Pending',
       value:
-        agreementPendingDeals.length,
+        paymentPendingDeals.length,
       color:
-        'bg-orange-400',
+        'bg-gold-400',
     },
 
     {
       label:
-        'Agreement Completed',
+        'Payment Verified',
       value:
-        agreementCompletedDeals.length,
+        paymentVerifiedDeals.length,
+      color:
+        'bg-emerald-400',
+    },
+
+    {
+      label:
+        'Completed',
+      value:
+        completedDeals.length,
       color:
         'bg-blue-400',
     },
@@ -895,6 +1114,14 @@ export default function Deals() {
         completedDeals.length,
       color:
         'bg-emerald-400',
+    },
+    {
+      label:
+        'Cancelled',
+      value:
+        cancelledDeals.length,
+      color:
+        'bg-rose-400',
     },
   ];
 
@@ -1057,58 +1284,58 @@ export default function Deals() {
               {agreementPendingDeals.length}{' '}
               agreement-pending
               {agreementPendingDeals.length ===
-              1
+                1
                 ? ''
                 : ' Deals'}
             </strong>
             {agreementPendingDeals.length ===
               1 && (
-              <span>
-                {' '}
-                Deal
-              </span>
-            )}
+                <span>
+                  {' '}
+                  Deal
+                </span>
+              )}
             .{' '}
 
             {paymentPendingDeals.length >
               0 && (
-              <>
-                There{' '}
-                {paymentPendingDeals.length ===
-                1
-                  ? 'is'
-                  : 'are'}{' '}
-                <strong className="text-blue-400">
-                  {
-                    paymentPendingDeals.length
-                  }{' '}
-                  payment-pending
+                <>
+                  There{' '}
                   {paymentPendingDeals.length ===
-                  1
-                    ? ''
-                    : ' Deals'}
-                </strong>{' '}
-                requiring verification.
-              </>
-            )}
+                    1
+                    ? 'is'
+                    : 'are'}{' '}
+                  <strong className="text-blue-400">
+                    {
+                      paymentPendingDeals.length
+                    }{' '}
+                    payment-pending
+                    {paymentPendingDeals.length ===
+                      1
+                      ? ''
+                      : ' Deals'}
+                  </strong>{' '}
+                  requiring verification.
+                </>
+              )}
 
             {completedDeals.length >
               0 && (
-              <>
-                {' '}
-                <strong className="text-emerald-400">
-                  {
-                    completedDeals.length
-                  }{' '}
-                  completed
-                  {completedDeals.length ===
-                  1
-                    ? ' Deal'
-                    : ' Deals'}
-                </strong>{' '}
-                are already closed.
-              </>
-            )}
+                <>
+                  {' '}
+                  <strong className="text-emerald-400">
+                    {
+                      completedDeals.length
+                    }{' '}
+                    completed
+                    {completedDeals.length ===
+                      1
+                      ? ' Deal'
+                      : ' Deals'}
+                  </strong>{' '}
+                  are already closed.
+                </>
+              )}
           </p>
 
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/10">
@@ -1265,7 +1492,7 @@ export default function Deals() {
         />
 
         <KPICard
-          title="Payment Pending"
+          title="Payment Verification"
           value={String(
             paymentPendingDeals.length,
           )}
@@ -1385,17 +1612,16 @@ export default function Deals() {
 
                       <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                         <div
-                          className={`h-full ${
-                            deal.readiness >=
+                          className={`h-full ${deal.readiness >=
                             90
-                              ? 'bg-emerald-400'
-                              : deal.readiness >=
-                                50
-                                ? 'bg-gold-400'
-                                : deal.readiness > 0
-                                  ? 'bg-orange-400'
-                                  : 'bg-rose-400'
-                          }`}
+                            ? 'bg-emerald-400'
+                            : deal.readiness >=
+                              50
+                              ? 'bg-gold-400'
+                              : deal.readiness > 0
+                                ? 'bg-orange-400'
+                                : 'bg-rose-400'
+                            }`}
                           style={{
                             width: `${deal.readiness}%`,
                           }}
@@ -1509,15 +1735,14 @@ export default function Deals() {
                 ) => (
                   <div
                     key={idx}
-                    className={`bg-navy-900/50 p-3 rounded-xl border ${
-                      action.urgency ===
+                    className={`bg-navy-900/50 p-3 rounded-xl border ${action.urgency ===
                       'High'
-                        ? 'border-orange-500/30'
-                        : action.urgency ===
-                          'Medium'
-                          ? 'border-blue-500/20'
-                          : 'border-white/5'
-                    }`}
+                      ? 'border-orange-500/30'
+                      : action.urgency ===
+                        'Medium'
+                        ? 'border-blue-500/20'
+                        : 'border-white/5'
+                      }`}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <div className="text-sm font-bold text-cream flex items-center gap-1.5">
@@ -1559,11 +1784,10 @@ export default function Deals() {
                     className="flex items-start gap-2"
                   >
                     <div
-                      className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center ${
-                        item.completed
-                          ? 'border-emerald-400/50 bg-emerald-400/10'
-                          : 'border-white/10 bg-white/5'
-                      }`}
+                      className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center ${item.completed
+                        ? 'border-emerald-400/50 bg-emerald-400/10'
+                        : 'border-white/10 bg-white/5'
+                        }`}
                     >
                       {item.completed && (
                         <CheckCircle2 className="h-3 w-3 text-emerald-400" />
@@ -1572,11 +1796,10 @@ export default function Deals() {
 
                     <div className="flex-1">
                       <div
-                        className={`text-xs ${
-                          item.completed
-                            ? 'text-ink/40 line-through'
-                            : 'text-cream'
-                        }`}
+                        className={`text-xs ${item.completed
+                          ? 'text-ink/40 line-through'
+                          : 'text-cream'
+                          }`}
                       >
                         {
                           item.task
@@ -1603,7 +1826,6 @@ export default function Deals() {
           />
         </div>
       </div>
-
       <DealDetailModal
         isOpen={
           !!selectedDeal
@@ -1615,6 +1837,18 @@ export default function Deals() {
         }
         deal={
           selectedDeal
+        }
+        onCompleteAgreement={
+          handleCompleteAgreement
+        }
+        isCompletingAgreement={
+          isCompletingAgreement
+        }
+        onCancelDeal={
+          handleCancelDeal
+        }
+        isCancellingDeal={
+          isCancellingDeal
         }
       />
     </div>

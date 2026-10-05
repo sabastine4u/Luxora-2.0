@@ -248,14 +248,20 @@ const formatScheduleDate = (
   );
 };
 
+
 // Reusable skeleton block for dashboard data that is still loading.
+//
+// This uses a <span> instead of a <div> because the skeleton
+// is sometimes rendered inside text elements such as <p> and
+// <span>. A <div> inside a <p> creates invalid HTML and causes
+// React's DOM-nesting/hydration warning.
 const OverviewSkeleton = ({
   className = '',
 }: {
   className?: string;
 }) => (
-  <div
-    className={`animate-pulse rounded-md bg-white/10 ${className}`}
+  <span
+    className={`inline-block animate-pulse rounded-md bg-white/10 ${className}`}
   />
 );
 

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 
 import { DataTableToolbar } from '../../../components/dashboard/shared/filters/DataTableToolbar';
+
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 import {
@@ -16,6 +17,7 @@ import {
 } from './RejectionReasonModal';
 
 import { ListingDetailModal } from './ListingDetailModal';
+
 import { AgencyAssignmentModal } from './modals/AgencyAssignmentModal';
 
 import {
@@ -24,15 +26,21 @@ import {
 } from '../../../components/ui/ui';
 
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
+
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
+
 import { SegmentedProgressBar } from '../../../components/dashboard/shared/widgets/SegmentedProgressBar';
+
 import { ActivityTimeline } from '../../../components/dashboard/shared/timelines/ActivityTimeline';
 
 import { ROUTES } from '../../../constants/routes';
+
 import { useNavigate } from 'react-router-dom';
 
 import { adminApi } from '../../../api/admin.api';
+
 import { propertyApi } from '../../../api/property.api';
+
 import { useToast } from '../../../contexts/ToastContext';
 
 import type { AdminListing } from '../../../types/admin';
@@ -41,48 +49,70 @@ import { ListingTable } from '../../../components/dashboard/shared/tables/Listin
 
 export interface ListingsProps {
   pageTitle?: string;
+
   pageSubtitle?: string;
-  mode?: 'operational' | 'oversight' | 'management';
+
+  mode?:
+  | 'operational'
+  | 'oversight'
+  | 'management';
 }
 
 interface AdminProperty {
   _id: string;
+
   title: string;
 
   transactionType?: string;
 
   state?: string;
+
   city?: string;
+
   area?: string | null;
 
   price?: number | null;
+
   rentAmount?: number | null;
+
   currency?: string;
+
   priceFrequency?: string | null;
 
   status?: string;
+
   verificationLevel?: string;
+
   assignmentStatus?: string | null;
 
   description?: string;
+
   propertyType?: string;
 
   bedrooms?: number;
+
   bathrooms?: number;
+
   toilets?: number;
+
   parkingSpaces?: number;
 
   propertySize?: number | null;
+
   propertySizeUnit?: string;
 
   yearBuilt?: number | null;
+
   furnishing?: string | null;
+
   propertyCondition?: string | null;
 
   images?: string[];
+
   coverImage?: string | null;
 
   origin?: string;
+
   createdByRole?: string;
 
   agency?: {
@@ -103,6 +133,7 @@ interface AdminProperty {
   } | null;
 
   createdAt?: string;
+
   updatedAt?: string;
 
   documents?: Array<{
@@ -122,23 +153,23 @@ const mapPropertyToAdminListing = (
 ): AdminListing => {
   const rawPrice =
     property.transactionType === 'rent' ||
-    property.priceFrequency === 'monthly' ||
-    property.priceFrequency === 'yearly'
+      property.priceFrequency === 'monthly' ||
+      property.priceFrequency === 'yearly'
       ? property.rentAmount ?? property.price
       : property.price;
 
   const formattedPrice =
     typeof rawPrice === 'number'
       ? new Intl.NumberFormat('en-NG', {
-          style: 'currency',
-          currency: property.currency || 'NGN',
-          maximumFractionDigits: 0,
-        }).format(rawPrice)
+        style: 'currency',
+        currency: property.currency || 'NGN',
+        maximumFractionDigits: 0,
+      }).format(rawPrice)
       : 'N/A';
 
   const frequency =
     property.priceFrequency &&
-    property.priceFrequency !== 'total'
+      property.priceFrequency !== 'total'
       ? `/${property.priceFrequency}`
       : '';
 
@@ -159,11 +190,11 @@ const mapPropertyToAdminListing = (
     assignmentStatus = 'Cancelled';
   } else if (
     property.assignmentStatus ===
-      'Agency Assigned' ||
+    'Agency Assigned' ||
     property.assignmentStatus ===
-      'Agent Assigned' ||
+    'Agent Assigned' ||
     property.assignmentStatus ===
-      'Agent Accepted'
+    'Agent Accepted'
   ) {
     assignmentStatus =
       'Assigned to Agency';
@@ -195,20 +226,28 @@ const mapPropertyToAdminListing = (
     status: listingStatus,
 
     propertyType: property.propertyType,
+
     transactionType: property.transactionType,
+
     description: property.description,
 
     bedrooms: property.bedrooms,
+
     bathrooms: property.bathrooms,
+
     toilets: property.toilets,
+
     parkingSpaces: property.parkingSpaces,
 
     propertySize: property.propertySize,
+
     propertySizeUnit:
       property.propertySizeUnit,
 
     yearBuilt: property.yearBuilt,
+
     furnishing: property.furnishing,
+
     propertyCondition:
       property.propertyCondition,
 
@@ -216,10 +255,12 @@ const mapPropertyToAdminListing = (
       property.priceFrequency,
 
     images: property.images || [],
+
     coverImage:
       property.coverImage || null,
 
     origin: property.origin,
+
     createdByRole:
       property.createdByRole,
 
@@ -234,25 +275,25 @@ const mapPropertyToAdminListing = (
 
     agent: property.agent
       ? {
-          id: property.agent._id,
-          name:
-            property.agent.user?.fullName ||
-            'Unknown Agent',
-        }
+        id: property.agent._id,
+        name:
+          property.agent.user?.fullName ||
+          'Unknown Agent',
+      }
       : null,
 
     agency: property.agency
       ? {
-          id: property.agency._id,
-          name:
-            property.agency.name ||
-            'Unknown Agency',
-        }
+        id: property.agency._id,
+        name:
+          property.agency.name ||
+          'Unknown Agency',
+      }
       : null,
 
     priority:
       property.verificationLevel ===
-      'Unverified'
+        'Unverified'
         ? 'High'
         : 'Normal',
 
@@ -267,52 +308,56 @@ const mapPropertyToAdminListing = (
             name:
               document.title ||
               `Document ${index + 1}`,
+
             type:
               document.verified
                 ? 'Verified Document'
                 : 'Document',
+
             size:
               document.uploadedAt
                 ? new Date(
-                    document.uploadedAt,
-                  ).toLocaleDateString()
+                  document.uploadedAt,
+                ).toLocaleDateString()
                 : undefined,
           }),
         ) || [],
 
-      notes: `Verification level: ${
-        property.verificationLevel ||
+      notes: `Verification level: ${property.verificationLevel ||
         'Unverified'
-      }`,
+        }`,
 
       history: [],
     },
 
     assignment: assignmentStatus
       ? {
-          id:
-            property.agency?._id ||
-            property._id,
+        id:
+          property.agency?._id ||
+          property._id,
 
-          status: assignmentStatus,
+        status:
+          assignmentStatus,
 
-          agencyId:
-            property.agency?._id,
+        agencyId:
+          property.agency?._id,
 
-          agencyName:
-            property.agency?.name,
+        agencyName:
+          property.agency?.name,
 
-          assignedAt:
-            property.updatedAt,
-        }
+        assignedAt:
+          property.updatedAt,
+      }
       : undefined,
   };
 };
 
 export default function Listings({
   pageTitle = 'Verification Queue',
+
   pageSubtitle =
-    'Review, approve, and publish property submissions.',
+  'Review, approve, and publish property submissions.',
+
   mode = 'operational',
 }: ListingsProps) {
   const navigate = useNavigate();
@@ -367,6 +412,20 @@ export default function Listings({
     null,
   );
 
+  // Track the Property selected for permanent deletion.
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] = useState<AdminListing | null>(
+    null,
+  );
+
+  // Track whether the delete request is running.
+  const [
+    isDeleteLoading,
+    setIsDeleteLoading,
+  ] = useState(false);
+
   const [properties, setProperties] =
     useState<AdminProperty[]>([]);
 
@@ -387,7 +446,11 @@ export default function Listings({
     useState('');
 
   /**
-   * Fetch all real Properties available to Admin/Super Admin.
+   * Fetch the appropriate Property collection.
+   *
+   * Review mode uses the creator-scoped administrative endpoint,
+   * while all existing modes continue to use the platform-wide
+   * administrative Property endpoint.
    */
   const loadProperties = async () => {
     try {
@@ -453,7 +516,7 @@ export default function Listings({
           const matchesStatus =
             statusFilter === 'All' ||
             listing.status ===
-              statusFilter;
+            statusFilter;
 
           return (
             matchesSearch &&
@@ -509,28 +572,28 @@ export default function Listings({
   const approvalPercentage =
     totalListings > 0
       ? Math.round(
-          (approvedCount /
-            totalListings) *
-            100,
-        )
+        (approvedCount /
+          totalListings) *
+        100,
+      )
       : 0;
 
   const reviewPercentage =
     totalListings > 0
       ? Math.round(
-          (pendingReviewCount /
-            totalListings) *
-            100,
-        )
+        (pendingReviewCount /
+          totalListings) *
+        100,
+      )
       : 0;
 
   const draftPercentage =
     totalListings > 0
       ? Math.round(
-          (draftCount /
-            totalListings) *
-            100,
-        )
+        (draftCount /
+          totalListings) *
+        100,
+      )
       : 0;
 
   const toggleSelection = (
@@ -608,8 +671,10 @@ export default function Listings({
 
     showToast({
       type: 'info',
+
       title:
         'Workflow Not Available Yet',
+
       description:
         'Return and Hold require dedicated backend workflow states.',
     });
@@ -638,15 +703,19 @@ export default function Listings({
           (listing) =>
             ids.includes(listing.id) &&
             listing.status ===
-              'Pending Review',
+            'Pending Review',
         );
 
       if (
-        approvableListings.length === 0
+        approvableListings.length ===
+        0
       ) {
         showToast({
           type: 'info',
-          title: 'Nothing to Approve',
+
+          title:
+            'Nothing to Approve',
+
           description:
             'Only Properties with Pending Review status can be approved.',
         });
@@ -657,7 +726,9 @@ export default function Listings({
       const notes =
         reviewNotes.trim();
 
-      for (const listing of approvableListings) {
+      for (
+        const listing of approvableListings
+      ) {
         await propertyApi.approveProperty(
           listing.id,
           {
@@ -674,19 +745,23 @@ export default function Listings({
       );
 
       setApprovalModalOpen(false);
+
       setActionTarget(null);
+
       setReviewNotes('');
 
       showToast({
         type: 'success',
+
         title:
           approvableListings.length ===
-          1
+            1
             ? 'Property Approved'
             : 'Properties Approved',
+
         description:
           approvableListings.length ===
-          1
+            1
             ? 'The Property was approved successfully.'
             : `${approvableListings.length} Properties were approved successfully.`,
       });
@@ -698,7 +773,10 @@ export default function Listings({
 
       showToast({
         type: 'error',
-        title: 'Approval Failed',
+
+        title:
+          'Approval Failed',
+
         description:
           error?.message ||
           error?.response?.data
@@ -719,14 +797,17 @@ export default function Listings({
 
       const id =
         actionTarget &&
-        actionTarget !== 'bulk'
+          actionTarget !== 'bulk'
           ? actionTarget
           : null;
 
       if (!id) {
         showToast({
           type: 'error',
-          title: 'Listing Not Selected',
+
+          title:
+            'Listing Not Selected',
+
           description:
             'Select an approved Property before publishing.',
         });
@@ -743,7 +824,10 @@ export default function Listings({
       if (!listing) {
         showToast({
           type: 'error',
-          title: 'Listing Not Found',
+
+          title:
+            'Listing Not Found',
+
           description:
             'The selected Property could not be found.',
         });
@@ -757,7 +841,10 @@ export default function Listings({
       ) {
         showToast({
           type: 'info',
-          title: 'Cannot Publish',
+
+          title:
+            'Cannot Publish',
+
           description:
             'Only Approved Properties can be published.',
         });
@@ -772,12 +859,17 @@ export default function Listings({
       await loadProperties();
 
       setPublishModalOpen(false);
+
       setActionTarget(null);
+
       setReviewNotes('');
 
       showToast({
         type: 'success',
-        title: 'Property Published',
+
+        title:
+          'Property Published',
+
         description:
           'The Property was published successfully.',
       });
@@ -789,7 +881,10 @@ export default function Listings({
 
       showToast({
         type: 'error',
-        title: 'Publish Failed',
+
+        title:
+          'Publish Failed',
+
         description:
           error?.message ||
           error?.response?.data
@@ -826,15 +921,19 @@ export default function Listings({
           (listing) =>
             ids.includes(listing.id) &&
             listing.status ===
-              'Pending Review',
+            'Pending Review',
         );
 
       if (
-        rejectableListings.length === 0
+        rejectableListings.length ===
+        0
       ) {
         showToast({
           type: 'info',
-          title: 'Nothing to Reject',
+
+          title:
+            'Nothing to Reject',
+
           description:
             'Only Properties with Pending Review status can be rejected.',
         });
@@ -848,12 +947,16 @@ export default function Listings({
       const rejectionReason =
         reason.trim();
 
-      const finalReviewNotes =
-        [detailNotes, rejectionReason]
-          .filter(Boolean)
-          .join('\n\n');
+      const finalReviewNotes = [
+        detailNotes,
+        rejectionReason,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
 
-      for (const listing of rejectableListings) {
+      for (
+        const listing of rejectableListings
+      ) {
         await propertyApi.approveProperty(
           listing.id,
           {
@@ -871,19 +974,23 @@ export default function Listings({
       );
 
       setReasonModalOpen(false);
+
       setActionTarget(null);
+
       setReviewNotes('');
 
       showToast({
         type: 'success',
+
         title:
           rejectableListings.length ===
-          1
+            1
             ? 'Property Rejected'
             : 'Properties Rejected',
+
         description:
           rejectableListings.length ===
-          1
+            1
             ? 'The Property was rejected successfully.'
             : `${rejectableListings.length} Properties were rejected successfully.`,
       });
@@ -895,7 +1002,10 @@ export default function Listings({
 
       showToast({
         type: 'error',
-        title: 'Rejection Failed',
+
+        title:
+          'Rejection Failed',
+
         description:
           error?.message ||
           error?.response?.data
@@ -910,55 +1020,132 @@ export default function Listings({
   /**
    * Assign an Owner-originated Property to an Agency.
    */
-  const handleAgencyAssignment = async (
-    agencyId: string,
-  ) => {
-    try {
-      setIsActionLoading(true);
+  const handleAgencyAssignment =
+    async (
+      agencyId: string,
+    ) => {
+      try {
+        setIsActionLoading(true);
 
-      if (!assignmentListing) {
-        return;
+        if (!assignmentListing) {
+          return;
+        }
+
+        await propertyApi.assignPropertyToAgency(
+          assignmentListing.id,
+          agencyId,
+        );
+
+        await loadProperties();
+
+        setAssignmentListing(
+          null,
+        );
+
+        showToast({
+          type: 'success',
+
+          title:
+            'Agency Assigned',
+
+          description:
+            `${assignmentListing.title} was assigned successfully.`,
+        });
+      } catch (error: any) {
+        console.error(
+          'Failed to assign Agency:',
+          error,
+        );
+
+        showToast({
+          type: 'error',
+
+          title:
+            'Assignment Failed',
+
+          description:
+            error?.message ||
+            error?.response?.data
+              ?.message ||
+            'The Property could not be assigned to the Agency.',
+        });
+      } finally {
+        setIsActionLoading(false);
       }
+    };
 
-      await propertyApi.assignPropertyToAgency(
-        assignmentListing.id,
-        agencyId,
+  /**
+   * Permanently delete one Property through the real
+   * Admin/Super Admin CRUD endpoint.
+   */
+  const handleDelete = async () => {
+    if (!deleteTarget?.id) {
+      return;
+    }
+
+    try {
+      setIsDeleteLoading(true);
+
+      await adminApi.deleteProperty(
+        String(deleteTarget.id),
       );
 
       await loadProperties();
 
-      setAssignmentListing(null);
+      setSelectedRows(
+        (previousSelection) => {
+          const nextSelection =
+            new Set(
+              previousSelection,
+            );
+
+          nextSelection.delete(
+            String(
+              deleteTarget.id,
+            ),
+          );
+
+          return nextSelection;
+        },
+      );
 
       showToast({
         type: 'success',
-        title: 'Agency Assigned',
+
+        title:
+          'Property Deleted',
+
         description:
-          `${assignmentListing.title} was assigned successfully.`,
+          'The Property was deleted successfully.',
       });
+
+      setDeleteTarget(null);
     } catch (error: any) {
       console.error(
-        'Failed to assign Agency:',
+        'Failed to delete Property:',
         error,
       );
 
       showToast({
         type: 'error',
-        title: 'Assignment Failed',
+
+        title:
+          'Delete Failed',
+
         description:
-          error?.message ||
           error?.response?.data
             ?.message ||
-          'The Property could not be assigned to the Agency.',
+          error?.message ||
+          'The Property could not be deleted.',
       });
     } finally {
-      setIsActionLoading(false);
+      setIsDeleteLoading(false);
     }
   };
 
   /**
    * Super Admin management mode uses the shared ListingTable
-   * menu. Connect only the workflows that currently have
-   * real backend support.
+   * menu. Connect the real CRUD and lifecycle workflows.
    */
   const handleManagementAction = (
     action: string,
@@ -971,11 +1158,28 @@ export default function Listings({
       return;
     }
 
+    if (action === 'edit') {
+      navigate(
+        `${ROUTES.CREATE_LISTING}?editId=${encodeURIComponent(
+          item.id,
+        )}&adminEdit=true`,
+      );
+
+      return;
+    }
+
+    if (action === 'delete') {
+      setDeleteTarget(item);
+      return;
+    }
+
     if (action === 'publish') {
       setActionTarget(item.id);
+
       handleReviewAction(
         'publish',
       );
+
       return;
     }
 
@@ -988,8 +1192,10 @@ export default function Listings({
 
     showToast({
       type: 'info',
+
       title:
         'Workflow Not Available Yet',
+
       description:
         `${action} is not connected to a real Property workflow yet.`,
     });
@@ -1018,7 +1224,9 @@ export default function Listings({
               className="rounded-2xl border border-white/10 bg-navy-800/50 p-6 animate-pulse"
             >
               <div className="h-4 w-28 rounded bg-white/10" />
+
               <div className="mt-4 h-8 w-20 rounded bg-white/10" />
+
               <div className="mt-4 h-3 w-32 rounded bg-white/10" />
             </div>
           ))}
@@ -1027,6 +1235,7 @@ export default function Listings({
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-navy-800/50 p-6 animate-pulse">
             <div className="h-5 w-64 rounded bg-white/10" />
+
             <div className="mt-6 h-4 w-full rounded bg-white/10" />
           </div>
 
@@ -1035,7 +1244,9 @@ export default function Listings({
 
             <div className="mt-6 space-y-4">
               <div className="h-4 w-full rounded bg-white/10" />
+
               <div className="h-4 w-4/5 rounded bg-white/10" />
+
               <div className="h-4 w-3/5 rounded bg-white/10" />
             </div>
           </div>
@@ -1053,8 +1264,11 @@ export default function Listings({
                 className="grid grid-cols-4 gap-4"
               >
                 <div className="h-5 rounded bg-white/10" />
+
                 <div className="h-5 rounded bg-white/10" />
+
                 <div className="h-5 rounded bg-white/10" />
+
                 <div className="h-5 rounded bg-white/10" />
               </div>
             ))}
@@ -1203,11 +1417,15 @@ export default function Listings({
               .map((listing) => ({
                 title:
                   listing.title,
+
                 desc:
                   `Owner: ${listing.owner}`,
+
                 time: 'Recently',
+
                 color:
                   'text-emerald-400',
+
                 icon: CheckCircle,
               }))}
           />
@@ -1221,7 +1439,7 @@ export default function Listings({
               {selectedRows.size}{' '}
               item
               {selectedRows.size !==
-              1
+                1
                 ? 's'
                 : ''}{' '}
               selected
@@ -1362,18 +1580,21 @@ export default function Listings({
         }
         onApprove={(item) => {
           setActionTarget(item.id);
+
           handleReviewAction(
             'approve',
           );
         }}
         onReject={(item) => {
           setActionTarget(item.id);
+
           handleReviewAction(
             'reject',
           );
         }}
         onPublish={(item) => {
           setActionTarget(item.id);
+
           handleReviewAction(
             'publish',
           );
@@ -1401,7 +1622,9 @@ export default function Listings({
             setApprovalModalOpen(
               false,
             );
+
             setActionTarget(null);
+
             setReviewNotes('');
           }
         }}
@@ -1410,13 +1633,13 @@ export default function Listings({
         }
         title={
           actionTarget ===
-          'bulk'
+            'bulk'
             ? `Approve ${selectedRows.size} Properties`
             : 'Approve Property'
         }
         message={
           actionTarget ===
-          'bulk'
+            'bulk'
             ? `Are you sure you want to approve these ${selectedRows.size} properties?`
             : 'Are you sure you want to approve this Property?'
         }
@@ -1436,7 +1659,9 @@ export default function Listings({
             setPublishModalOpen(
               false,
             );
+
             setActionTarget(null);
+
             setReviewNotes('');
           }
         }}
@@ -1452,6 +1677,34 @@ export default function Listings({
         }
       />
 
+      {/* Confirm permanent Property deletion. */}
+      <ConfirmationModal
+        isOpen={
+          !!deleteTarget
+        }
+        onClose={() => {
+          if (!isDeleteLoading) {
+            setDeleteTarget(
+              null,
+            );
+          }
+        }}
+        onConfirm={
+          handleDelete
+        }
+        title="Delete Property"
+        message={
+          deleteTarget
+            ? `Are you sure you want to permanently delete "${deleteTarget.title}"? This action cannot be undone.`
+            : 'Are you sure you want to delete this Property?'
+        }
+        confirmText={
+          isDeleteLoading
+            ? 'Deleting...'
+            : 'Delete'
+        }
+      />
+
       <RejectionReasonModal
         isOpen={
           reasonModalOpen
@@ -1464,7 +1717,9 @@ export default function Listings({
             setReasonModalOpen(
               false,
             );
+
             setActionTarget(null);
+
             setReviewNotes('');
           }
         }}
@@ -1520,7 +1775,9 @@ export default function Listings({
           !!assignmentListing
         }
         onClose={() =>
-          setAssignmentListing(null)
+          setAssignmentListing(
+            null,
+          )
         }
         listing={
           assignmentListing

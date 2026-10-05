@@ -1,7 +1,9 @@
 import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout';
+
 import Overview from './components/Overview';
 import Listings from './components/Listings';
+import Properties from './components/Properties';
 import VerificationQueue from './components/VerificationQueue';
 import Owners from './components/Owners';
 import Buyers from './components/Buyers';
@@ -10,41 +12,93 @@ import Agencies from './components/Agencies';
 import InternalStaff from './components/InternalStaff';
 import Complaints from './components/Complaints';
 import Reports from './components/Reports';
+import Offers from './components/Offers';
 import Deals from './components/Deals';
 import Finance from './components/Finance';
 import Settings from './components/Settings';
 import Messages from './components/Messages';
 
 export default function AdminDashboardPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'Overview';
+  const [searchParams, setSearchParams] =
+    useSearchParams();
 
-  const handleTabChange = (tab: string) => {
+  const activeTab =
+    searchParams.get('tab') ||
+    'Overview';
+
+  const handleTabChange = (
+    tab: string,
+  ) => {
     setSearchParams({ tab });
   };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Overview': return <Overview />;
-      case 'Listings': return <Listings />;
-      case 'Verification Center': return <VerificationQueue />;
-      case 'Owners': return <Owners />;
-      case 'Buyers': return <Buyers />;
-      case 'Agents': return <Agents />;
-      case 'Agencies': return <Agencies />;
-      case 'Internal Staff': return <InternalStaff />;
-      case 'Complaints': return <Complaints />;
-      case 'Reports': return <Reports />;
-      case 'Deals': return <Deals />;
-      case 'Finance': return <Finance />;
-      case 'Settings': return <Settings />;
-      case 'Messages': return <Messages />;
-      default: return <Overview />;
+      case 'Overview':
+        return <Overview />;
+
+      case 'Properties':
+        return <Properties />;
+
+      case 'Listings':
+        return <Listings />;
+
+      case 'Verification Center':
+        return <VerificationQueue />;
+
+      case 'Owners':
+        return <Owners />;
+
+      case 'Buyers':
+        return <Buyers />;
+
+      case 'Agents':
+        return <Agents />;
+
+      case 'Agencies':
+        return <Agencies />;
+
+      case 'Internal Staff':
+        return <InternalStaff />;
+
+      case 'Complaints':
+        return <Complaints />;
+
+      case 'Reports':
+        return <Reports />;
+
+      case 'Offers':
+        return <Offers />;
+
+      case 'Deals':
+        return <Deals />;
+
+      case 'Finance':
+        return <Finance />;
+
+      case 'Settings':
+        return <Settings />;
+
+      case 'Messages':
+        return <Messages />;
+
+      /*
+       * Property Review was the old table-based implementation.
+       * It is intentionally removed.
+       */
+      case 'Property Review':
+        return <Properties />;
+
+      default:
+        return <Overview />;
     }
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={handleTabChange}>
+    <DashboardLayout
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+    >
       {renderContent()}
     </DashboardLayout>
   );

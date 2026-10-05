@@ -14,7 +14,10 @@ import {
 } from 'lucide-react';
 
 import { Modal } from '../../../../components/ui/Modal';
-import { GhostButton } from '../../../../components/ui/ui';
+import {
+  GhostButton,
+  GoldButton,
+} from '../../../../components/ui/ui';
 import { StatusBadge } from '../../../ManagementDashboard/components/shared/StatusBadge';
 import { ActivityTimeline } from '../../../../components/dashboard/shared/timelines/ActivityTimeline';
 
@@ -22,6 +25,12 @@ interface DealDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   deal: Record<string, unknown> | null;
+  onCompleteAgreement: () => Promise<void>;
+  isCompletingAgreement: boolean;
+  onCancelDeal: (
+    reason: string,
+  ) => Promise<void>;
+  isCancellingDeal: boolean;
 }
 
 const formatCurrency = (
@@ -111,6 +120,10 @@ export function DealDetailModal({
   isOpen,
   onClose,
   deal,
+  onCompleteAgreement,
+  isCompletingAgreement,
+  onCancelDeal,
+  isCancellingDeal,
 }: DealDetailModalProps) {
   const [
     activeTab,
@@ -118,6 +131,26 @@ export function DealDetailModal({
   ] = useState<
     'overview' | 'documents' | 'timeline'
   >('overview');
+
+  const [
+    cancellationReason,
+    setCancellationReason,
+  ] = useState('');
+
+  const handleCancelDeal = async () => {
+    const reason =
+      cancellationReason.trim();
+
+    if (!reason) {
+      return;
+    }
+
+    await onCancelDeal(
+      reason,
+    );
+
+    setCancellationReason('');
+  };
 
   if (!deal) {
     return null;
@@ -182,7 +215,7 @@ export function DealDetailModal({
 
   const counterOfferAmount =
     typeof deal.counterOfferAmount ===
-    'number'
+      'number'
       ? deal.counterOfferAmount
       : null;
 
@@ -981,19 +1014,167 @@ export function DealDetailModal({
                   Workflow Availability
                 </h3>
 
-                <div className="rounded-lg border border-dashed border-white/10 bg-navy-800/40 p-4">
-                  <div className="text-sm font-semibold text-cream mb-1">
-                    Read-only Deal view
-                  </div>
+                {status ===
+                  'Agreement Pending' &&
+                  agreementStatus ===
+                    'Pending' && (
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-orange-400/20 bg-orange-400/5 p-4">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-cream mb-1">
+                          Agreement action required
+                        </div>
 
-                  <div className="text-xs text-ink/60 leading-relaxed">
-                    Agreement, payment,
-                    document, and completion
-                    actions will be enabled
-                    here once their backend
-                    workflows are implemented.
+                        <div className="text-xs text-ink/60 leading-relaxed">
+                          The Deal is waiting for the agreement stage to be completed. Mark the agreement as completed after the required agreement step has been completed outside this screen.
+                        </div>
+                      </div>
+
+                      <GoldButton
+                        size="sm"
+                        onClick={
+                          onCompleteAgreement
+                        }
+                        disabled={
+                          isCompletingAgreement
+                        }
+                        className="shrink-0"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+
+                        {isCompletingAgreement
+                          ? 'Completing...'
+                          : 'Mark Agreement Completed'}
+                      </GoldButton>
+                    </div>
+                  )}
+
+                {agreementStatus ===
+                  'Completed' &&
+                  status !==
+                    'Cancelled' && (
+                    <div className="flex items-start gap-3 rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-4">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+
+                      <div>
+                        <div className="text-sm font-semibold text-cream mb-1">
+                          Agreement completed
+                        </div>
+
+                        <div className="text-xs text-ink/60 leading-relaxed">
+                          The agreement stage has been completed. Payment verification is the next workflow stage and is handled by Finance/Admin.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                {![
+                  'Cancelled',
+                  'Completed',
+                ].includes(status) &&
+                  [
+                    'Agreement Pending',
+                    'Agreement Completed',
+                    'Payment Pending',
+                  ].includes(status) && (
+                    <div className="mt-4 rounded-lg border border-rose-400/20 bg-rose-400/5 p-4">
+                      <div className="text-sm font-semibold text-cream mb-1">
+                        Cancel this Deal
+                      </div>
+
+                      <div className="text-xs text-ink/60 leading-relaxed mb-3">
+                        Cancellation is available before payment verification is completed. A cancellation reason is required.
+                      </div>
+
+                      <textarea
+                        value={
+                          cancellationReason
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          setCancellationReason(
+                            event
+                              .target
+                              .value,
+                          )
+                        }
+                        placeholder="Enter the reason for cancelling this Deal..."
+                        rows={3}
+                        className="w-full rounded-lg border border-white/10 bg-navy-900 px-3 py-2 text-sm text-cream placeholder:text-ink/40 focus:border-rose-400/40 focus:outline-none resize-none"
+                        disabled={
+                          isCancellingDeal
+                        }
+                      />
+
+                      <div className="mt-3 flex justify-end">
+                        <GhostButton
+                          onClick={
+                            handleCancelDeal
+                          }
+                          disabled={
+                            isCancellingDeal ||
+                            !cancellationReason.trim()
+                          }
+                          className="border border-rose-400/30 text-rose-400 hover:bg-rose-400/10"
+                        >
+                          <AlertCircle className="h-4 w-4" />
+
+                          {isCancellingDeal
+                            ? 'Cancelling...'
+                            : 'Cancel Deal'}
+                        </GhostButton>
+                      </div>
+                    </div>
+                  )}
+
+                {status ===
+                  'Cancelled' && (
+                  <div className="flex items-start gap-3 rounded-lg border border-rose-400/20 bg-rose-400/5 p-4">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
+
+                    <div>
+                      <div className="text-sm font-semibold text-cream mb-1">
+                        Deal cancelled
+                      </div>
+
+                      <div className="text-xs text-ink/60 leading-relaxed">
+                        This Deal has been cancelled and the property has been returned to an available state.
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {status ===
+                  'Completed' && (
+                  <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-4">
+                    <div className="text-sm font-semibold text-cream mb-1">
+                      Deal completed
+                    </div>
+
+                    <div className="text-xs text-ink/60 leading-relaxed">
+                      This transaction has been fully completed. No further Agent action is available.
+                    </div>
+                  </div>
+                )}
+
+                {![
+                  'Agreement Pending',
+                  'Agreement Completed',
+                  'Payment Pending',
+                  'Payment Verified',
+                  'Cancelled',
+                  'Completed',
+                ].includes(status) && (
+                  <div className="rounded-lg border border-dashed border-white/10 bg-navy-800/40 p-4">
+                    <div className="text-sm font-semibold text-cream mb-1">
+                      No Agent action available
+                    </div>
+
+                    <div className="text-xs text-ink/60 leading-relaxed">
+                      Agreement status is {agreementStatus}. The next workflow action is not available to the Agent at this stage.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

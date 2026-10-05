@@ -14,8 +14,17 @@ export const dealApi = {
     http.patch(
       `/deals/${dealId}/agreement-complete`,
     ),
-    
 
+
+      // Buyer/Owner/Agent/Admin: cancel an active Deal before payment verification/finalization.
+  cancelDeal: (dealId, reason) =>
+    http.patch(
+      `/deals/${dealId}/cancel`,
+      {
+        reason,
+      },
+    ),
+    
   // Finance/Admin: verify payment on an Agreement-completed Deal.
   verifyPayment: (dealId) =>
     http.patch(

@@ -1,3 +1,5 @@
+import { useSearchParams } from 'react-router-dom';
+
 import { useSession } from '../../../../contexts/SessionContext';
 import { ROLES } from '../../../../constants/roles';
 import type { ListingDraft } from '../types';
@@ -6,10 +8,51 @@ interface Props {
   draft: ListingDraft;
 }
 
-export function ReviewSubmitStep({ draft }: Props) {
+export function ReviewSubmitStep({
+  draft,
+}: Props) {
   const { user } = useSession();
 
-  const isOwner = user?.role === ROLES.OWNER;
+  const [searchParams] =
+    useSearchParams();
+
+  // An editId means the Agent is updating an existing
+  // property rather than creating a brand-new one.
+  const editId =
+    searchParams.get('editId');
+
+  const isEditMode =
+    Boolean(editId);
+
+  const isOwner =
+    user?.role === ROLES.OWNER;
+
+  const isAgent =
+    user?.role === ROLES.AGENT;
+
+  // Existing server-side images count as completed media
+  // during edit mode even when no new browser files were added.
+  const mediaComplete = isEditMode
+    ? true
+    : draft.images.length > 0;
+
+  // Existing property ownership/assignment information
+  // is already stored on the Property during edit mode.
+  const ownershipComplete =
+    isEditMode
+      ? true
+      : draft.listingSource ===
+          'Assigned Property'
+        ? true
+        : isOwner
+          ? draft.ownershipVerification
+              .length > 0
+          : Boolean(
+                draft.ownerName ||
+                  draft.organizationName,
+              ) &&
+            draft.ownershipVerification
+              .length > 0;
 
   const validation = {
     basic: Boolean(
@@ -32,51 +75,95 @@ export function ReviewSubmitStep({ draft }: Props) {
         draft.propertySize,
     ),
 
-    pricing: Boolean(draft.priceValue !== ''),
+    pricing: Boolean(
+      draft.priceValue !== '',
+    ),
 
-    media: draft.images.length > 0,
+    media: mediaComplete,
 
     ownership:
-      draft.listingSource === 'Assigned Property' ||
-      (isOwner
-        ? draft.ownershipVerification.length > 0
-        : Boolean(
-            draft.ownerName || draft.organizationName,
-          ) &&
-          draft.ownershipVerification.length > 0),
+      ownershipComplete,
   };
 
-  const completedSteps = Object.values(validation).filter(Boolean).length;
-  const totalSteps = Object.keys(validation).length;
-  const completionPercentage = Math.round(
-    (completedSteps / totalSteps) * 100,
-  );
+  const completedSteps =
+    Object.values(validation).filter(
+      Boolean,
+    ).length;
 
-  let qualityScore = completionPercentage;
+  const totalSteps =
+    Object.keys(validation).length;
 
+  const completionPercentage =
+    Math.round(
+      (completedSteps /
+        totalSteps) *
+        100,
+    );
+
+  let qualityScore =
+    completionPercentage;
+
+  // New uploads increase the quality score.
+  // Existing edit-mode media is already attached
+  // to the property and therefore does not need to
+  // be uploaded again merely to resubmit the listing.
   if (draft.images.length >= 5) {
-    qualityScore = Math.min(100, qualityScore + 10);
+    qualityScore = Math.min(
+      100,
+      qualityScore + 10,
+    );
   }
 
-  if (draft.videoUrl || draft.virtualTourUrl) {
-    qualityScore = Math.min(100, qualityScore + 10);
+  if (
+    draft.videoUrl ||
+    draft.virtualTourUrl
+  ) {
+    qualityScore = Math.min(
+      100,
+      qualityScore + 10,
+    );
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-heading font-semibold text-white">
-          {isOwner
-            ? 'Review Property Request'
-            : 'Review & Publish'}
-        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-2xl font-heading font-semibold text-white">
+            {isEditMode
+              ? 'Review & Resubmit Listing'
+              : isOwner
+                ? 'Review Property Request'
+                : 'Review & Publish'}
+          </h2>
+
+          {isEditMode && (
+            <span className="rounded-full border border-gold-500/20 bg-gold-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gold-400">
+              Existing Listing
+            </span>
+          )}
+        </div>
 
         <p className="text-ink/70 mt-1">
-          {isOwner
-            ? 'Review your property details before submitting your property request.'
-            : 'Review your listing details before submitting for approval.'}
+          {isEditMode
+            ? 'Review your updated property details before submitting the listing for review again.'
+            : isOwner
+              ? 'Review your property details before submitting your property request.'
+              : 'Review your listing details before submitting for approval.'}
         </p>
       </div>
+
+      {isEditMode && (
+        <div className="rounded-xl border border-gold-500/20 bg-gold-500/5 p-4">
+          <p className="text-sm leading-relaxed text-gold-200">
+            You are editing an existing property.
+            Your existing ownership, assignment,
+            and stored media information will be
+            preserved. Submitting this update will
+            send the property back through the review
+            workflow.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-1 md:col-span-2 space-y-6">
@@ -103,8 +190,12 @@ export function ReviewSubmitStep({ draft }: Props) {
                   </span>
 
                   <span className="text-ink font-medium">
-                    {draft.propertyType || '—'} (
-                    {draft.transactionType || '—'})
+                    {draft.propertyType ||
+                      '—'}{' '}
+                    (
+                    {draft.transactionType ||
+                      '—'}
+                    )
                   </span>
                 </div>
 
@@ -120,7 +211,8 @@ export function ReviewSubmitStep({ draft }: Props) {
                       draft.city,
                     ]
                       .filter(Boolean)
-                      .join(', ') || '—'}
+                      .join(', ') ||
+                      '—'}
                   </span>
                 </div>
 
@@ -156,7 +248,8 @@ export function ReviewSubmitStep({ draft }: Props) {
                   </span>
 
                   <span className="text-white font-semibold text-lg">
-                    {draft.price || '—'}
+                    {draft.price ||
+                      '—'}
                   </span>
                 </div>
 
@@ -166,11 +259,13 @@ export function ReviewSubmitStep({ draft }: Props) {
                   </span>
 
                   <span className="text-ink font-medium capitalize">
-                    {draft.transactionType || '—'}
+                    {draft.transactionType ||
+                      '—'}
                   </span>
                 </div>
 
-                {draft.transactionType === 'rent' && (
+                {draft.transactionType ===
+                  'rent' && (
                   <>
                     <div>
                       <span className="block text-xs text-ink/50 uppercase tracking-wider mb-1">
@@ -200,7 +295,7 @@ export function ReviewSubmitStep({ draft }: Props) {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 border-b border-white/10">
               <h3 className="text-lg font-semibold text-white mb-4">
                 Ownership Summary
               </h3>
@@ -214,7 +309,8 @@ export function ReviewSubmitStep({ draft }: Props) {
                   <span className="text-ink font-medium">
                     {isOwner
                       ? 'Private Owner'
-                      : draft.listingSource || '—'}
+                      : draft.listingSource ||
+                        '—'}
                   </span>
                 </div>
 
@@ -227,10 +323,59 @@ export function ReviewSubmitStep({ draft }: Props) {
 
                   <span className="text-ink font-medium">
                     {isOwner
-                      ? user?.name || 'Authenticated Owner'
+                      ? user?.name ||
+                        'Authenticated Owner'
                       : draft.ownerName ||
                         draft.organizationName ||
                         'Internal Assignment'}
+                  </span>
+                </div>
+              </div>
+
+              {isEditMode && isAgent && (
+                <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-wider text-ink/50">
+                    Edit Mode
+                  </p>
+
+                  <p className="mt-1 text-sm text-ink/70">
+                    Ownership and Agent assignment
+                    details are preserved from the
+                    existing property record.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Review Status
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <span className="block text-xs text-ink/50 uppercase tracking-wider mb-1">
+                    Listing Mode
+                  </span>
+
+                  <span className="text-sm font-medium text-white">
+                    {isEditMode
+                      ? 'Existing Property Edit'
+                      : 'New Property Submission'}
+                  </span>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <span className="block text-xs text-ink/50 uppercase tracking-wider mb-1">
+                    Next Workflow Step
+                  </span>
+
+                  <span className="text-sm font-medium text-gold-400">
+                    {isEditMode
+                      ? 'Submit for Review'
+                      : isOwner
+                        ? 'Property Request'
+                        : 'Approval Review'}
                   </span>
                 </div>
               </div>
@@ -267,8 +412,10 @@ export function ReviewSubmitStep({ draft }: Props) {
                       : 'text-red-400'
                   }`}
                 >
-                  {validation.basic ? '✅' : '❌'} Basic
-                  Information
+                  {validation.basic
+                    ? '✅'
+                    : '❌'}{' '}
+                  Basic Information
                 </div>
 
                 <div
@@ -278,8 +425,10 @@ export function ReviewSubmitStep({ draft }: Props) {
                       : 'text-red-400'
                   }`}
                 >
-                  {validation.location ? '✅' : '❌'} Location
-                  Details
+                  {validation.location
+                    ? '✅'
+                    : '❌'}{' '}
+                  Location Details
                 </div>
 
                 <div
@@ -289,8 +438,10 @@ export function ReviewSubmitStep({ draft }: Props) {
                       : 'text-red-400'
                   }`}
                 >
-                  {validation.details ? '✅' : '❌'} Property
-                  Details
+                  {validation.details
+                    ? '✅'
+                    : '❌'}{' '}
+                  Property Details
                 </div>
 
                 <div
@@ -300,8 +451,10 @@ export function ReviewSubmitStep({ draft }: Props) {
                       : 'text-red-400'
                   }`}
                 >
-                  {validation.pricing ? '✅' : '❌'} Pricing
-                  Details
+                  {validation.pricing
+                    ? '✅'
+                    : '❌'}{' '}
+                  Pricing Details
                 </div>
 
                 <div
@@ -311,8 +464,10 @@ export function ReviewSubmitStep({ draft }: Props) {
                       : 'text-red-400'
                   }`}
                 >
-                  {validation.media ? '✅' : '❌'} Media &
-                  Images
+                  {validation.media
+                    ? '✅'
+                    : '❌'}{' '}
+                  Media & Images
                 </div>
 
                 <div
@@ -322,7 +477,9 @@ export function ReviewSubmitStep({ draft }: Props) {
                       : 'text-red-400'
                   }`}
                 >
-                  {validation.ownership ? '✅' : '❌'}{' '}
+                  {validation.ownership
+                    ? '✅'
+                    : '❌'}{' '}
                   {isOwner
                     ? 'Ownership Documents'
                     : 'Ownership Status'}
@@ -330,7 +487,8 @@ export function ReviewSubmitStep({ draft }: Props) {
               </div>
             </div>
 
-            {completionPercentage < 100 && (
+            {completionPercentage <
+              100 && (
               <div className="mt-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <p className="text-xs text-red-300 leading-relaxed">
                   Please complete all required fields marked with
@@ -338,6 +496,17 @@ export function ReviewSubmitStep({ draft }: Props) {
                 </p>
               </div>
             )}
+
+            {isEditMode &&
+              completionPercentage ===
+                100 && (
+                <div className="mt-6 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+                  <p className="text-xs text-green-300 leading-relaxed">
+                    This existing listing is ready to be
+                    submitted for review again.
+                  </p>
+                </div>
+              )}
           </div>
         </div>
       </div>

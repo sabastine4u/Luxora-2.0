@@ -6,12 +6,14 @@ import MyListings from './components/MyListings';
 import Leads from './components/Leads';
 import Clients from './components/Clients';
 import Appointments from './components/Appointments';
+import Offers from './components/Offers';
 import Deals from './components/Deals';
 import Commissions from './components/Commissions';
 import Messages from './components/Messages';
 import Performance from './components/Performance';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
+import Properties from './components/Properties';
 
 export default function AgentDashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,11 +32,14 @@ export default function AgentDashboardPage() {
       case 'Leads': return <Leads />;
       case 'Clients': return <Clients />;
       case 'Appointments': return <Appointments />;
+            case 'Offers': return <Offers />;
       case 'Deals': return <Deals />;
       case 'Commissions': return <Commissions />;
       case 'Performance': return <Performance />;
       case 'Reports': return <Reports />;
       case 'Settings': return <Settings />;
+      case 'Properties Preview':
+  return <Properties />;
       default: return <Overview />;
     }
   };

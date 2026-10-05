@@ -16,6 +16,21 @@ getOwnerOffers: () =>
 getAgencyOffers: () =>
   http.get('/offers/agency'),
 
+// GET /offers/agent
+// Fetch Offers assigned to the authenticated Agent.
+getAgentOffers: () =>
+  http.get('/offers/agent'),
+
+// GET /offers/admin
+// Fetch Offers only for Properties created by the authenticated Admin.
+getAdminOffers: () =>
+  http.get('/offers/admin'),
+
+// GET /offers/super-admin
+// Fetch Offers only for Properties created by the authenticated Super Admin.
+getSuperAdminOffers: () =>
+  http.get('/offers/super-admin'),
+
   // POST /offers -> { data: { offer } }
   createOffer: (offerData) =>
     http.post("/offers", offerData),

@@ -61,6 +61,8 @@ interface AgentLead {
     email?: string;
   } | null;
 
+  // This is the authenticated Luxora User behind the Inquiry.
+  // It is required when opening a real direct conversation.
   inquirer?: string | null;
 
   fullName: string;
@@ -101,6 +103,11 @@ interface AgentLead {
 // Define the fields needed by the existing Lead table and modal.
 interface DisplayLead extends Record<string, unknown> {
   id: string;
+
+  // Real Luxora User ID behind the Lead inquiry.
+  // Anonymous inquiries will have this set to null.
+  inquirerId: string | null;
+
   name: string;
   property: string;
   source: string;
@@ -188,6 +195,12 @@ export default function Leads() {
     useMemo<DisplayLead[]>(() => {
       return leads.map((lead) => ({
         id: lead._id,
+
+        // Preserve the real authenticated User behind the Inquiry.
+        // This is what the messaging API needs as the recipient.
+        inquirerId: lead.inquirer
+          ? String(lead.inquirer)
+          : null,
 
         name: lead.fullName,
 
@@ -320,9 +333,9 @@ export default function Leads() {
       const twentyFourHoursAgo =
         now -
         24 *
-          60 *
-          60 *
-          1000;
+        60 *
+        60 *
+        1000;
 
       return leads.filter(
         (lead) =>
@@ -336,9 +349,9 @@ export default function Leads() {
   // Count Leads by their actual backend pipeline status.
   const statusCounts =
     useMemo(() => {
-      return leads.reduce<
+      return leads.reduce<(
         Record<string, number>
-      >((counts, lead) => {
+      )>((counts, lead) => {
         const status =
           lead.status ||
           'New';
@@ -357,9 +370,9 @@ export default function Leads() {
       return leads.filter(
         (lead) =>
           lead.status ===
-            'New' ||
+          'New' ||
           lead.status ===
-            'Contacted',
+          'Contacted',
       ).length;
     }, [leads]);
 
@@ -427,9 +440,9 @@ export default function Leads() {
         .filter(
           (lead) =>
             lead.status ===
-              'New' ||
+            'New' ||
             lead.status ===
-              'Contacted',
+            'Contacted',
         )
         .slice(0, 5)
         .map((lead) => ({
@@ -437,19 +450,19 @@ export default function Leads() {
 
           action:
             lead.status ===
-            'New'
+              'New'
               ? 'Make initial contact'
               : 'Continue Lead follow-up',
 
           priority:
             lead.status ===
-            'New'
+              'New'
               ? 'High'
               : 'Medium',
 
           icon:
             lead.status ===
-            'New'
+              'New'
               ? Phone
               : MessageSquare,
         }));
@@ -561,16 +574,16 @@ export default function Leads() {
 
           icon:
             lead.status ===
-            'New'
+              'New'
               ? Phone
               : MessageSquare,
 
           color:
             lead.status ===
-            'New'
+              'New'
               ? 'text-blue-400'
               : lead.status ===
-                  'Contacted'
+                'Contacted'
                 ? 'text-emerald-400'
                 : 'text-gold-400',
         }));
@@ -587,7 +600,7 @@ export default function Leads() {
         ((statusCounts.Contacted ||
           0) /
           leads.length) *
-          100,
+        100,
       );
     }, [
       leads.length,
@@ -613,7 +626,7 @@ export default function Leads() {
       return Math.round(
         (progressed /
           leads.length) *
-          100,
+        100,
       );
     }, [
       leads.length,
@@ -640,8 +653,8 @@ export default function Leads() {
       const updatedLeadId =
         String(
           updatedLead._id ||
-            updatedLead.id ||
-            '',
+          updatedLead.id ||
+          '',
         );
 
       if (!updatedLeadId) {
@@ -658,11 +671,11 @@ export default function Leads() {
               existingLead,
             ) =>
               existingLead._id ===
-              updatedLeadId
+                updatedLeadId
                 ? {
-                    ...existingLead,
-                    ...(updatedLead as AgentLead),
-                  }
+                  ...existingLead,
+                  ...(updatedLead as AgentLead),
+                }
                 : existingLead,
           ),
       );
@@ -844,7 +857,7 @@ export default function Leads() {
                   }{' '}
                   Lead
                   {attentionLeadCount ===
-                  1
+                    1
                     ? ''
                     : 's'}
                 </strong>{' '}
@@ -860,7 +873,7 @@ export default function Leads() {
                   }{' '}
                   active Lead
                   {activeLeadCount ===
-                  1
+                    1
                     ? ''
                     : 's'}
                 </strong>
@@ -932,14 +945,13 @@ export default function Leads() {
                   <div
                     className="h-full bg-rose-400 rounded-full"
                     style={{
-                      width: `${
-                        leads.length
-                          ? ((statusCounts.New ||
-                              0) /
-                              leads.length) *
-                            100
-                          : 0
-                      }%`,
+                      width: `${leads.length
+                        ? ((statusCounts.New ||
+                          0) /
+                          leads.length) *
+                        100
+                        : 0
+                        }%`,
                     }}
                   />
                 </div>
@@ -963,14 +975,13 @@ export default function Leads() {
                   <div
                     className="h-full bg-gold-400 rounded-full"
                     style={{
-                      width: `${
-                        leads.length
-                          ? ((statusCounts.Contacted ||
-                              0) /
-                              leads.length) *
-                            100
-                          : 0
-                      }%`,
+                      width: `${leads.length
+                        ? ((statusCounts.Contacted ||
+                          0) /
+                          leads.length) *
+                        100
+                        : 0
+                        }%`,
                     }}
                   />
                 </div>
@@ -1079,8 +1090,8 @@ export default function Leads() {
             isLoading
               ? '...'
               : String(
-                  activeLeadCount,
-                )
+                activeLeadCount,
+              )
           }
           trend={
             isLoading
@@ -1097,8 +1108,8 @@ export default function Leads() {
             isLoading
               ? '...'
               : String(
-                  newLeads24h,
-                )
+                newLeads24h,
+              )
           }
           trend={`${attentionLeadCount} require active follow-up`}
           trendColor="text-rose-400"
@@ -1237,13 +1248,13 @@ export default function Leads() {
                 ) => {
                   const score =
                     lead.score as
-                      | number
-                      | null;
+                    | number
+                    | null;
 
                   return (
                     <div className="w-24">
                       {score ===
-                      null ? (
+                        null ? (
                         <div className="text-xs text-ink/50">
                           Not available
                         </div>
@@ -1261,15 +1272,14 @@ export default function Leads() {
 
                           <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                             <div
-                              className={`h-full ${
-                                score >=
+                              className={`h-full ${score >=
                                 80
-                                  ? 'bg-emerald-400'
-                                  : score >=
-                                      50
-                                    ? 'bg-gold-400'
-                                    : 'bg-rose-400'
-                              }`}
+                                ? 'bg-emerald-400'
+                                : score >=
+                                  50
+                                  ? 'bg-gold-400'
+                                  : 'bg-rose-400'
+                                }`}
                               style={{
                                 width: `${score}%`,
                               }}
@@ -1354,7 +1364,7 @@ export default function Leads() {
 
             <div className="space-y-3">
               {followUpQueue.length >
-              0 ? (
+                0 ? (
                 followUpQueue.map(
                   (
                     item,
@@ -1372,12 +1382,11 @@ export default function Leads() {
                         </div>
 
                         <div
-                          className={`text-[10px] px-2 py-0.5 rounded uppercase tracking-wider ${
-                            item.priority ===
+                          className={`text-[10px] px-2 py-0.5 rounded uppercase tracking-wider ${item.priority ===
                             'High'
-                              ? 'bg-rose-400/10 text-rose-400'
-                              : 'bg-blue-400/10 text-blue-400'
-                          }`}
+                            ? 'bg-rose-400/10 text-rose-400'
+                            : 'bg-blue-400/10 text-blue-400'
+                            }`}
                         >
                           {
                             item.priority
@@ -1547,6 +1556,12 @@ function mapUpdatedLeadForDisplay(
 ): DisplayLead {
   return {
     id: lead._id,
+
+    // Preserve the real authenticated User behind the Inquiry
+    // after the Lead is updated inside the modal.
+    inquirerId: lead.inquirer
+      ? String(lead.inquirer)
+      : null,
 
     name: lead.fullName,
 

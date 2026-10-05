@@ -29,8 +29,16 @@ export interface PropertyRequest {
   lastUpdated: string;
   status: string;
   progress: number;
+  agency?: {
+    name: string;
+    status?: string;
+  } | null;
   agent: { name: string; avatar: string };
-  timeline: { stage: string; date: string; status: 'completed' | 'current' | 'pending' }[];
+  timeline: {
+    stage: string;
+    date: string;
+    status: 'completed' | 'current' | 'pending';
+  }[];
   documents: DocStatusType[];
   notes?: string;
 }

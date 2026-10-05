@@ -14,11 +14,14 @@ export const propertyApi = {
     http.get("/owner/properties"),
 
   // Attach uploaded document references to an Owner's Property.
-addOwnerPropertyDocuments: (propertyId, documents) =>
-  http.patch(
-    `/properties/${propertyId}/documents`,
-    { documents },
-  ),
+  addOwnerPropertyDocuments: (
+    propertyId,
+    documents,
+  ) =>
+    http.patch(
+      `/properties/${propertyId}/documents`,
+      { documents },
+    ),
 
   // Fetch a single published Property by its MongoDB ID.
   getPropertyById: (propertyId) =>
@@ -142,15 +145,46 @@ addOwnerPropertyDocuments: (propertyId, documents) =>
       payload,
     ),
 
+  // Update editable Property fields from the authenticated Agent workflow.
+  //
+  // The backend determines the authenticated Agent from the JWT
+  // and verifies that the Property belongs to that Agent.
+  updateAgentProperty: (
+    propertyId,
+    payload,
+  ) =>
+    http.patch(
+      `/properties/${propertyId}`,
+      payload,
+    ),
+
+  // Archive a Property through the dedicated Agency lifecycle workflow.
+  archiveAgencyProperty: (
+    propertyId,
+  ) =>
+    http.patch(
+      `/properties/${propertyId}/archive`,
+    ),
+
+  // Unarchive a Property through the dedicated Agency lifecycle workflow.
+  unarchiveAgencyProperty: (
+    propertyId,
+  ) =>
+    http.patch(
+      `/properties/${propertyId}/unarchive`,
+    ),
+
   // Fetch real Performance analytics belonging to the authenticated Agency.
   getAgencyPerformance: () =>
     http.get(
       "/agency/performance",
     ),
 
- // Withdraw an Owner-submitted Property request.
-withdrawOwnerProperty: (propertyId) =>
-  http.patch(
-    `/owner/properties/${propertyId}/withdraw`,
-  ),
+  // Withdraw an Owner-submitted Property request.
+  withdrawOwnerProperty: (
+    propertyId,
+  ) =>
+    http.patch(
+      `/owner/properties/${propertyId}/withdraw`,
+    ),
 };

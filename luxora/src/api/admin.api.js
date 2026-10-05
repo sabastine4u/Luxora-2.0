@@ -24,6 +24,29 @@ export const adminApi = {
   getProperties: () =>
     http.get('/admin/properties'),
 
+    // Fetch only Properties created by the authenticated Admin or Super Admin.
+  // Used by the Property Review section.
+  getMyProperties: () =>
+    http.get('/admin/my-properties'),
+
+    // Update editable Property content from Admin/Super Admin Property Management.
+  updateProperty: (
+    propertyId,
+    propertyData,
+  ) =>
+    http.patch(
+      `/admin/properties/${propertyId}`,
+      propertyData,
+    ),
+
+  // Permanently delete a Property from Admin/Super Admin Property Management.
+  deleteProperty: (
+    propertyId,
+  ) =>
+    http.delete(
+      `/admin/properties/${propertyId}`,
+    ),
+
   // Fetch Verification Center records for the selected status tab.
   getVerificationQueue: (
     status = 'Pending',
