@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export function useIntelligenceQuery<T>(
+export function useIntelligenceQuery<T = Record<string, any>>(
   request: () => Promise<{ data: T }>,
   dependencies: unknown[] = [],
 ) {

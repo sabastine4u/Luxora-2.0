@@ -673,8 +673,8 @@ export default function Leads() {
               existingLead._id ===
                 updatedLeadId
                 ? {
-                  ...existingLead,
-                  ...(updatedLead as AgentLead),
+                 ...existingLead,
+...(updatedLead as unknown as AgentLead),
                 }
                 : existingLead,
           ),
@@ -694,7 +694,7 @@ export default function Leads() {
           return {
             ...currentSelectedLead,
             ...mapUpdatedLeadForDisplay(
-              updatedLead as AgentLead,
+             updatedLead as unknown as AgentLead,
             ),
           };
         },

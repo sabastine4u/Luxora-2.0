@@ -683,9 +683,8 @@ export function ListingDetailModal({
                         <div className="h-2.5 w-2.5 rounded-full bg-gold-400" />
 
                         {index <
-                          detailedListing.verification
-                            .history.length -
-                          1 && (
+  (detailedListing.verification?.history?.length ?? 0) -
+  1 && (
                             <div className="h-full w-px bg-white/10 mt-2" />
                           )}
                       </div>

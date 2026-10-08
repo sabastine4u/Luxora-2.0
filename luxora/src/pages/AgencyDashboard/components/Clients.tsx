@@ -8,7 +8,6 @@ import {
   Star,
   Phone,
   Activity,
-  Loader2,
   Mail,
 } from 'lucide-react';
 
@@ -40,6 +39,7 @@ interface AgencyInquiryRecord {
   fullName?: string;
   email?: string;
   phone?: string;
+    inquirer?: string | { _id?: string } | null;
   status?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -182,51 +182,7 @@ const safeDate = (
     : date;
 };
 
-const latestDate = (
-  ...values: Array<string | Date | null | undefined>
-) => {
-  const dates = values
-    .map(safeDate)
-    .filter(
-      (date): date is Date =>
-        date !== null,
-    );
 
-  if (dates.length === 0) {
-    return null;
-  }
-
-  return dates.reduce(
-    (latest, current) =>
-      current.getTime() >
-      latest.getTime()
-        ? current
-        : latest,
-  );
-};
-
-const earliestDate = (
-  ...values: Array<string | Date | null | undefined>
-) => {
-  const dates = values
-    .map(safeDate)
-    .filter(
-      (date): date is Date =>
-        date !== null,
-    );
-
-  if (dates.length === 0) {
-    return null;
-  }
-
-  return dates.reduce(
-    (earliest, current) =>
-      current.getTime() <
-      earliest.getTime()
-        ? current
-        : earliest,
-  );
-};
 
 const formatActivityDate = (
   value: string,
@@ -567,9 +523,11 @@ export default function Clients() {
 
           upsertClient({
             key: `buyer:${email}`,
-            id:
-              inquiry.inquirer?._id ||
-              email,
+           id:
+  typeof inquiry.inquirer === 'string'
+    ? inquiry.inquirer
+    : inquiry.inquirer?._id ||
+      email,
             name:
               inquiry.fullName ||
               email,

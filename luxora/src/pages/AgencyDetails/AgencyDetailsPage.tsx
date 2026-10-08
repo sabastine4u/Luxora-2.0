@@ -92,9 +92,6 @@ import { PropertyGrid } from '../../components/property/PropertyGrid';
 
 import { PropertyPagination } from '../../components/property/PropertyPagination';
 
-import { EmptyState } from '../../components/layout/EmptyState';
-
-
 
 import NotFoundPage from '../NotFound/NotFoundPage';
 

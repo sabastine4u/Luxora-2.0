@@ -9,7 +9,6 @@ import {
   Activity,
   Target,
   AlertCircle,
-  ShieldCheck,
   Wallet,
   Lightbulb,
   Clock3,
@@ -28,6 +27,7 @@ import { EnterpriseDetailDrawer } from '../../../components/enterprise/Enterpris
 import { agentApi } from '../../../api/agent.api';
 
 interface CommissionRecord {
+  [key: string]: unknown;
   _id: string;
   commissionId: string;
   agency:
@@ -361,6 +361,9 @@ export default function Commissions() {
       color: 'bg-blue-400',
     },
   ];
+
+  // Preserve the existing commission cash-flow summary.
+void cashFlowSummary;
 
   const upcomingPayouts = useMemo(
     () =>

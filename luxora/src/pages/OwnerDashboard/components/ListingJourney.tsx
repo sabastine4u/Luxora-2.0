@@ -87,7 +87,7 @@ export const mapPropertyToJourney = (
   const verificationCompleted =
     property.verificationLevel === 'Documents Verified' ||
     property.verificationLevel ===
-      'Physical Inspection Completed';
+    'Physical Inspection Completed';
 
   // Calculate the current workflow stage.
   let currentStageName: string | null =
@@ -134,7 +134,7 @@ export const mapPropertyToJourney = (
       status: agencyAssigned
         ? 'Completed'
         : currentStageName ===
-            'Agency Assignment'
+          'Agency Assignment'
           ? 'Current'
           : 'Pending',
       date: agencyAssigned
@@ -152,7 +152,7 @@ export const mapPropertyToJourney = (
       status: agentAssigned
         ? 'Completed'
         : currentStageName ===
-            'Agent Assignment'
+          'Agent Assignment'
           ? 'Current'
           : 'Pending',
       date: agentAssigned
@@ -170,12 +170,12 @@ export const mapPropertyToJourney = (
       status: verificationCompleted
         ? 'Completed'
         : currentStageName ===
-            'Verification'
+          'Verification'
           ? 'Current'
           : 'Pending',
       date: verificationCompleted
         ? property.inspectionCompletedAt ||
-          property.updatedAt
+        property.updatedAt
         : undefined,
       description:
         'Property documents and verification requirements are reviewed.',
@@ -189,7 +189,7 @@ export const mapPropertyToJourney = (
         property.status === 'Published'
           ? 'Completed'
           : currentStageName ===
-              'Publication'
+            'Publication'
             ? 'Current'
             : 'Pending',
       date:
@@ -212,7 +212,7 @@ export const mapPropertyToJourney = (
     0,
     Math.floor(
       (Date.now() - submittedTime) /
-        (1000 * 60 * 60 * 24),
+      (1000 * 60 * 60 * 24),
     ),
   );
 
@@ -226,60 +226,59 @@ export const mapPropertyToJourney = (
 
     ...(agencyAssigned
       ? [
-          {
-            title: 'Agency Assigned',
-            date: property.assignedAt,
-            type: 'success',
-          },
-        ]
+        {
+          title: 'Agency Assigned',
+          date: property.assignedAt,
+          type: 'success',
+        },
+      ]
       : []),
 
     ...(agentAssigned
       ? [
-          {
-            title: `Agent Assigned${
-              property.agent?.user?.fullName
-                ? `: ${property.agent.user.fullName}`
-                : ''
+        {
+          title: `Agent Assigned${property.agent?.user?.fullName
+              ? `: ${property.agent.user.fullName}`
+              : ''
             }`,
-            date: property.assignedAt,
-            type: 'success',
-          },
-        ]
+          date: property.assignedAt,
+          type: 'success',
+        },
+      ]
       : []),
 
     ...(verificationCompleted
       ? [
-          {
-            title: 'Verification Completed',
-            date:
-              property.inspectionCompletedAt ||
-              property.updatedAt,
-            type: 'success',
-          },
-        ]
+        {
+          title: 'Verification Completed',
+          date:
+            property.inspectionCompletedAt ||
+            property.updatedAt,
+          type: 'success',
+        },
+      ]
       : []),
 
     ...(property.status === 'Published'
       ? [
-          {
-            title: 'Property Published',
-            date: property.updatedAt,
-            type: 'success',
-          },
-        ]
+        {
+          title: 'Property Published',
+          date: property.updatedAt,
+          type: 'success',
+        },
+      ]
       : []),
 
     ...(isWithdrawn
       ? [
-          {
-            title: 'Property Request Withdrawn',
-            date:
-              property.withdrawnAt ||
-              property.updatedAt,
-            type: 'warning',
-          },
-        ]
+        {
+          title: 'Property Request Withdrawn',
+          date:
+            property.withdrawnAt ||
+            property.updatedAt,
+          type: 'warning',
+        },
+      ]
       : []),
   ];
 
@@ -293,9 +292,9 @@ export const mapPropertyToJourney = (
     !isWithdrawn &&
     (
       property.assignmentStatus ===
-        'Unassigned' ||
+      'Unassigned' ||
       property.assignmentStatus ===
-        'Pending Agency Assignment'
+      'Pending Agency Assignment'
     )
   ) {
     alerts.push({
@@ -308,7 +307,7 @@ export const mapPropertyToJourney = (
   if (
     !isWithdrawn &&
     property.verificationLevel !==
-      'Documents Verified' &&
+    'Documents Verified' &&
     property.status !== 'Published'
   ) {
     alerts.push({
@@ -389,9 +388,9 @@ export const mapPropertyToJourney = (
         : progressPercent === 100
           ? 0
           : Math.max(
-              1,
-              100 - progressPercent,
-            ),
+            1,
+            100 - progressPercent,
+          ),
 
     expectedGoLive: isWithdrawn
       ? 'Not applicable'
@@ -579,7 +578,7 @@ export default function ListingJourney() {
           if (
             currentId &&
             mappedJourneys.some(
-              (journey) =>
+              (journey: (typeof mappedJourneys)[number]) =>
                 journey.id === currentId,
             )
           ) {
@@ -741,7 +740,7 @@ export default function ListingJourney() {
     const canUpload =
       journey.backendStatus === 'Draft' ||
       journey.backendStatus ===
-        'Pending Review';
+      'Pending Review';
 
     if (!canUpload) {
       throw new Error(
@@ -856,25 +855,25 @@ export default function ListingJourney() {
     const summaryRows: Array<
       [string, string]
     > = [
-      ['Property', journey.name],
-      ['Status', journey.status],
-      [
-        'Property Type',
-        journey.type,
-      ],
-      ['Location', journey.address],
-      [
-        'Progress',
-        `${journey.progressPercent}%`,
-      ],
-      [
-        'Submitted',
-        formatExportDate(
-          submittedDate,
-        ),
-      ],
-      ['Exported', exportedAt],
-    ];
+        ['Property', journey.name],
+        ['Status', journey.status],
+        [
+          'Property Type',
+          journey.type,
+        ],
+        ['Location', journey.address],
+        [
+          'Progress',
+          `${journey.progressPercent}%`,
+        ],
+        [
+          'Submitted',
+          formatExportDate(
+            submittedDate,
+          ),
+        ],
+        ['Exported', exportedAt],
+      ];
 
     try {
       if (
@@ -915,17 +914,17 @@ export default function ListingJourney() {
           'Event,Date,Type',
           ...(journey.activityFeed ||
             []).map(
-            (event: any) =>
-              [
-                event.title,
-                formatExportDate(
-                  event.date,
-                ),
-                event.type,
-              ]
-                .map(escapeCsvValue)
-                .join(','),
-          ),
+              (event: any) =>
+                [
+                  event.title,
+                  formatExportDate(
+                    event.date,
+                  ),
+                  event.type,
+                ]
+                  .map(escapeCsvValue)
+                  .join(','),
+            ),
         ];
 
         downloadBlob(
@@ -937,7 +936,7 @@ export default function ListingJourney() {
         );
       } else if (
         normalizedFormat ===
-          'excel' ||
+        'excel' ||
         normalizedFormat === 'xls' ||
         normalizedFormat === 'xlsx'
       ) {
@@ -963,20 +962,20 @@ export default function ListingJourney() {
               (row) => `
                 <tr>
                   <td>${escapeHtml(
-                    row.stage,
-                  )}</td>
+                row.stage,
+              )}</td>
                   <td>${escapeHtml(
-                    row.status,
-                  )}</td>
+                row.status,
+              )}</td>
                   <td>${escapeHtml(
-                    row.date,
-                  )}</td>
+                row.date,
+              )}</td>
                   <td>${escapeHtml(
-                    row.description,
-                  )}</td>
+                row.description,
+              )}</td>
                   <td>${escapeHtml(
-                    row.officer,
-                  )}</td>
+                row.officer,
+              )}</td>
                 </tr>
               `,
             )
@@ -991,16 +990,16 @@ export default function ListingJourney() {
               (event: any) => `
                 <tr>
                   <td>${escapeHtml(
-                    event.title,
-                  )}</td>
+                event.title,
+              )}</td>
                   <td>${escapeHtml(
-                    formatExportDate(
-                      event.date,
-                    ),
-                  )}</td>
+                formatExportDate(
+                  event.date,
+                ),
+              )}</td>
                   <td>${escapeHtml(
-                    event.type,
-                  )}</td>
+                event.type,
+              )}</td>
                 </tr>
               `,
             )
@@ -1013,8 +1012,8 @@ export default function ListingJourney() {
 
               <title>
                 ${escapeHtml(
-                  journey.name,
-                )} - Listing Journey
+          journey.name,
+        )} - Listing Journey
               </title>
 
               <style>
@@ -1060,8 +1059,8 @@ export default function ListingJourney() {
 
               <p>
                 ${escapeHtml(
-                  journey.name,
-                )}
+          journey.name,
+        )}
               </p>
 
               <table>
@@ -1138,20 +1137,20 @@ export default function ListingJourney() {
               (row) => `
                 <tr>
                   <td>${escapeHtml(
-                    row.stage,
-                  )}</td>
+                row.stage,
+              )}</td>
                   <td>${escapeHtml(
-                    row.status,
-                  )}</td>
+                row.status,
+              )}</td>
                   <td>${escapeHtml(
-                    row.date,
-                  )}</td>
+                row.date,
+              )}</td>
                   <td>${escapeHtml(
-                    row.description,
-                  )}</td>
+                row.description,
+              )}</td>
                   <td>${escapeHtml(
-                    row.officer,
-                  )}</td>
+                row.officer,
+              )}</td>
                 </tr>
               `,
             )
@@ -1167,15 +1166,15 @@ export default function ListingJourney() {
                 <li>
                   <strong>
                     ${escapeHtml(
-                      event.title,
-                    )}
+                event.title,
+              )}
                   </strong>
                   —
                   ${escapeHtml(
-                    formatExportDate(
-                      event.date,
-                    ),
-                  )}
+                formatExportDate(
+                  event.date,
+                ),
+              )}
                 </li>
               `,
             )
@@ -1188,14 +1187,14 @@ export default function ListingJourney() {
                 <div class="summary-item">
                   <span class="label">
                     ${escapeHtml(
-                      label,
-                    )}
+                label,
+              )}
                   </span>
 
                   <span>
                     ${escapeHtml(
-                      value,
-                    )}
+                value,
+              )}
                   </span>
                 </div>
               `,
@@ -1211,8 +1210,8 @@ export default function ListingJourney() {
 
               <title>
                 ${escapeHtml(
-                  journey.name,
-                )} - Listing Journey
+          journey.name,
+        )} - Listing Journey
               </title>
 
               <style>
@@ -1309,8 +1308,8 @@ export default function ListingJourney() {
 
               <div class="subtitle">
                 ${escapeHtml(
-                  journey.name,
-                )}
+          journey.name,
+        )}
               </div>
 
               <div class="summary">
@@ -1348,8 +1347,8 @@ export default function ListingJourney() {
               <div class="footer">
                 Generated from Luxora on
                 ${escapeHtml(
-                  exportedAt,
-                )}
+          exportedAt,
+        )}
               </div>
             </body>
           </html>
@@ -1506,22 +1505,22 @@ export default function ListingJourney() {
 
                   {(
                     journey.backendStatus ===
-                      'Draft' ||
+                    'Draft' ||
                     journey.backendStatus ===
-                      'Pending Review'
+                    'Pending Review'
                   ) && (
-                    <GhostButton
-                      size="sm"
-                      onClick={() =>
-                        setIsUploadModalOpen(
-                          true,
-                        )
-                      }
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Missing Docs
-                    </GhostButton>
-                  )}
+                      <GhostButton
+                        size="sm"
+                        onClick={() =>
+                          setIsUploadModalOpen(
+                            true,
+                          )
+                        }
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Missing Docs
+                      </GhostButton>
+                    )}
 
                   <GhostButton
                     size="sm"
@@ -1558,19 +1557,18 @@ export default function ListingJourney() {
         (
           alert: {
             type:
-              | 'warning'
-              | 'error';
+            | 'warning'
+            | 'error';
             message: string;
           },
           idx: number,
         ) => (
           <div
             key={idx}
-            className={`rounded-xl border p-4 flex gap-3 items-center ${
-              alert.type === 'error'
+            className={`rounded-xl border p-4 flex gap-3 items-center ${alert.type === 'error'
                 ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
                 : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-            }`}
+              }`}
           >
             <AlertTriangle className="h-5 w-5 shrink-0" />
 
@@ -1634,11 +1632,10 @@ export default function ListingJourney() {
                 </div>
 
                 <div
-                  className={`text-lg font-bold ${
-                    isWithdrawn
+                  className={`text-lg font-bold ${isWithdrawn
                       ? 'text-ink/50'
                       : 'text-emerald-400'
-                  }`}
+                    }`}
                 >
                   {journey.expectedGoLive}
                 </div>
@@ -1723,11 +1720,10 @@ export default function ListingJourney() {
                     return (
                       <div
                         key={idx}
-                        className={`relative flex gap-6 transition-opacity ${
-                          isPending
+                        className={`relative flex gap-6 transition-opacity ${isPending
                             ? 'opacity-50'
                             : 'opacity-100'
-                        }`}
+                          }`}
                       >
                         <div
                           className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 ${getStatusBg(
@@ -1742,13 +1738,12 @@ export default function ListingJourney() {
                         <div className="flex-1 pt-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
                             <h4
-                              className={`font-semibold text-lg truncate ${
-                                isCurrent
+                              className={`font-semibold text-lg truncate ${isCurrent
                                   ? 'text-gold-400'
                                   : isCompleted
                                     ? 'text-cream'
                                     : 'text-ink/60'
-                              }`}
+                                }`}
                             >
                               {idx + 1}.{' '}
                               {stage.name}
@@ -1767,26 +1762,26 @@ export default function ListingJourney() {
 
                           {(stage.officer ||
                             stage.notes) && (
-                            <div className="mt-3 p-3 rounded-xl bg-navy-900/50 border border-white/5 space-y-2">
-                              {stage.officer && (
-                                <div className="flex items-center gap-2 text-xs text-ink/60">
-                                  <User className="h-3 w-3" />
-                                  Responsible:{' '}
-                                  <span className="text-cream">
-                                    {
-                                      stage.officer
-                                    }
-                                  </span>
-                                </div>
-                              )}
+                              <div className="mt-3 p-3 rounded-xl bg-navy-900/50 border border-white/5 space-y-2">
+                                {stage.officer && (
+                                  <div className="flex items-center gap-2 text-xs text-ink/60">
+                                    <User className="h-3 w-3" />
+                                    Responsible:{' '}
+                                    <span className="text-cream">
+                                      {
+                                        stage.officer
+                                      }
+                                    </span>
+                                  </div>
+                                )}
 
-                              {stage.notes && (
-                                <div className="text-sm text-ink/80 italic border-l-2 border-white/10 pl-3">
-                                  "{stage.notes}"
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                {stage.notes && (
+                                  <div className="text-sm text-ink/80 italic border-l-2 border-white/10 pl-3">
+                                    "{stage.notes}"
+                                  </div>
+                                )}
+                              </div>
+                            )}
                         </div>
                       </div>
                     );
@@ -1822,11 +1817,10 @@ export default function ListingJourney() {
             </div>
 
             <div
-              className={`mt-6 space-y-4 ${
-                !isActivityOpen
+              className={`mt-6 space-y-4 ${!isActivityOpen
                   ? 'hidden lg:block'
                   : 'block'
-              }`}
+                }`}
             >
               {journey.activityFeed.map(
                 (
@@ -1842,13 +1836,12 @@ export default function ListingJourney() {
                     className="flex gap-4 items-start p-3 rounded-xl bg-navy-900/50 border border-white/5"
                   >
                     <div
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                        event.type === 'success'
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${event.type === 'success'
                           ? 'bg-emerald-500/20 text-emerald-400'
                           : event.type === 'warning'
                             ? 'bg-yellow-500/20 text-yellow-400'
                             : 'bg-blue-500/20 text-blue-400'
-                      }`}
+                        }`}
                     >
                       <ArrowRight className="h-3 w-3" />
                     </div>
@@ -1939,13 +1932,12 @@ export default function ListingJourney() {
                   className="flex gap-4 items-start p-4 rounded-xl bg-navy-900/50 border border-white/5"
                 >
                   <div
-                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 ${
-                      event.type === 'success'
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 ${event.type === 'success'
                         ? 'bg-emerald-500/20 text-emerald-400'
                         : event.type === 'warning'
                           ? 'bg-yellow-500/20 text-yellow-400'
                           : 'bg-blue-500/20 text-blue-400'
-                    }`}
+                      }`}
                   >
                     <ArrowRight className="h-4 w-4" />
                   </div>

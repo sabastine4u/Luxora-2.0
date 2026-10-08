@@ -775,6 +775,7 @@ export default function Deals() {
         deal.status ===
         'Agreement Completed',
     );
+  void agreementCompletedDeals;
 
   const paymentPendingDeals =
     deals.filter(
@@ -834,6 +835,7 @@ export default function Deals() {
         deal.counterOfferAmount !==
         null,
     );
+    void counterDeals;
 
   const verifiedPayments =
     deals.filter(

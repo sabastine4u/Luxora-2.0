@@ -542,7 +542,7 @@ export default function MyListings() {
         completed: properties.every(
           (property) =>
             Boolean(property.description) &&
-            property.description.trim().length >= 120,
+          (property.description ?? '').trim().length >= 120
         ),
       },
     ];

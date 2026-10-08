@@ -13,7 +13,6 @@ import {
   Filter,
   Heart,
   MapPin,
-  Plus,
   RefreshCw,
   Send,
   SlidersHorizontal,
@@ -860,6 +859,8 @@ export default function Properties() {
         property.assignmentStatusDisplay ===
           'Agent Declined',
     ).length;
+    // Preserve this real assignment metric for the existing dashboard model.
+void pendingProperties;
 
   const totalEnquiries =
     properties.reduce(

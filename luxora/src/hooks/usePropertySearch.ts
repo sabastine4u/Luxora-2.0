@@ -91,24 +91,7 @@ export function usePropertySearch({
     [searchParams],
   );
 
-  // Read a comma-separated URL parameter into an array.
-  const getArrayParam = useCallback(
-    (key: string, fallback: string[] = []) => {
-      const value = searchParams.get(key);
-
-      // Return the fallback when no parameter is present.
-      if (!value) {
-        return fallback;
-      }
-
-      // Convert the comma-separated value into an array.
-      return value
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
-    },
-    [searchParams],
-  );
+  
 
   // Update URL parameters while preserving unrelated parameters.
   const updateParams = useCallback(

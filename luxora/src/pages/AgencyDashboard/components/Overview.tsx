@@ -391,15 +391,25 @@ export default function Overview({
     performance,
   } = overviewData;
 
+  const agencyUser = user as
+    | (typeof user & {
+      agency?: {
+        name?: string | null;
+      } | null;
+      agencyName?: string | null;
+      fullName?: string | null;
+    })
+    | null;
+
   const agencyName =
-    user?.agency?.name ||
-    user?.agencyName ||
-    user?.name ||
+    agencyUser?.agency?.name ||
+    agencyUser?.agencyName ||
+    agencyUser?.name ||
     'Agency Dashboard';
 
   const managerName =
-    user?.name ||
-    user?.fullName ||
+    agencyUser?.name ||
+    agencyUser?.fullName ||
     'Agency Administrator';
 
   const propertyMetrics = useMemo(() => {
@@ -920,8 +930,8 @@ export default function Overview({
           >
             <RefreshCw
               className={`h-4 w-4 ${isRefreshing
-                  ? 'animate-spin'
-                  : ''
+                ? 'animate-spin'
+                : ''
                 }`}
             />
             {isRefreshing

@@ -6,7 +6,6 @@ import { adminApi } from "../../../api/admin.api";
 import {
   MoreHorizontal,
   SearchX,
-  Building2,
   CheckCircle,
   Clock,
   UserPlus,

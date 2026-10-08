@@ -338,7 +338,7 @@ export default function Offers() {
   ) => {
     if (!selectedOffer) return;
 
-    let newStatus: string;
+   let newStatus: Offer['status'];
     let successTitle: string;
     let successDescription: string;
 

@@ -814,6 +814,8 @@ export default function Properties() {
         property.lifecycleStatus ===
         'Sold',
     ).length;
+    // Preserve the existing Sold lifecycle metric.
+void soldListings;
 
   const pendingReviewListings =
     properties.filter(

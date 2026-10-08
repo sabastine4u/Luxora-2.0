@@ -110,7 +110,7 @@ export default function Listings() {
       isOpen: false,
       title: '',
       desc: '',
-      action: () => {},
+      action: () => { },
       confirmText: 'Confirm',
       danger: false,
     });
@@ -133,8 +133,8 @@ export default function Listings() {
         Array.isArray(rawResponse?.properties)
           ? rawResponse.properties
           : Array.isArray(
-                rawResponse?.data?.properties,
-              )
+            rawResponse?.data?.properties,
+          )
             ? rawResponse.data.properties
             : [];
 
@@ -144,9 +144,10 @@ export default function Listings() {
       // Remove selected IDs that are no longer present.
       setSelectedIds((previousSelection) => {
         const availableIds = new Set(
-          propertyList.map((property) =>
-            String(property._id),
-          ),
+          propertyList.map(
+            (property: { _id?: string }) =>
+              String(property._id),
+          )
         );
 
         return new Set(
@@ -257,8 +258,8 @@ export default function Listings() {
       (inquiry) =>
         String(
           inquiry.property?._id ||
-            inquiry.property ||
-            '',
+          inquiry.property ||
+          '',
         ) === propertyId,
     ).length;
   };
@@ -341,7 +342,7 @@ export default function Listings() {
       const matchesPropertyType =
         propertyTypeFilter === 'All' ||
         listing.propertyType ===
-          propertyTypeFilter;
+        propertyTypeFilter;
 
       return (
         matchesSearch &&
@@ -423,16 +424,16 @@ export default function Listings() {
   const assignedListings = listings.filter(
     (listing) =>
       listing.assignmentStatus ===
-        'Agent Assigned' ||
+      'Agent Assigned' ||
       Boolean(listing.agent?._id),
   ).length;
 
   const pendingAssignments = listings.filter(
     (listing) =>
       listing.assignmentStatus ===
-        'Pending Agency Assignment' ||
+      'Pending Agency Assignment' ||
       listing.assignmentStatus ===
-        'Agency Assigned',
+      'Agency Assigned',
   ).length;
 
   // Toggle an individual Property selection.
@@ -629,10 +630,10 @@ export default function Listings() {
       availabilityDate:
         listing.availabilityDate
           ? new Date(
-              listing.availabilityDate,
-            )
-              .toISOString()
-              .slice(0, 10)
+            listing.availabilityDate,
+          )
+            .toISOString()
+            .slice(0, 10)
           : '',
       availabilityStatus:
         listing.availabilityStatus ||
@@ -681,91 +682,91 @@ export default function Listings() {
           editForm.bedrooms === ''
             ? 0
             : Number(
-                editForm.bedrooms,
-              ),
+              editForm.bedrooms,
+            ),
 
         bathrooms:
           editForm.bathrooms === ''
             ? 0
             : Number(
-                editForm.bathrooms,
-              ),
+              editForm.bathrooms,
+            ),
 
         toilets:
           editForm.toilets === ''
             ? 0
             : Number(
-                editForm.toilets,
-              ),
+              editForm.toilets,
+            ),
 
         parkingSpaces:
           editForm.parkingSpaces ===
-          ''
+            ''
             ? 0
             : Number(
-                editForm.parkingSpaces,
-              ),
+              editForm.parkingSpaces,
+            ),
 
         propertySize:
           editForm.propertySize ===
-          ''
+            ''
             ? null
             : Number(
-                editForm.propertySize,
-              ),
+              editForm.propertySize,
+            ),
 
         price:
           editForm.price === ''
             ? null
             : Number(
-                editForm.price,
-              ),
+              editForm.price,
+            ),
 
         rentAmount:
           editForm.rentAmount ===
-          ''
+            ''
             ? null
             : Number(
-                editForm.rentAmount,
-              ),
+              editForm.rentAmount,
+            ),
 
         serviceCharge:
           editForm.serviceCharge ===
-          ''
+            ''
             ? null
             : Number(
-                editForm.serviceCharge,
-              ),
+              editForm.serviceCharge,
+            ),
 
         agencyFee:
           editForm.agencyFee === ''
             ? null
             : Number(
-                editForm.agencyFee,
-              ),
+              editForm.agencyFee,
+            ),
 
         legalFee:
           editForm.legalFee === ''
             ? null
             : Number(
-                editForm.legalFee,
-              ),
+              editForm.legalFee,
+            ),
 
         cautionDeposit:
           editForm.cautionDeposit ===
-          ''
+            ''
             ? null
             : Number(
-                editForm.cautionDeposit,
-              ),
+              editForm.cautionDeposit,
+            ),
 
         otherCharges:
           editForm.otherCharges ===
-          ''
+            ''
             ? null
             : Number(
-                editForm.otherCharges,
-              ),
+              editForm.otherCharges,
+            ),
 
         // Empty availability date becomes null.
         availabilityDate:
@@ -857,9 +858,9 @@ export default function Listings() {
           (previous: any) =>
             previous
               ? {
-                  ...previous,
-                  featuredLevel,
-                }
+                ...previous,
+                featuredLevel,
+              }
               : previous,
         );
 
@@ -867,12 +868,12 @@ export default function Listings() {
           type: 'success',
           title:
             featuredLevel ===
-            'Standard'
+              'Standard'
               ? 'Listing Unfeatured'
               : 'Listing Featured',
           description:
             featuredLevel ===
-            'Standard'
+              'Standard'
               ? 'The listing is now using Standard visibility.'
               : `The listing is now ${featuredLevel}.`,
         });
@@ -902,9 +903,9 @@ export default function Listings() {
   ) => {
     return (
       listing?.status ===
-        'Published' &&
+      'Published' &&
       listing?.availabilityStatus ===
-        'Available'
+      'Available'
     );
   };
 
@@ -915,7 +916,7 @@ export default function Listings() {
     const currentlyFeatured =
       listing.featuredLevel &&
       listing.featuredLevel !==
-        'Standard';
+      'Standard';
 
     // Unfeature is always allowed so an existing promotion
     // can be removed even after the Property becomes unavailable.
@@ -1121,7 +1122,7 @@ export default function Listings() {
           isOpen: false,
           title: '',
           desc: '',
-          action: () => {},
+          action: () => { },
           confirmText: 'Confirm',
           danger: false,
         });
@@ -1129,14 +1130,12 @@ export default function Listings() {
         showToast({
           type: 'success',
           title: 'Listings Archived',
-          description: `${
-            selectedListings.length
-          } listing${
-            selectedListings.length ===
-            1
+          description: `${selectedListings.length
+            } listing${selectedListings.length ===
+              1
               ? ''
               : 's'
-          } archived successfully.`,
+            } archived successfully.`,
         });
       } catch (error: any) {
         // Log the real backend failure.
@@ -1169,7 +1168,7 @@ export default function Listings() {
                 String(listing._id),
               ) &&
               listing.status ===
-                'Archived',
+              'Archived',
           );
 
         if (
@@ -1199,7 +1198,7 @@ export default function Listings() {
           isOpen: false,
           title: '',
           desc: '',
-          action: () => {},
+          action: () => { },
           confirmText: 'Confirm',
           danger: false,
         });
@@ -1207,12 +1206,11 @@ export default function Listings() {
         showToast({
           type: 'success',
           title: 'Listings Unarchived',
-          description: `${selectedArchivedListings.length} listing${
-            selectedArchivedListings.length ===
-            1
+          description: `${selectedArchivedListings.length} listing${selectedArchivedListings.length ===
+              1
               ? ''
               : 's'
-          } restored successfully.`,
+            } restored successfully.`,
         });
       } catch (error: any) {
         // Log the real backend failure.
@@ -1273,7 +1271,7 @@ export default function Listings() {
           selectedListings.filter(
             (listing) =>
               listing.featuredLevel ===
-                'Standard' &&
+              'Standard' &&
               canFeatureListing(
                 listing,
               ),
@@ -1287,7 +1285,7 @@ export default function Listings() {
             isOpen: false,
             title: '',
             desc: '',
-            action: () => {},
+            action: () => { },
             confirmText: 'Confirm',
             danger: false,
           });
@@ -1329,7 +1327,7 @@ export default function Listings() {
           isOpen: false,
           title: '',
           desc: '',
-          action: () => {},
+          action: () => { },
           confirmText: 'Confirm',
           danger: false,
         });
@@ -1338,14 +1336,12 @@ export default function Listings() {
           type: 'success',
           title:
             'Listings Featured',
-          description: `${
-            eligibleListings.length
-          } listing${
-            eligibleListings.length ===
-            1
+          description: `${eligibleListings.length
+            } listing${eligibleListings.length ===
+              1
               ? ''
               : 's'
-          } set to Premium.`,
+            } set to Premium.`,
         });
       } catch (error: any) {
         // Log the real backend failure.
@@ -1446,8 +1442,8 @@ export default function Listings() {
             isLoadingListings
               ? '—'
               : String(
-                  publishedListings,
-                )
+                publishedListings,
+              )
           }
           trend="Currently published"
           trendColor="text-emerald-400"
@@ -1460,8 +1456,8 @@ export default function Listings() {
             isLoadingListings
               ? '—'
               : String(
-                  assignedListings,
-                )
+                assignedListings,
+              )
           }
           trend="Agent assignment workflow"
           trendColor="text-gold-400"
@@ -1474,8 +1470,8 @@ export default function Listings() {
             isLoadingListings
               ? '—'
               : String(
-                  pendingAssignments,
-                )
+                pendingAssignments,
+              )
           }
           trend="Awaiting Agent assignment"
           trendColor="text-yellow-400"
@@ -1495,77 +1491,77 @@ export default function Listings() {
             <div className="flex gap-2 items-center">
               {selectedIds.size >
                 0 && (
-                <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
-                  <span className="text-sm text-ink/60">
-                    {
-                      selectedIds.size
-                    }{' '}
-                    selected
-                  </span>
+                  <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
+                    <span className="text-sm text-ink/60">
+                      {
+                        selectedIds.size
+                      }{' '}
+                      selected
+                    </span>
 
-                  {/* Real bulk Feature action. */}
-                  <GhostButton
-                    className="px-3 text-xs h-8"
-                    onClick={
-                      requestBulkFeature
-                    }
-                  >
-                    Feature
-                  </GhostButton>
+                    {/* Real bulk Feature action. */}
+                    <GhostButton
+                      className="px-3 text-xs h-8"
+                      onClick={
+                        requestBulkFeature
+                      }
+                    >
+                      Feature
+                    </GhostButton>
 
-                  {/* Use the existing real Agent assignment workflow. */}
-                  <GhostButton
-                    className="px-3 text-xs h-8"
-                    onClick={() => {
-                      const firstSelected =
-                        listings.find(
-                          (listing) =>
-                            selectedIds.has(
-                              String(
-                                listing._id,
+                    {/* Use the existing real Agent assignment workflow. */}
+                    <GhostButton
+                      className="px-3 text-xs h-8"
+                      onClick={() => {
+                        const firstSelected =
+                          listings.find(
+                            (listing) =>
+                              selectedIds.has(
+                                String(
+                                  listing._id,
+                                ),
                               ),
-                            ),
+                          );
+
+                        if (
+                          !firstSelected
+                        ) {
+                          return;
+                        }
+
+                        openAgentAssignment(
+                          firstSelected,
                         );
-
-                      if (
-                        !firstSelected
-                      ) {
-                        return;
-                      }
-
-                      openAgentAssignment(
-                        firstSelected,
-                      );
-                    }}
-                  >
-                    Assign Agent
-                  </GhostButton>
-
-                  {/* Real bulk Unarchive action for selected archived Properties. */}
-                  {hasArchivedSelectedListings && (
-                    <GhostButton
-                      className="px-3 text-xs h-8 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10"
-                      onClick={
-                        requestBulkUnarchive
-                      }
+                      }}
                     >
-                      Unarchive
+                      Assign Agent
                     </GhostButton>
-                  )}
 
-                  {/* Real bulk Archive action for selected active Properties. */}
-                  {hasActiveSelectedListings && (
-                    <GhostButton
-                      className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10"
-                      onClick={
-                        requestBulkArchive
-                      }
-                    >
-                      Archive
-                    </GhostButton>
-                  )}
-                </div>
-              )}
+                    {/* Real bulk Unarchive action for selected archived Properties. */}
+                    {hasArchivedSelectedListings && (
+                      <GhostButton
+                        className="px-3 text-xs h-8 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10"
+                        onClick={
+                          requestBulkUnarchive
+                        }
+                      >
+                        Unarchive
+                      </GhostButton>
+                    )}
+
+                    {/* Real bulk Archive action for selected active Properties. */}
+                    {hasActiveSelectedListings && (
+                      <GhostButton
+                        className="px-3 text-xs h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10"
+                        onClick={
+                          requestBulkArchive
+                        }
+                      >
+                        Archive
+                      </GhostButton>
+                    )}
+                  </div>
+                )}
 
               {/* Open the real filter controls. */}
               <GhostButton
@@ -1728,11 +1724,11 @@ export default function Listings() {
 
                 <div className="text-sm text-ink/60">
                   {searchQuery ||
-                  statusFilter !==
+                    statusFilter !==
                     'All' ||
-                  assignmentFilter !==
+                    assignmentFilter !==
                     'All' ||
-                  propertyTypeFilter !==
+                    propertyTypeFilter !==
                     'All'
                     ? 'No properties match the current search or filters.'
                     : 'No properties found for this Agency.'}
@@ -1759,7 +1755,7 @@ export default function Listings() {
                       className="rounded border-white/20 bg-navy-900 text-gold-400 focus:ring-gold-400/20"
                       checked={
                         filteredListings.length >
-                          0 &&
+                        0 &&
                         filteredListings.every(
                           (
                             listing,
@@ -1838,14 +1834,14 @@ export default function Listings() {
                             <span className="truncate max-w-[260px]">
                               {String(
                                 listing.title ||
-                                  'Untitled Property',
+                                'Untitled Property',
                               )}
                             </span>
 
                             {/* Real featured level from MongoDB. */}
                             {listing.featuredLevel &&
                               listing.featuredLevel !==
-                                'Standard' && (
+                              'Standard' && (
                                 <span className="text-[10px] bg-gold-400/20 text-gold-400 px-1.5 py-0.5 rounded font-bold uppercase">
                                   {
                                     listing.featuredLevel
@@ -1911,7 +1907,7 @@ export default function Listings() {
 
                       {listing.featuredLevel &&
                         listing.featuredLevel !==
-                          'Standard' && (
+                        'Standard' && (
                           <div className="text-[10px] text-gold-400 mt-1">
                             {
                               listing.featuredLevel
@@ -1998,16 +1994,15 @@ export default function Listings() {
                   ) => (
                     <div className="flex items-center gap-1.5">
                       <ShieldCheck
-                        className={`h-4 w-4 ${
-                          listing.verificationLevel ===
-                          'Physical Inspection Completed'
+                        className={`h-4 w-4 ${listing.verificationLevel ===
+                            'Physical Inspection Completed'
                             ? 'text-gold-400'
                             : listing.verificationLevel &&
-                                listing.verificationLevel !==
-                                  'Unverified'
+                              listing.verificationLevel !==
+                              'Unverified'
                               ? 'text-emerald-400'
                               : 'text-ink/40'
-                        }`}
+                          }`}
                       />
 
                       <span className="text-xs text-cream">
@@ -2058,7 +2053,7 @@ export default function Listings() {
 
                       {/* Archived Properties can be restored; active Properties can be archived. */}
                       {listing.status ===
-                      'Archived' ? (
+                        'Archived' ? (
                         <button
                           onClick={() =>
                             requestUnarchive(
@@ -2102,14 +2097,12 @@ export default function Listings() {
         title={
           selectedListing
             ? isEditMode
-              ? `Edit: ${
-                  selectedListing.title ||
-                  'Property'
-                }`
-              : `Listing: ${
-                  selectedListing.title ||
-                  'Property'
-                }`
+              ? `Edit: ${selectedListing.title ||
+              'Property'
+              }`
+              : `Listing: ${selectedListing.title ||
+              'Property'
+              }`
             : 'Listing Details'
         }
         footerActions={
@@ -2148,7 +2141,7 @@ export default function Listings() {
           ) : (
             <div className="flex gap-3 w-full">
               {selectedListing?.status ===
-              'Archived' ? (
+                'Archived' ? (
                 <GoldButton
                   className="flex-1"
                   onClick={() =>
@@ -2160,7 +2153,7 @@ export default function Listings() {
                   Unarchive
                 </GoldButton>
               ) : selectedListing?.featuredLevel &&
-              selectedListing.featuredLevel !==
+                selectedListing.featuredLevel !==
                 'Standard' ? (
                 // Existing Premium/Exclusive listing:
                 // allow the Agency to remove the promotion.
@@ -2175,8 +2168,8 @@ export default function Listings() {
                   Unfeature
                 </GoldButton>
               ) : canFeatureListing(
-                  selectedListing,
-                ) ? (
+                selectedListing,
+              ) ? (
                 // Only Published + Available listings can be newly featured.
                 <GoldButton
                   className="flex-1"
@@ -2338,7 +2331,7 @@ export default function Listings() {
                           <input
                             value={
                               editForm[
-                                field
+                              field
                               ] || ''
                             }
                             onChange={(
@@ -2430,7 +2423,7 @@ export default function Listings() {
                             min="0"
                             value={
                               editForm[
-                                field
+                              field
                               ]
                             }
                             onChange={(
@@ -3019,8 +3012,8 @@ export default function Listings() {
                       <span className="font-medium text-cream text-right">
                         {selectedListing.assignedAt
                           ? new Date(
-                              selectedListing.assignedAt,
-                            ).toLocaleString()
+                            selectedListing.assignedAt,
+                          ).toLocaleString()
                           : 'Not assigned'}
                       </span>
                     </div>
@@ -3069,7 +3062,7 @@ export default function Listings() {
                       <EnterpriseStatusBadge
                         status={String(
                           selectedListing.status ||
-                            'Unknown',
+                          'Unknown',
                         )}
                       />
                     </div>
@@ -3103,8 +3096,8 @@ export default function Listings() {
                       <span className="font-medium text-cream text-right">
                         {selectedListing.availabilityDate
                           ? new Date(
-                              selectedListing.availabilityDate,
-                            ).toLocaleDateString()
+                            selectedListing.availabilityDate,
+                          ).toLocaleDateString()
                           : 'Not provided'}
                       </span>
                     </div>
@@ -3136,8 +3129,8 @@ export default function Listings() {
                       <span className="font-medium text-cream text-right">
                         {selectedListing.createdAt
                           ? new Date(
-                              selectedListing.createdAt,
-                            ).toLocaleString()
+                            selectedListing.createdAt,
+                          ).toLocaleString()
                           : 'Not available'}
                       </span>
                     </div>
@@ -3150,8 +3143,8 @@ export default function Listings() {
                       <span className="font-medium text-cream text-right">
                         {selectedListing.updatedAt
                           ? new Date(
-                              selectedListing.updatedAt,
-                            ).toLocaleString()
+                            selectedListing.updatedAt,
+                          ).toLocaleString()
                           : 'Not available'}
                       </span>
                     </div>
@@ -3186,8 +3179,8 @@ export default function Listings() {
         propertyLocation={
           assignmentListing
             ? formatLocation(
-                assignmentListing,
-              )
+              assignmentListing,
+            )
             : ''
         }
         onAssignmentComplete={
@@ -3210,12 +3203,12 @@ export default function Listings() {
                 )
                   ? rawResponse.properties
                   : Array.isArray(
-                        rawResponse
-                          ?.data
-                          ?.properties,
-                      )
+                    rawResponse
+                      ?.data
+                      ?.properties,
+                  )
                     ? rawResponse.data
-                        .properties
+                      .properties
                     : [];
 
               const updated =

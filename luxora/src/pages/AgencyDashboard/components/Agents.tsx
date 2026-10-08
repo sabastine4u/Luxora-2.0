@@ -52,6 +52,9 @@ export default function Agents() {
 
   // Track Property loading independently from Agent loading.
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
+  
+  // Preserve the property loading state for the existing dashboard workflow.
+void isLoadingProperties;
 
   // Controls which Agent action menu is currently open.
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -125,7 +128,7 @@ export default function Agents() {
       // Remove selections for Agents that no longer exist.
       setSelectedIds((previousSelection) => {
         const availableIds = new Set(
-          mappedAgents.map((agent) => String(agent.id))
+         mappedAgents.map((agent: AgencyAgent) => String(agent.id))
         );
 
         return new Set(

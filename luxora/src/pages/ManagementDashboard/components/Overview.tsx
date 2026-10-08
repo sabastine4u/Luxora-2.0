@@ -3,7 +3,6 @@ import {
   Activity,
   Users,
   CheckCircle2,
-  Megaphone,
   Target,
   FileText,
   Calendar,
@@ -14,7 +13,6 @@ import {
   Zap,
   MessageSquare,
   Briefcase,
-  ListTodo,
   ShieldAlert,
 } from "lucide-react";
 

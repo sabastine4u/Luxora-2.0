@@ -180,6 +180,8 @@ export default function Performance() {
       1,
     );
   }, [propertyDistribution]);
+  void maxPropertyCount;
+  
 
   return (
     <div className="space-y-6">

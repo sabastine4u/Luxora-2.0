@@ -12,7 +12,6 @@ import {
   Target,
   AlertCircle,
   Mail,
-  TrendingUp,
   Zap,
   Heart,
   Clock,
@@ -482,6 +481,7 @@ export default function Overview() {
         start.getTime(),
     );
   }, [leads]);
+  void newLeadsToday;
 
   /*
    * Follow-up queue based on the actual Lead

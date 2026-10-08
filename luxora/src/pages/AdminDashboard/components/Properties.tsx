@@ -709,6 +709,8 @@ export default function Properties() {
         property.lifecycleStatus ===
         'Sold',
     ).length;
+   // Preserve this real lifecycle metric for the existing dashboard model.
+void soldListings;
 
   const pendingReviewListings =
     properties.filter(

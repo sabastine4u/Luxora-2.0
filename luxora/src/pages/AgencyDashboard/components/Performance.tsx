@@ -6,7 +6,6 @@ import {
   Activity,
   Star,
   DollarSign,
-  ArrowUpRight,
   PieChart,
 } from 'lucide-react';
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';

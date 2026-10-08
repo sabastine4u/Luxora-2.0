@@ -278,22 +278,7 @@ export default function Clients() {
     ],
   );
 
-  // Keep the existing workflow drawer for future CRM actions.
-  const handleAction = (
-    title: string,
-    type: string,
-    data?: Record<
-      string,
-      unknown
-    >,
-  ) => {
-    setActiveWorkflow({
-      title,
-      type,
-      data,
-    });
-  };
-
+ 
   // Keep workflow confirmation behavior until real CRM mutations are implemented.
   const executeWorkflow = () => {
     showToast({

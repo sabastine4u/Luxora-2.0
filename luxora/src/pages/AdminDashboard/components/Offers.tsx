@@ -4,7 +4,6 @@ import {
   FileCheck,
   XCircle,
   User,
-  MessageSquare,
   TrendingUp,
   Handshake,
 } from 'lucide-react';

@@ -67,7 +67,6 @@ const copyToClipboard = async (text: string) => {
 
 export default function SavedProperties() {
   const {
-    favoriteProperties: savedProperties,
     favoriteRecords,
     toggleFavorite,
   } = useFavorites();
@@ -211,9 +210,9 @@ export default function SavedProperties() {
       lastSaved:
         lastSaved.length > 20
           ? `${lastSaved.substring(
-              0,
-              20,
-            )}...`
+            0,
+            20,
+          )}...`
           : lastSaved,
       premiumCount,
       totalValue: formatPrice(
@@ -481,7 +480,7 @@ export default function SavedProperties() {
             title: 'Link Copied',
             description:
               selectedProperties.length ===
-              1
+                1
                 ? 'The property link was copied to your clipboard.'
                 : 'The selected property links were copied to your clipboard.',
           });
@@ -490,7 +489,7 @@ export default function SavedProperties() {
         case 'Email': {
           const subject =
             selectedProperties.length ===
-            1
+              1
               ? `Luxora Property: ${selectedProperties[0].title}`
               : `Luxora Saved Properties (${selectedProperties.length})`;
 
@@ -634,7 +633,7 @@ export default function SavedProperties() {
               className="text-xs font-semibold text-gold-400 transition-colors hover:text-gold-300"
             >
               {selectedIds.size ===
-              filteredAndSortedProps.length
+                filteredAndSortedProps.length
                 ? 'Deselect All'
                 : 'Select All'}
             </button>
@@ -833,11 +832,10 @@ export default function SavedProperties() {
           handleBulkRemoveConfirm
         }
         title="Remove Saved Properties"
-        message={`Are you sure you want to remove ${selectedIds.size} propert${
-          selectedIds.size === 1
+        message={`Are you sure you want to remove ${selectedIds.size} propert${selectedIds.size === 1
             ? 'y'
             : 'ies'
-        } from your favorites?`}
+          } from your favorites?`}
         confirmText="Remove"
         type="danger"
       />

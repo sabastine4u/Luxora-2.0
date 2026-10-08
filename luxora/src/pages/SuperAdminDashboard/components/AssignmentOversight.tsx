@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { DashboardHeader } from '../../../components/dashboard/shared/headers/DashboardHeader';
 import { KPICard } from '../../../components/dashboard/shared/cards/KPICard';
-import { GoldButton, GhostButton } from '../../../components/ui/ui';
+import { GhostButton } from '../../../components/ui/ui';
 import { adminApi } from '../../../api/admin.api';
 
 interface AssignmentProperty {

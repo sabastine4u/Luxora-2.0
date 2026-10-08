@@ -5,7 +5,6 @@ import {
   BarChart3,
   Percent,
   TrendingUp,
-  Loader2,
 } from 'lucide-react';
 
 import {

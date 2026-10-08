@@ -158,6 +158,10 @@ interface AgentPropertyRecord {
   images?: string[];
   coverImage?: string | null;
 
+  documents?: Array<{
+    url?: string | null;
+  }>;
+
   videoUrl?: string | null;
   virtualTourUrl?: string | null;
   brochureUrl?: string | null;
@@ -883,7 +887,9 @@ export default function CreateListingPage() {
                 property.documents,
               )
                 ? property.documents.map(
-                  (document) =>
+                  (document: {
+                    url?: string | null;
+                  }) =>
                     String(
                       document?.url ||
                       '',

@@ -94,6 +94,12 @@ const publishedProperties = properties.filter(
     String(property.status || '').toLowerCase() === 'published'
 ).length;
 
+// Preserve the real summary metrics without changing the current UI.
+void totalProperties;
+void pendingAgencyAssignments;
+void agentAssignedProperties;
+void publishedProperties;
+
   // Open the detail drawer for the selected real Property.
   const handleView = (property: any) => {
     setSelectedProperty(property);

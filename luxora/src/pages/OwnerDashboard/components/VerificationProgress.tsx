@@ -326,9 +326,9 @@ export default function VerificationProgress() {
           if (
             currentId &&
             mappedVerifications.some(
-              (property) =>
-                property.id === currentId,
-            )
+  (property: (typeof mappedVerifications)[number]) =>
+    property.id === currentId,
+)
           ) {
             return currentId;
           }

@@ -374,7 +374,7 @@ export default function Performance() {
               ? '—'
               : performance?.summary.csatScore === null
                 ? 'N/A'
-                : `${performance.summary.csatScore}/5`,
+                : `${performance?.summary.csatScore}/5`,
             delta: loading ? '—' : '',
             icon: Star,
             color: 'text-amber-400',
@@ -452,8 +452,8 @@ export default function Performance() {
                 className="h-full bg-gold-gradient rounded-full transition-all duration-500"
                 style={{
                   width: `${salesTargetProgress !== null
-                      ? Math.min(Math.max(salesTargetProgress, 0), 100)
-                      : 0
+                    ? Math.min(Math.max(salesTargetProgress, 0), 100)
+                    : 0
                     }%`,
                 }}
               />
@@ -474,7 +474,7 @@ export default function Performance() {
                   : performance?.salesTarget.remaining === null
                     ? 'Target not set'
                     : `${formatCurrency(
-                      performance.salesTarget.remaining
+                      performance?.salesTarget.remaining
                     )} Remaining`}
               </span>
             </div>
@@ -506,7 +506,7 @@ export default function Performance() {
                   : performance?.salesTarget.projectedValue === null
                     ? 'Not available'
                     : formatCurrency(
-                      performance.salesTarget.projectedValue
+                      performance?.salesTarget.projectedValue
                     )}
               </div>
             </div>
@@ -680,7 +680,7 @@ export default function Performance() {
                   : performance?.commissionOverview.expected === null
                     ? 'Not available'
                     : formatCurrency(
-                      performance.commissionOverview.expected
+                      performance?.commissionOverview.expected
                     )}
               </span>
             </div>
@@ -757,7 +757,7 @@ export default function Performance() {
                   ? '—'
                   : performance?.satisfaction.score === null
                     ? 'N/A'
-                    : performance.satisfaction.score}
+                    : performance?.satisfaction.score}
               </div>
 
               <div className="flex justify-center gap-1 text-gold-400 mb-1">
@@ -793,7 +793,7 @@ export default function Performance() {
                   ? '—'
                   : performance?.satisfaction.positiveFeedback === null
                     ? 'N/A'
-                    : `${performance.satisfaction.positiveFeedback}%`}
+                    : `${performance?.satisfaction.positiveFeedback}%`}
               </div>
 
               <div className="text-xs text-ink/50">
@@ -807,7 +807,7 @@ export default function Performance() {
                   ? '—'
                   : performance?.satisfaction.repeatClients === null
                     ? 'N/A'
-                    : performance.satisfaction.repeatClients}
+                    : performance?.satisfaction.repeatClients}
               </div>
 
               <div className="text-xs text-ink/50">
@@ -841,7 +841,7 @@ export default function Performance() {
                   ? '—'
                   : performance?.productivity.callsMade === null
                     ? 'N/A'
-                    : String(performance.productivity.callsMade),
+                    : String(performance?.productivity.callsMade),
                 icon: Phone,
               },
               {
@@ -850,7 +850,7 @@ export default function Performance() {
                   ? '—'
                   : performance?.productivity.messagesSent === null
                     ? 'N/A'
-                    : String(performance.productivity.messagesSent),
+                    : String(performance?.productivity.messagesSent),
                 icon: MessageSquare,
               },
               {
@@ -886,25 +886,27 @@ export default function Performance() {
               <div className="text-xl font-bold text-gold-400">
                 {loading
                   ? '—'
-                  : performance?.productivity.averageResponseMinutes === null
-                    ? 'N/A'
-                    : (() => {
-                      const minutes =
-                        performance.productivity.averageResponseMinutes;
+                  : (() => {
+                    const minutes =
+                      performance?.productivity.averageResponseMinutes;
 
-                      const hours = Math.floor(minutes / 60);
-                      const remainingMinutes = minutes % 60;
+                    if (minutes == null) {
+                      return 'N/A';
+                    }
 
-                      if (hours === 0) {
-                        return `${remainingMinutes}m`;
-                      }
+                    const hours = Math.floor(minutes / 60);
+                    const remainingMinutes = minutes % 60;
 
-                      if (remainingMinutes === 0) {
-                        return `${hours}h`;
-                      }
+                    if (hours === 0) {
+                      return `${remainingMinutes}m`;
+                    }
 
-                      return `${hours}h ${remainingMinutes}m`;
-                    })()}
+                    if (remainingMinutes === 0) {
+                      return `${hours}h`;
+                    }
+
+                    return `${hours}h ${remainingMinutes}m`;
+                  })()}
               </div>
             </div>
           </div>
@@ -929,7 +931,7 @@ export default function Performance() {
                 ? '—'
                 : performance?.leaderboard.rank === null
                   ? 'N/A'
-                  : `#${performance.leaderboard.rank}`}
+                  : `#${performance?.leaderboard.rank}`}
             </div>
 
             <div className="text-xs text-cream/80 relative z-10">
@@ -937,7 +939,7 @@ export default function Performance() {
                 ? 'Loading ranking...'
                 : performance?.leaderboard.rank === null
                   ? 'Ranking unavailable'
-                  : `Top ranking among ${performance.leaderboard.totalAgents} agency agents`}
+                  : `Top ranking among ${performance?.leaderboard.totalAgents} agency agents`}
             </div>
           </div>
 
@@ -963,15 +965,15 @@ export default function Performance() {
                   <div
                     key={agent.id}
                     className={`flex items-center justify-between rounded-xl p-3 text-sm ${isCurrentAgent
-                        ? 'bg-navy-900 border border-gold-400/30 shadow-lg'
-                        : 'border border-white/5'
+                      ? 'bg-navy-900 border border-gold-400/30 shadow-lg'
+                      : 'border border-white/5'
                       }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-6 text-center font-bold ${isCurrentAgent
-                            ? 'text-gold-400'
-                            : 'text-ink/40'
+                          ? 'text-gold-400'
+                          : 'text-ink/40'
                           }`}
                       >
                         {i + 1}
@@ -979,8 +981,8 @@ export default function Performance() {
 
                       <div
                         className={`font-semibold ${isCurrentAgent
-                            ? 'text-gold-400'
-                            : 'text-cream'
+                          ? 'text-gold-400'
+                          : 'text-cream'
                           }`}
                       >
                         {isCurrentAgent ? 'You' : agent.name}
@@ -1076,10 +1078,10 @@ export default function Performance() {
               render: (prop) => (
                 <span
                   className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${prop.status === 'Sold'
-                      ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10'
-                      : prop.status === 'Pending'
-                        ? 'text-gold-400 border-gold-400/20 bg-gold-400/10'
-                        : 'text-blue-400 border-blue-400/20 bg-blue-400/10'
+                    ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10'
+                    : prop.status === 'Pending'
+                      ? 'text-gold-400 border-gold-400/20 bg-gold-400/10'
+                      : 'text-blue-400 border-blue-400/20 bg-blue-400/10'
                     }`}
                 >
                   {prop.status}

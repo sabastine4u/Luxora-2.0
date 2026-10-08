@@ -225,7 +225,7 @@ const display = (
  * Finance sees the same persistent Deal records created from accepted Offers.
  */
 
-function FinanceDealTransactionsView() {
+export function FinanceDealTransactionsView() {
   const {
     showToast,
   } = useToast();

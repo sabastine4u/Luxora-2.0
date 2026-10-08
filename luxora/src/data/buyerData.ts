@@ -111,8 +111,9 @@ export const mockOffers: Offer[] = [
 
 export const mockViewings: ViewingRequest[] = [
   { 
-    id: 1, 
-    propertyTitle: 'Skyline Penthouse', 
+    id: 1,
+    propertyId: '1',
+    propertyTitle: 'Skyline Penthouse',
     location: 'Eko Atlantic, Lagos', 
     propertyType: 'Penthouse',
     date: '2025-10-25', 
@@ -126,9 +127,10 @@ export const mockViewings: ViewingRequest[] = [
     specialRequests: 'None',
     summary: 'A luxurious penthouse offering panoramic views of the Atlantic.'
   },
-  { 
-    id: 2, 
-    propertyTitle: 'Garden Court Villa', 
+    { 
+    id: 2,
+    propertyId: '2',
+    propertyTitle: 'Garden Court Villa',
     location: 'Banana Island, Lagos', 
     propertyType: 'Villa',
     date: '2025-10-28', 
@@ -142,9 +144,10 @@ export const mockViewings: ViewingRequest[] = [
     specialRequests: 'Wheelchair access required',
     summary: 'Spacious 5-bedroom villa with private garden and pool.'
   },
-  { 
-    id: 3, 
-    propertyTitle: 'Aurora Smart Studio', 
+    { 
+    id: 3,
+    propertyId: '3',
+    propertyTitle: 'Aurora Smart Studio',
     location: 'Yaba, Lagos', 
     propertyType: 'Apartment',
     date: '2025-10-20', 
@@ -158,9 +161,10 @@ export const mockViewings: ViewingRequest[] = [
     specialRequests: '',
     summary: 'Modern smart studio ideal for young professionals.'
   },
-  { 
-    id: 4, 
-    propertyTitle: 'Lekki Beachfront Condo', 
+    { 
+    id: 4,
+    propertyId: '4',
+    propertyTitle: 'Lekki Beachfront Condo',
     location: 'Lekki Phase 1, Lagos', 
     propertyType: 'Condo',
     date: '2025-10-15', 
@@ -174,9 +178,10 @@ export const mockViewings: ViewingRequest[] = [
     specialRequests: 'None',
     summary: 'Luxury beachfront condo with exclusive amenities.'
   },
-  { 
-    id: 5, 
-    propertyTitle: 'Ikoyi Heritage Home', 
+   { 
+    id: 5,
+    propertyId: '5',
+    propertyTitle: 'Ikoyi Heritage Home',
     location: 'Ikoyi, Lagos', 
     propertyType: 'House',
     date: '2025-11-02', 

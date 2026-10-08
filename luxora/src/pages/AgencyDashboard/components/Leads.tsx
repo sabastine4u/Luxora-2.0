@@ -222,6 +222,11 @@ export default function Leads() {
           inquiry.status || 'New',
         ),
 
+                score:
+          typeof inquiry.score === 'number'
+            ? inquiry.score
+            : 0,
+
         agent: String(
           inquiry.agent?.fullName ||
           'Unassigned',
@@ -464,6 +469,9 @@ export default function Leads() {
     setMessageError(null);
     setMessageModalOpen(true);
   };
+
+  // Keep the Lead drawer action wired to the existing real message composer.
+const handleMessageLead = openMessageModal;
 
   // Send the message using the real
   // Conversation + Message APIs.

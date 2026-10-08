@@ -71,6 +71,9 @@ export interface User {
       offers?: boolean;
       viewingRequests?: boolean;
       messages?: boolean;
+      operationalAlerts?: boolean;
+      approvalRequests?: boolean;
+      performanceUpdates?: boolean;
     };
 
     regional?: {
@@ -628,7 +631,9 @@ export function SessionProvider({
       ]);
       const listPayload = getApiPayload(listResponse);
       const unreadPayload = getApiPayload(unreadResponse);
-      const incoming = Array.isArray(listPayload?.notifications)
+      const incoming: Notification[] = Array.isArray(
+        listPayload?.notifications,
+      )
         ? listPayload.notifications.map(normalizeRestNotification)
         : [];
 

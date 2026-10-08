@@ -50,21 +50,8 @@ interface AppointmentRecord {
 
   location: string;
 
-  status:
-    | 'Pending'
-    | 'Confirmed'
-    | 'Rescheduled'
-    | 'Completed'
-    | 'Cancelled'
-    | 'Rejected';
-
-  appointmentStatus:
-    | 'Pending'
-    | 'Confirmed'
-    | 'Rescheduled'
-    | 'Completed'
-    | 'Cancelled'
-    | 'Rejected';
+ status: string;
+appointmentStatus: string;
 
   priority: string;
   source: string;

@@ -34,6 +34,22 @@ const escapeHtml = (value: unknown) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
+
+    type OwnerAnalyticsPropertyExportRow = {
+  title: string;
+  status: string;
+  views: number;
+  favorites: number;
+  viewings: number;
+  offers: number;
+  acceptedOffers: number;
+};
+
+type OwnerAnalyticsIncomeExportRow = {
+  month: string;
+  income: number;
+};
+
 const downloadBlob = (blob: Blob, fileName: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -490,9 +506,9 @@ export default function Analytics() {
       const generatedAt =
         new Date().toISOString();
 
-      const propertyRows =
-        topProperties.map(
-          (property: any) => ({
+      const propertyRows: OwnerAnalyticsPropertyExportRow[] =
+  topProperties.map(
+    (property: any) => ({
             title:
               property.title ||
               'Property',
@@ -525,12 +541,12 @@ export default function Analytics() {
           }),
         );
 
-      const monthlyIncomeRows =
-        (
-          analytics?.monthlyRentalIncome ??
-          []
-        ).map(
-          (item: any) => ({
+      const monthlyIncomeRows: OwnerAnalyticsIncomeExportRow[] =
+  (
+    analytics?.monthlyRentalIncome ??
+    []
+  ).map(
+    (item: any) => ({
             month:
               item.month ?? '—',
             income: Number(

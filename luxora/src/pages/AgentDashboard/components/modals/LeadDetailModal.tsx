@@ -155,8 +155,8 @@ export function LeadDetailModal({
       setScheduledDate(
         lead.scheduledDate
           ? formatDateInput(
-              String(lead.scheduledDate),
-            )
+            String(lead.scheduledDate),
+          )
           : '',
       );
 
@@ -209,10 +209,10 @@ export function LeadDetailModal({
   // Read the populated Property object preserved by the parent Leads page.
   const property = (
     currentLead?.propertyData &&
-    typeof currentLead.propertyData === 'object'
+      typeof currentLead.propertyData === 'object'
       ? currentLead.propertyData
       : currentLead?.property &&
-          typeof currentLead.property === 'object'
+        typeof currentLead.property === 'object'
         ? currentLead.property
         : null
   ) as Record<string, unknown> | null;
@@ -220,10 +220,10 @@ export function LeadDetailModal({
   // Read the populated Agency object preserved by the parent Leads page.
   const agency = (
     currentLead?.agencyData &&
-    typeof currentLead.agencyData === 'object'
+      typeof currentLead.agencyData === 'object'
       ? currentLead.agencyData
       : currentLead?.agency &&
-          typeof currentLead.agency === 'object'
+        typeof currentLead.agency === 'object'
         ? currentLead.agency
         : null
   ) as Record<string, unknown> | null;
@@ -231,10 +231,10 @@ export function LeadDetailModal({
   // Read the populated Owner object preserved by the parent Leads page.
   const owner = (
     currentLead?.ownerData &&
-    typeof currentLead.ownerData === 'object'
+      typeof currentLead.ownerData === 'object'
       ? currentLead.ownerData
       : currentLead?.owner &&
-          typeof currentLead.owner === 'object'
+        typeof currentLead.owner === 'object'
         ? currentLead.owner
         : null
   ) as Record<string, unknown> | null;
@@ -276,9 +276,9 @@ export function LeadDetailModal({
               'text-gold-400';
           } else if (
             action ===
-              'Viewing Scheduled' ||
+            'Viewing Scheduled' ||
             action ===
-              'Viewing Rescheduled'
+            'Viewing Rescheduled'
           ) {
             Icon = Calendar;
             color =
@@ -458,7 +458,7 @@ export function LeadDetailModal({
         await agentApi.updateLeadStatus(
           String(
             currentLead._id ||
-              currentLead.id,
+            currentLead.id,
           ),
           selectedStatus,
           statusNote.trim(),
@@ -517,7 +517,7 @@ export function LeadDetailModal({
         await agentApi.addLeadNote(
           String(
             currentLead._id ||
-              currentLead.id,
+            currentLead.id,
           ),
           newNote.trim(),
         );
@@ -584,7 +584,7 @@ export function LeadDetailModal({
           await agentApi.scheduleLeadViewing(
             String(
               currentLead._id ||
-                currentLead.id,
+              currentLead.id,
             ),
             scheduledDate,
             scheduledTime,
@@ -658,7 +658,7 @@ export function LeadDetailModal({
           <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gold-gradient text-4xl font-bold text-navy-900 shrink-0">
             {String(
               currentLead.name ||
-                'L',
+              'L',
             )
               .charAt(0)
               .toUpperCase()}
@@ -669,7 +669,7 @@ export function LeadDetailModal({
               <h2 className="text-2xl font-bold text-cream flex items-center gap-2">
                 {String(
                   currentLead.name ||
-                    'Unknown Lead',
+                  'Unknown Lead',
                 )}
               </h2>
 
@@ -678,7 +678,7 @@ export function LeadDetailModal({
                   <Mail className="h-3.5 w-3.5" />
                   {String(
                     currentLead.email ||
-                      'N/A',
+                    'N/A',
                   )}
                 </span>
 
@@ -686,7 +686,7 @@ export function LeadDetailModal({
                   <Phone className="h-3.5 w-3.5" />
                   {String(
                     currentLead.phone ||
-                      'N/A',
+                    'N/A',
                   )}
                 </span>
               </div>
@@ -696,7 +696,7 @@ export function LeadDetailModal({
               <StatusBadge
                 status={String(
                   currentLead.status ||
-                    'New',
+                  'New',
                 )}
               />
 
@@ -704,7 +704,7 @@ export function LeadDetailModal({
                 Source:{' '}
                 {String(
                   currentLead.source ||
-                    'Unknown',
+                  'Unknown',
                 )}
               </span>
             </div>
@@ -924,17 +924,16 @@ export function LeadDetailModal({
               onClick={() =>
                 setActiveTab(
                   tab.id as
-                    | 'profile'
-                    | 'timeline'
-                    | 'notes',
+                  | 'profile'
+                  | 'timeline'
+                  | 'notes',
                 )
               }
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab ===
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab ===
                 tab.id
-                  ? 'border-gold-400 text-gold-400'
-                  : 'border-transparent text-ink/60 hover:text-cream hover:border-white/20'
-              }`}
+                ? 'border-gold-400 text-gold-400'
+                : 'border-transparent text-ink/60 hover:text-cream hover:border-white/20'
+                }`}
             >
               {tab.label}
             </button>
@@ -944,462 +943,461 @@ export function LeadDetailModal({
         {/* Profile Tab */}
         {activeTab ===
           'profile' && (
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              {/* Real Lead / Property Information */}
-              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-                <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
-                  <Target className="h-4 w-4 text-ink/60" />
-                  Lead & Property Information
-                </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                {/* Real Lead / Property Information */}
+                <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                  <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-ink/60" />
+                    Lead & Property Information
+                  </h3>
 
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Message
-                    </span>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Message
+                      </span>
 
-                    <span className="text-cream leading-relaxed">
-                      {String(
-                        currentLead.message ||
-                          'No message provided.',
-                      )}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Interested In
-                    </span>
-
-                    <span className="text-cream flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-gold-400" />
-
-                      {String(
-                        property?.title ||
-                          currentLead.property ||
-                          'Property unavailable',
-                      )}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Location
-                    </span>
-
-                    <span className="text-cream flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gold-400" />
-
-                      {leadLocation ||
-                        'Location unavailable'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Property Transaction
-                    </span>
-
-                    <span className="text-cream capitalize">
-                      {String(
-                        property?.transactionType ||
-                          'Not specified',
-                      )}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Lead Created
-                    </span>
-
-                    <span className="text-cream">
-                      {formatDateTime(
-                        String(
-                          currentLead.createdAt ||
-                            '',
-                        ),
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Real Lead Status Management */}
-              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-                <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-ink/60" />
-                  Lead Status
-                </h3>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-2">
-                      Current Status
-                    </label>
-
-                    <select
-                      value={
-                        selectedStatus
-                      }
-                      onChange={(
-                        event,
-                      ) =>
-                        setSelectedStatus(
-                          event.target
-                            .value,
-                        )
-                      }
-                      className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream outline-none focus:border-gold-400"
-                    >
-                      {LEAD_STATUSES.map(
-                        (
-                          status,
-                        ) => (
-                          <option
-                            key={
-                              status
-                            }
-                            value={
-                              status
-                            }
-                            className="bg-navy-900"
-                          >
-                            {
-                              status
-                            }
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-2">
-                      Status Note
-                    </label>
-
-                    <textarea
-                      value={
-                        statusNote
-                      }
-                      onChange={(
-                        event,
-                      ) =>
-                        setStatusNote(
-                          event.target
-                            .value,
-                        )
-                      }
-                      rows={3}
-                      placeholder="Optional context for this status change..."
-                      className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 resize-none"
-                    />
-                  </div>
-
-                  <GhostButton
-                    onClick={
-                      handleUpdateStatus
-                    }
-                    disabled={
-                      isSubmitting
-                    }
-                    className="w-full"
-                  >
-                    {isSubmitting
-                      ? 'Saving...'
-                      : 'Save Status'}
-                  </GhostButton>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {/* Real Viewing Scheduler */}
-              <div
-                id="lead-viewing-section"
-                className="rounded-xl border border-white/5 bg-navy-900/50 p-4"
-              >
-                <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-ink/60" />
-                  Viewing
-                </h3>
-
-                {hasViewingScheduled && (
-                  <div className="mb-4 rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3">
-                    <div className="text-xs text-emerald-400 mb-1">
-                      Current Appointment
-                    </div>
-
-                    <div className="text-sm text-cream">
-                      {formatDateTime(
-                        String(
-                          currentLead.scheduledDate ||
-                            '',
-                        ),
-                      )}
-                    </div>
-
-                    <div className="text-sm text-cream mt-1 flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 text-emerald-400" />
-
-                      {String(
-                        currentLead.scheduledTime ||
-                          '',
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-2">
-                      Viewing Date
-                    </label>
-
-                    <input
-                      type="date"
-                      value={
-                        scheduledDate
-                      }
-                      onChange={(
-                        event,
-                      ) =>
-                        setScheduledDate(
-                          event.target
-                            .value,
-                        )
-                      }
-                      className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream outline-none focus:border-gold-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-2">
-                      Viewing Time
-                    </label>
-
-                    <input
-                      type="text"
-                      value={
-                        scheduledTime
-                      }
-                      onChange={(
-                        event,
-                      ) =>
-                        setScheduledTime(
-                          event.target
-                            .value,
-                        )
-                      }
-                      placeholder="e.g. 4:00 PM"
-                      className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-2">
-                      Viewing Note
-                    </label>
-
-                    <textarea
-                      value={
-                        viewingNote
-                      }
-                      onChange={(
-                        event,
-                      ) =>
-                        setViewingNote(
-                          event.target
-                            .value,
-                        )
-                      }
-                      rows={2}
-                      placeholder="Optional appointment note..."
-                      className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 resize-none"
-                    />
-                  </div>
-
-                  <GoldButton
-                    onClick={
-                      handleScheduleViewing
-                    }
-                    disabled={
-                      isSubmitting
-                    }
-                    className="w-full"
-                  >
-                    {isSubmitting
-                      ? 'Saving...'
-                      : hasViewingScheduled
-                        ? 'Reschedule Viewing'
-                        : 'Schedule Viewing'}
-                  </GoldButton>
-                </div>
-              </div>
-
-              {/* Real Related Entities */}
-              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-                <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
-                  <User className="h-4 w-4 text-ink/60" />
-                  Related Entities
-                </h3>
-
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Assigned Agent
-                    </span>
-
-                    <span className="text-cream">
-                      Current Agent
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Agency
-                    </span>
-
-                    <span className="text-cream">
-                      {String(
-                        agency?.name ||
-                          'Agency unavailable',
-                      )}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="block text-ink/60 text-xs mb-1">
-                      Property Owner
-                    </span>
-
-                    <span className="text-cream">
-                      {String(
-                        owner?.fullName ||
-                          'Owner unavailable',
-                      )}
-                    </span>
-
-                    {owner?.email && (
-                      <span className="block text-xs text-ink/50 mt-1">
+                      <span className="text-cream leading-relaxed">
                         {String(
-                          owner.email,
+                          currentLead.message ||
+                          'No message provided.',
                         )}
                       </span>
-                    )}
+                    </div>
+
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Interested In
+                      </span>
+
+                      <span className="text-cream flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-gold-400" />
+
+                        {String(
+                          property?.title ||
+                          currentLead.property ||
+                          'Property unavailable',
+                        )}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Location
+                      </span>
+
+                      <span className="text-cream flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gold-400" />
+
+                        {leadLocation ||
+                          'Location unavailable'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Property Transaction
+                      </span>
+
+                      <span className="text-cream capitalize">
+                        {String(
+                          property?.transactionType ||
+                          'Not specified',
+                        )}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Lead Created
+                      </span>
+
+                      <span className="text-cream">
+                        {formatDateTime(
+                          String(
+                            currentLead.createdAt ||
+                            '',
+                          ),
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real Lead Status Management */}
+                <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                  <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-ink/60" />
+                    Lead Status
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs text-ink/60 mb-2">
+                        Current Status
+                      </label>
+
+                      <select
+                        value={
+                          selectedStatus
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          setSelectedStatus(
+                            event.target
+                              .value,
+                          )
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream outline-none focus:border-gold-400"
+                      >
+                        {LEAD_STATUSES.map(
+                          (
+                            status,
+                          ) => (
+                            <option
+                              key={
+                                status
+                              }
+                              value={
+                                status
+                              }
+                              className="bg-navy-900"
+                            >
+                              {
+                                status
+                              }
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-ink/60 mb-2">
+                        Status Note
+                      </label>
+
+                      <textarea
+                        value={
+                          statusNote
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          setStatusNote(
+                            event.target
+                              .value,
+                          )
+                        }
+                        rows={3}
+                        placeholder="Optional context for this status change..."
+                        className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 resize-none"
+                      />
+                    </div>
+
+                    <GhostButton
+                      onClick={
+                        handleUpdateStatus
+                      }
+                      disabled={
+                        isSubmitting
+                      }
+                      className="w-full"
+                    >
+                      {isSubmitting
+                        ? 'Saving...'
+                        : 'Save Status'}
+                    </GhostButton>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Real Viewing Scheduler */}
+                <div
+                  id="lead-viewing-section"
+                  className="rounded-xl border border-white/5 bg-navy-900/50 p-4"
+                >
+                  <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-ink/60" />
+                    Viewing
+                  </h3>
+
+                  {hasViewingScheduled && (
+                    <div className="mb-4 rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3">
+                      <div className="text-xs text-emerald-400 mb-1">
+                        Current Appointment
+                      </div>
+
+                      <div className="text-sm text-cream">
+                        {formatDateTime(
+                          String(
+                            currentLead.scheduledDate ||
+                            '',
+                          ),
+                        )}
+                      </div>
+
+                      <div className="text-sm text-cream mt-1 flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5 text-emerald-400" />
+
+                        {String(
+                          currentLead.scheduledTime ||
+                          '',
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs text-ink/60 mb-2">
+                        Viewing Date
+                      </label>
+
+                      <input
+                        type="date"
+                        value={
+                          scheduledDate
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          setScheduledDate(
+                            event.target
+                              .value,
+                          )
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream outline-none focus:border-gold-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-ink/60 mb-2">
+                        Viewing Time
+                      </label>
+
+                      <input
+                        type="text"
+                        value={
+                          scheduledTime
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          setScheduledTime(
+                            event.target
+                              .value,
+                          )
+                        }
+                        placeholder="e.g. 4:00 PM"
+                        className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-ink/60 mb-2">
+                        Viewing Note
+                      </label>
+
+                      <textarea
+                        value={
+                          viewingNote
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          setViewingNote(
+                            event.target
+                              .value,
+                          )
+                        }
+                        rows={2}
+                        placeholder="Optional appointment note..."
+                        className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-2 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 resize-none"
+                      />
+                    </div>
+
+                    <GoldButton
+                      onClick={
+                        handleScheduleViewing
+                      }
+                      disabled={
+                        isSubmitting
+                      }
+                      className="w-full"
+                    >
+                      {isSubmitting
+                        ? 'Saving...'
+                        : hasViewingScheduled
+                          ? 'Reschedule Viewing'
+                          : 'Schedule Viewing'}
+                    </GoldButton>
+                  </div>
+                </div>
+
+                {/* Real Related Entities */}
+                <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                  <h3 className="font-heading text-sm font-semibold text-cream mb-4 flex items-center gap-2">
+                    <User className="h-4 w-4 text-ink/60" />
+                    Related Entities
+                  </h3>
+
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Assigned Agent
+                      </span>
+
+                      <span className="text-cream">
+                        Current Agent
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Agency
+                      </span>
+
+                      <span className="text-cream">
+                        {String(
+                          agency?.name ||
+                          'Agency unavailable',
+                        )}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-ink/60 text-xs mb-1">
+                        Property Owner
+                      </span>
+
+                      <span className="text-cream">
+                        {String(
+                          owner?.fullName ||
+                          'Owner unavailable',
+                        )}
+                      </span>
+
+                      {typeof owner?.email === 'string' &&
+                        owner.email.length > 0 && (
+                          <span className="block text-xs text-ink/50 mt-1">
+                            {owner.email}
+                          </span>
+                        )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Real Backend Activity Timeline */}
         {activeTab ===
           'timeline' && (
-          <div className="rounded-xl border border-white/5 bg-navy-900/50 p-6">
-            {communicationTimeline.length >
-            0 ? (
-              <ActivityTimeline
-                title="Communication History"
-                items={
-                  communicationTimeline
-                }
-              />
-            ) : (
-              <div className="text-sm text-ink/50 text-center py-10">
-                No Lead activity has been recorded yet.
-              </div>
-            )}
-          </div>
-        )}
+            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-6">
+              {communicationTimeline.length >
+                0 ? (
+                <ActivityTimeline
+                  title="Communication History"
+                  items={
+                    communicationTimeline
+                  }
+                />
+              ) : (
+                <div className="text-sm text-ink/50 text-center py-10">
+                  No Lead activity has been recorded yet.
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Real Backend Notes */}
         {activeTab ===
           'notes' && (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-ink/60" />
-                Lead Notes
-              </h3>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-ink/60" />
+                  Lead Notes
+                </h3>
 
-              <div className="space-y-3">
-                {notes.length > 0 ? (
-                  notes.map(
-                    (note) => (
-                      <div
-                        key={
-                          note._id ||
-                          `${note.addedAt}-${note.text}`
-                        }
-                        className="p-4 bg-navy-800 rounded-lg border border-white/5"
-                      >
-                        <p className="text-sm text-ink/80 leading-relaxed">
-                          {
-                            note.text
+                <div className="space-y-3">
+                  {notes.length > 0 ? (
+                    notes.map(
+                      (note) => (
+                        <div
+                          key={
+                            note._id ||
+                            `${note.addedAt}-${note.text}`
                           }
-                        </p>
+                          className="p-4 bg-navy-800 rounded-lg border border-white/5"
+                        >
+                          <p className="text-sm text-ink/80 leading-relaxed">
+                            {
+                              note.text
+                            }
+                          </p>
 
-                        <div className="text-[10px] text-ink/40 mt-3">
-                          Added{' '}
-                          {formatDateTime(
-                            note.addedAt,
-                          )}
+                          <div className="text-[10px] text-ink/40 mt-3">
+                            Added{' '}
+                            {formatDateTime(
+                              note.addedAt,
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ),
-                  )
-                ) : (
-                  <div className="p-4 bg-navy-800 rounded-lg border border-white/5 min-h-[100px] flex items-center justify-center">
-                    <span className="text-sm text-ink/50">
-                      No internal notes yet.
-                    </span>
-                  </div>
-                )}
+                      ),
+                    )
+                  ) : (
+                    <div className="p-4 bg-navy-800 rounded-lg border border-white/5 min-h-[100px] flex items-center justify-center">
+                      <span className="text-sm text-ink/50">
+                        No internal notes yet.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                <label className="block text-xs text-ink/60 mb-2">
+                  Add Internal Note
+                </label>
+
+                <textarea
+                  value={newNote}
+                  onChange={(
+                    event,
+                  ) =>
+                    setNewNote(
+                      event.target
+                        .value,
+                    )
+                  }
+                  rows={4}
+                  placeholder="Enter a private note about this Lead..."
+                  className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-3 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 resize-none"
+                />
+
+                <div className="flex justify-end mt-3">
+                  <GoldButton
+                    onClick={
+                      handleAddNote
+                    }
+                    disabled={
+                      isSubmitting ||
+                      !newNote.trim()
+                    }
+                  >
+                    {isSubmitting
+                      ? 'Saving...'
+                      : 'Add Note'}
+                  </GoldButton>
+                </div>
               </div>
             </div>
-
-            <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
-              <label className="block text-xs text-ink/60 mb-2">
-                Add Internal Note
-              </label>
-
-              <textarea
-                value={newNote}
-                onChange={(
-                  event,
-                ) =>
-                  setNewNote(
-                    event.target
-                      .value,
-                  )
-                }
-                rows={4}
-                placeholder="Enter a private note about this Lead..."
-                className="w-full rounded-lg border border-white/10 bg-navy-800 px-3 py-3 text-sm text-cream placeholder:text-ink/30 outline-none focus:border-gold-400 resize-none"
-              />
-
-              <div className="flex justify-end mt-3">
-                <GoldButton
-                  onClick={
-                    handleAddNote
-                  }
-                  disabled={
-                    isSubmitting ||
-                    !newNote.trim()
-                  }
-                >
-                  {isSubmitting
-                    ? 'Saving...'
-                    : 'Add Note'}
-                </GoldButton>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
       </div>
     </Modal>
   );
