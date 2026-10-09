@@ -317,9 +317,14 @@ export function SessionProvider({
         }
 
         // Convert the backend account into the frontend user structure.
+        const cachedAvatarForSameUser =
+          user?.id === String(backendUser.id)
+            ? user.avatar
+            : undefined;
+
         const userToSave = buildFrontendUser(
           backendUser,
-          user?.avatar,
+          cachedAvatarForSameUser,
         );
 
         // Update the live React session.
@@ -361,7 +366,7 @@ export function SessionProvider({
     recentlyViewed,
     addRecentlyViewed,
     setRecentlyViewed,
-  } = useRecentlyViewed();
+  } = useRecentlyViewed(user?.id);
 
   const removeRecentlyViewed = useCallback(
     (id: string) => {
