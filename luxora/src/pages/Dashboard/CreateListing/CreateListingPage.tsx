@@ -235,9 +235,9 @@ const mapBackendPriceTypeToDraft = (
   priceType: string | null | undefined,
 ): string => {
   switch (
-  String(priceType || '')
-    .trim()
-    .toLowerCase()
+    String(priceType || '')
+      .trim()
+      .toLowerCase()
   ) {
     case 'negotiable':
       return 'Negotiable';
@@ -260,9 +260,9 @@ const mapBackendPriceTypeToDraft = (
 const mapBackendPaymentPlansToDraft = (
   plans:
     | Array<{
-      durationMonths?: number;
-      description?: string | null;
-    }>
+        durationMonths?: number;
+        description?: string | null;
+      }>
     | undefined,
 ): string[] => {
   if (!Array.isArray(plans)) {
@@ -283,7 +283,7 @@ const mapBackendPaymentPlansToDraft = (
 
       if (
         typeof plan?.description ===
-        'string' &&
+          'string' &&
         plan.description.trim()
       ) {
         return plan.description.trim();
@@ -416,10 +416,10 @@ const mapAgentPropertyToDraft = (
     mortgageOptions:
       property.mortgageOptions
         ? String(
-          Boolean(
-            property.mortgageOptions.available,
-          ),
-        )
+            Boolean(
+              property.mortgageOptions.available,
+            ),
+          )
         : '',
 
     // Existing server-side media is preserved during edit.
@@ -471,7 +471,7 @@ const buildAgentEditPayload = (
       : 'buy';
 
   const normalizedPriceType =
-    draft.priceType
+    (draft.priceType || '')
       .trim()
       .toLowerCase();
 
@@ -488,9 +488,9 @@ const buildAgentEditPayload = (
     priceType = 'negotiable';
   } else if (
     normalizedPriceType ===
-    'price on request' ||
+      'price on request' ||
     normalizedPriceType ===
-    'price_on_request'
+      'price_on_request'
   ) {
     priceType = 'price_on_request';
   } else if (
@@ -500,7 +500,7 @@ const buildAgentEditPayload = (
     priceType = 'auction';
   }
 
-  const paymentPlans = draft.paymentPlans
+  const paymentPlans = (draft.paymentPlans || [])
     .map((plan) => {
       const match = plan.match(/\d+/);
 
@@ -535,41 +535,41 @@ const buildAgentEditPayload = (
 
   return {
     title:
-      draft.title.trim(),
+      (draft.title || '').trim(),
 
     description:
-      draft.description.trim(),
+      (draft.description || '').trim(),
 
     propertyType:
       draft.propertyType,
 
     propertySubType:
-      draft.propertySubType.trim() ||
+      (draft.propertySubType || '').trim() ||
       null,
 
     transactionType,
 
     country:
-      draft.country.trim() ||
+      (draft.country || '').trim() ||
       'Nigeria',
 
     state:
-      draft.state.trim(),
+      (draft.state || '').trim(),
 
     city:
-      draft.city.trim(),
+      (draft.city || '').trim(),
 
     area:
-      draft.area.trim() || null,
+      (draft.area || '').trim() || null,
 
     address:
-      draft.address.trim() || null,
+      (draft.address || '').trim() || null,
 
     estateName:
-      draft.estateName.trim() || null,
+      (draft.estateName || '').trim() || null,
 
     landmark:
-      draft.landmark.trim() || null,
+      (draft.landmark || '').trim() || null,
 
     hideExactAddress:
       draft.hideExactAddress,
@@ -595,7 +595,7 @@ const buildAgentEditPayload = (
         : Number(draft.parkingSpaces),
 
     propertySize:
-      draft.propertySize.trim() === ''
+      (draft.propertySize || '').trim() === ''
         ? null
         : Number(draft.propertySize),
 
@@ -603,25 +603,25 @@ const buildAgentEditPayload = (
       'sqm',
 
     yearBuilt:
-      draft.yearBuilt.trim() === ''
+      (draft.yearBuilt || '').trim() === ''
         ? null
         : Number(draft.yearBuilt),
 
     floorNumber:
-      draft.floorNumber.trim() === ''
+      (draft.floorNumber || '').trim() === ''
         ? null
         : Number(draft.floorNumber),
 
     totalFloors:
-      draft.totalFloors.trim() === ''
+      (draft.totalFloors || '').trim() === ''
         ? null
         : Number(draft.totalFloors),
 
     furnishing:
-      draft.furnishing.trim() || null,
+      (draft.furnishing || '').trim() || null,
 
     propertyCondition:
-      draft.propertyCondition.trim() ||
+      (draft.propertyCondition || '').trim() ||
       null,
 
     amenities:
@@ -653,11 +653,11 @@ const buildAgentEditPayload = (
           ? draft.priceValue === ''
             ? null
             : Number(
-              draft.priceValue,
-            )
+                draft.priceValue,
+              )
           : Number(
-            draft.rentAmount,
-          )
+              draft.rentAmount,
+            )
         : null,
 
     serviceCharge:
@@ -687,8 +687,8 @@ const buildAgentEditPayload = (
 
     leaseDuration:
       transactionType === 'lease'
-        ? draft.leaseDuration.trim() ||
-        null
+        ? (draft.leaseDuration || '').trim() ||
+          null
         : null,
 
     paymentPlans,
@@ -705,14 +705,14 @@ const buildAgentEditPayload = (
     },
 
     videoUrl:
-      draft.videoUrl.trim() || null,
+      (draft.videoUrl || '').trim() || null,
 
     virtualTourUrl:
-      draft.virtualTourUrl.trim() ||
+      (draft.virtualTourUrl || '').trim() ||
       null,
 
     brochureUrl:
-      draft.brochureUrl.trim() || null,
+      (draft.brochureUrl || '').trim() || null,
   };
 };
 
@@ -763,35 +763,114 @@ export default function CreateListingPage() {
     setExistingDocumentUrls,
   ] = useState<string[]>([]);
 
-  // Load the saved draft when the page first opens.
+  // Load and normalize a saved draft when the page first opens.
+  // Older localStorage drafts may not contain fields added by later versions.
   const [draft, setDraft] =
     useState<ListingDraft>(() => {
-      const saved =
-        localStorage.getItem(
-          STORAGE_KEY,
-        );
+      const saved = localStorage.getItem(STORAGE_KEY);
 
       if (saved) {
         try {
-          const parsed =
-            JSON.parse(saved);
+          const parsed = JSON.parse(saved) as
+            | Partial<ListingDraft>
+            | null;
 
-          // File objects cannot be restored from localStorage.
-          parsed.images = [];
-          parsed.documents = [];
-          parsed.ownershipVerification =
-            [];
+          if (
+            parsed &&
+            typeof parsed === 'object' &&
+            !Array.isArray(parsed)
+          ) {
+            // Merge with current defaults so older drafts cannot leave
+            // required fields undefined and crash on .trim().
+            const restored = {
+              ...initialDraftState,
+              ...parsed,
+            } as ListingDraft;
 
-          return parsed;
+            // Sanitize every draft field that is later used with .trim().
+            const stringFields = [
+              'title',
+              'description',
+              'propertyCondition',
+              'propertySubType',
+              'country',
+              'state',
+              'city',
+              'area',
+              'address',
+              'estateName',
+              'landmark',
+              'propertySize',
+              'yearBuilt',
+              'floorNumber',
+              'totalFloors',
+              'furnishing',
+              'price',
+              'currency',
+              'priceType',
+              'rentAmount',
+              'leaseDuration',
+              'mortgageOptions',
+              'videoUrl',
+              'virtualTourUrl',
+              'brochureUrl',
+              'listingSource',
+              'ownerReference',
+              'ownerName',
+              'organizationName',
+              'organizationRep',
+            ] as const;
+
+            for (const field of stringFields) {
+              if (typeof restored[field] !== 'string') {
+                restored[field] = initialDraftState[field];
+              }
+            }
+
+            if (typeof restored.propertyType !== 'string') {
+              restored.propertyType = initialDraftState.propertyType;
+            }
+
+            if (typeof restored.transactionType !== 'string') {
+              restored.transactionType = initialDraftState.transactionType;
+            }
+
+            if (typeof restored.hideExactAddress !== 'boolean') {
+              restored.hideExactAddress = initialDraftState.hideExactAddress;
+            }
+
+            if (typeof restored.isNegotiable !== 'boolean') {
+              restored.isNegotiable = initialDraftState.isNegotiable;
+            }
+
+            if (!Array.isArray(restored.amenities)) {
+              restored.amenities = [...initialDraftState.amenities];
+            }
+
+            if (!Array.isArray(restored.paymentPlans)) {
+              restored.paymentPlans = [...initialDraftState.paymentPlans];
+            }
+
+            // Browser File objects cannot be restored from localStorage.
+            restored.images = [];
+            restored.documents = [];
+            restored.ownershipVerification = [];
+
+            return restored;
+          }
         } catch (error) {
-          console.error(
-            'Failed to parse saved draft',
-            error,
-          );
+          console.error('Failed to parse saved listing draft', error);
         }
       }
 
-      return initialDraftState;
+      return {
+        ...initialDraftState,
+        amenities: [...initialDraftState.amenities],
+        paymentPlans: [...initialDraftState.paymentPlans],
+        images: [],
+        documents: [],
+        ownershipVerification: [],
+      };
     });
 
   // Load the real Agent listing when editId exists.
@@ -835,8 +914,8 @@ export default function CreateListingPage() {
                 String(item?._id) ===
                 String(editId),
             ) as
-            | AgentPropertyRecord
-            | undefined;
+              | AgentPropertyRecord
+              | undefined;
 
           if (!property) {
             throw new Error(
@@ -887,14 +966,14 @@ export default function CreateListingPage() {
                 property.documents,
               )
                 ? property.documents.map(
-                  (document: {
-                    url?: string | null;
-                  }) =>
-                    String(
-                      document?.url ||
-                      '',
-                    ),
-                ).filter(Boolean)
+                    (document: {
+                      url?: string | null;
+                    }) =>
+                      String(
+                        document?.url ||
+                        '',
+                      ),
+                  ).filter(Boolean)
                 : [],
             );
 
@@ -1023,20 +1102,20 @@ export default function CreateListingPage() {
   const validateBeforeSubmit = () => {
     // Require the main property information.
     if (
-      !draft.title.trim() ||
+      !(draft.title || '').trim() ||
       !draft.propertyType ||
       !draft.transactionType ||
-      !draft.description.trim()
+      !(draft.description || '').trim()
     ) {
       return 'Please complete the Basic Information section before submitting.';
     }
 
     // Require the mandatory property location fields.
     if (
-      !draft.country.trim() ||
-      !draft.state.trim() ||
-      !draft.city.trim() ||
-      !draft.address.trim()
+      !(draft.country || '').trim() ||
+      !(draft.state || '').trim() ||
+      !(draft.city || '').trim() ||
+      !(draft.address || '').trim()
     ) {
       return 'Please complete the required Location information before submitting.';
     }
@@ -1045,7 +1124,7 @@ export default function CreateListingPage() {
     if (
       draft.bedrooms === '' ||
       draft.bathrooms === '' ||
-      !draft.propertySize.trim()
+      !(draft.propertySize || '').trim()
     ) {
       return 'Please complete the required Property Details before submitting.';
     }
@@ -1053,7 +1132,7 @@ export default function CreateListingPage() {
     // Require pricing unless the listing is explicitly price-on-request.
     if (
       draft.priceType !==
-      'Price On Request' &&
+        'Price On Request' &&
       draft.priceValue === ''
     ) {
       return 'Please enter the property price before submitting.';
@@ -1063,7 +1142,8 @@ export default function CreateListingPage() {
     // For editing, existing server images already satisfy the media requirement.
     if (
       !editId &&
-      draft.images.length === 0
+      (!Array.isArray(draft.images) ||
+        draft.images.length === 0)
     ) {
       return 'Please upload at least one property image before submitting.';
     }
@@ -1082,8 +1162,8 @@ export default function CreateListingPage() {
           user?.role !== ROLES.OWNER
         ) {
           if (
-            !draft.ownerName.trim() &&
-            !draft.organizationName.trim()
+            !(draft.ownerName || '').trim() &&
+            !(draft.organizationName || '').trim()
           ) {
             return 'Please provide the legal owner or organization name.';
           }
@@ -1091,8 +1171,8 @@ export default function CreateListingPage() {
 
         // Owner submissions still require ownership verification documents.
         if (
-          draft.ownershipVerification
-            .length === 0
+          !Array.isArray(draft.ownershipVerification) ||
+          draft.ownershipVerification.length === 0
         ) {
           return 'Please upload at least one ownership verification document.';
         }
@@ -1102,8 +1182,8 @@ export default function CreateListingPage() {
     // Lease listings must contain a lease duration.
     if (
       draft.transactionType ===
-      'lease' &&
-      !draft.leaseDuration.trim()
+        'lease' &&
+      !(draft.leaseDuration || '').trim()
     ) {
       return 'Please provide the lease duration.';
     }
@@ -1119,18 +1199,17 @@ export default function CreateListingPage() {
       return;
     }
 
-    // Validate the completed form before starting network requests.
-    const validationError =
-      validateBeforeSubmit();
-
-    if (validationError) {
-      setSubmitError(
-        validationError,
-      );
-      return;
-    }
-
     try {
+      // Validate the completed form inside the try/catch
+      // so unexpected validation errors are displayed to the user.
+      const validationError =
+        validateBeforeSubmit();
+
+      if (validationError) {
+        setSubmitError(validationError);
+        return;
+      }
+
       // Start the submission state.
       setIsSubmitting(true);
 
@@ -1197,20 +1276,39 @@ export default function CreateListingPage() {
       // NORMAL CREATE LISTING FLOW
       // ==============================
 
-      // Upload the property images and treat the unwrapped API result as our expected response shape.
+      // Confirm that the image array is usable before uploading.
+      const imagesToUpload = Array.isArray(draft.images)
+        ? draft.images
+        : [];
+
+      if (imagesToUpload.length === 0) {
+        throw new Error(
+          'Please upload at least one property image before submitting.',
+        );
+      }
+
+      // Upload the property images.
       const imageResponse =
         (await uploadApi.uploadPropertyImages(
-          draft.images,
+          imagesToUpload,
         )) as unknown as ImageUploadResponse;
 
       // Store the image URLs returned by the backend.
       const uploadedImages =
-        imageResponse.images ?? [];
+        imageResponse?.images ?? [];
+
+      if (uploadedImages.length === 0) {
+        throw new Error(
+          'The images were not uploaded successfully. Please try again.',
+        );
+      }
 
       // Combine regular listing documents and ownership verification documents.
       const documentsToUpload = [
-        ...draft.documents,
-        ...draft.ownershipVerification,
+        ...(Array.isArray(draft.documents) ? draft.documents : []),
+        ...(Array.isArray(draft.ownershipVerification)
+          ? draft.ownershipVerification
+          : []),
       ];
 
       // Prepare an empty document URL array for listings without documents.
@@ -1223,22 +1321,24 @@ export default function CreateListingPage() {
       if (
         documentsToUpload.length > 0
       ) {
-        // Upload the property documents and treat the unwrapped API result as our expected response shape.
+        // Upload the property documents.
         const documentResponse =
           (await uploadApi.uploadPropertyDocuments(
             documentsToUpload,
           )) as unknown as DocumentUploadResponse;
 
+        const documentUrls =
+          documentResponse?.documents ?? [];
+
         // Match each returned URL with the original file name.
         uploadedDocuments =
-          documentResponse.documents.map(
+          documentUrls.map(
             (url, index) => ({
               title:
                 documentsToUpload[
                   index
                 ]?.name ||
-                `Property Document ${index + 1
-                }`,
+                `Property Document ${index + 1}`,
               url,
             }),
           );
@@ -1252,14 +1352,14 @@ export default function CreateListingPage() {
           uploadedDocuments,
         );
 
-      // Create the property and treat the unwrapped API result as our expected response shape.
+      // Create the property.
       const createResponse =
         (await propertyApi.createProperty(
           propertyPayload,
         )) as unknown as CreatePropertyResponse;
 
       const propertyId =
-        createResponse.property?._id;
+        createResponse?.property?._id;
 
       // Creation must always return a property ID.
       if (!propertyId) {
@@ -1284,7 +1384,7 @@ export default function CreateListingPage() {
           !reviewResponse?.property?._id
         ) {
           throw new Error(
-            'The Agent property review submission did not complete successfully.',
+            'The listing was created, but submission for review did not complete successfully.',
           );
         }
       }
@@ -1521,29 +1621,29 @@ export default function CreateListingPage() {
                 <div className="mt-2 flex flex-wrap gap-4 text-xs text-ink/50">
                   {existingImageUrls.length >
                     0 && (
-                      <span>
-                        {
-                          existingImageUrls.length
-                        } existing image
-                        {existingImageUrls.length !==
-                          1
-                          ? 's'
-                          : ''}
-                      </span>
-                    )}
+                    <span>
+                      {
+                        existingImageUrls.length
+                      } existing image
+                      {existingImageUrls.length !==
+                        1
+                        ? 's'
+                        : ''}
+                    </span>
+                  )}
 
                   {existingDocumentUrls.length >
                     0 && (
-                      <span>
-                        {
-                          existingDocumentUrls.length
-                        } existing document
-                        {existingDocumentUrls.length !==
-                          1
-                          ? 's'
-                          : ''}
-                      </span>
-                    )}
+                    <span>
+                      {
+                        existingDocumentUrls.length
+                      } existing document
+                      {existingDocumentUrls.length !==
+                        1
+                        ? 's'
+                        : ''}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -1572,18 +1672,18 @@ export default function CreateListingPage() {
             <div className="flex items-center gap-3 w-full sm:w-auto">
               {currentStep >
                 0 && (
-                  <GhostButton
-                    onClick={
-                      handleBack
-                    }
-                    className="flex-1 sm:flex-none"
-                    disabled={
-                      isSubmitting
-                    }
-                  >
-                    Back
-                  </GhostButton>
-                )}
+                <GhostButton
+                  onClick={
+                    handleBack
+                  }
+                  className="flex-1 sm:flex-none"
+                  disabled={
+                    isSubmitting
+                  }
+                >
+                  Back
+                </GhostButton>
+              )}
 
               {currentStep <
                 STEPS.length - 1 ? (
